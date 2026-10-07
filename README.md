@@ -32,6 +32,10 @@ npm run dev
 
 A migração inicial está em `drizzle/`. O ambiente local de Sites usa D1 local; o banco de produção é separado.
 
+## Vercel
+
+O arquivo `vercel.json` prepara a identificação do projeto como Next.js e seleciona o build nativo da Vercel. O sistema atual ainda usa `cloudflare:workers` e D1 para pedidos e pagamentos; por isso, esse arquivo sozinho **não torna o checkout e o painel operacionais na Vercel**. Antes de publicar por lá, será necessário migrar o armazenamento e as variáveis de ambiente do servidor para recursos compatíveis com Vercel.
+
 ## Regras de operação
 
 - O contador soma hambúrgueres pagos, não bebidas nem pedidos aguardando pagamento.
