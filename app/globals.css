@@ -8,3 +8,101 @@
 @media(max-width:1000px){.hero-inner{grid-template-columns:1fr .7fr}.hero-visual img{height:500px}.hero-facts{margin-top:40px}.menu-grid{grid-template-columns:repeat(2,1fr)}.order-layout{gap:35px}.admin-shell{grid-template-columns:190px 1fr}.admin-main{padding:30px}}
 @media(max-width:700px){.wrap{padding-left:20px;padding-right:20px}.topbar{height:69px}.brand{font-size:17px}.brand-mark{width:33px;height:33px;font-size:25px}.toplinks{display:none}.nav-cta{font-size:12px}.hero-inner{display:flex;flex-direction:column;min-height:0}.hero-copy{padding:55px 0 25px}.hero h1{font-size:clamp(62px,15vw,95px);margin:29px 0 20px}.hero-copy>p{font-size:15px}.hero-actions{align-items:start;flex-direction:column;gap:18px}.hero-facts{margin-top:38px;gap:12px}.hero-visual{min-height:350px;height:350px;width:100%}.hero-visual img{height:350px;width:350px}.hero-orbit{height:315px;width:315px;top:0;left:50%;transform:translateX(-50%)}.hero-sticker{right:8%;bottom:55px;width:75px;height:75px}.hero-sticker strong{font-size:42px}.ribbon-inner{font-size:11px;min-height:54px}.ribbon-star{font-size:14px}.menu-section,.how-section{padding-top:70px;padding-bottom:70px}.section-head{display:block}.section-head>p{margin-top:18px}.menu-grid{gap:10px}.product-art{height:140px}.product-art span{font-size:72px}.art-coke span,.art-coke-zero span{font-size:70px}.product-info{padding:15px}.product-title{display:block}.product-title h3{font-size:25px}.product-title strong{display:block;margin-top:7px}.product-info>p{font-size:12px;min-height:56px}.quantity{margin-top:13px}.order-section{padding:70px 0}.order-layout{display:block}.order-intro{position:static;margin-bottom:30px}.order-card{padding:22px}.fields{grid-template-columns:1fr}.fields label{grid-column:1/-1}.how-grid{grid-template-columns:1fr;gap:22px}.footer-inner{min-height:150px;align-items:start;justify-content:center;flex-direction:column;gap:5px}.footer-inner p{margin:0}.order-status-wrap{padding-top:35px}.status-header h1{font-size:52px}.admin-shell{display:block}.admin-side{padding:15px 20px;flex-direction:row;align-items:center}.admin-side .brand{font-size:14px}.side-nav,.side-foot{display:none}.admin-main{padding:24px 17px 60px}.admin-head h1{font-size:45px}.metric-grid{grid-template-columns:1fr 1fr;gap:9px}.metric{padding:18px}.metric:last-child{grid-column:1/-1}.metric strong{font-size:40px}.admin-panel{padding:17px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button{transition:none}}
+
+/* Cardápio e checkout: menos rolagem, seleção clara e ação sempre visível no celular. */
+.site-shell .hero,.site-shell .hero-inner{min-height:510px}
+.site-shell .hero-copy{padding:48px 0}
+.site-shell .hero h1{font-size:clamp(60px,6.4vw,94px);line-height:.9;margin:27px 0 22px}
+.site-shell .hero-copy>p{margin:0;max-width:460px}
+.site-shell .hero-actions{margin-top:27px}
+.site-shell .hero-facts{margin-top:34px}
+.site-shell .hero-visual{min-height:510px}
+.site-shell .hero-visual img{height:480px;width:min(470px,100%)}
+.site-shell .hero-orbit{width:420px;height:420px;top:45px}
+.site-shell .hero-sticker{bottom:55px}
+.menu-section{padding-top:66px;padding-bottom:78px;scroll-margin-top:20px}
+.menu-group{margin-top:36px;scroll-margin-top:20px}
+.menu-group-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px;border-bottom:2px solid #dfe7f5;margin-bottom:18px;padding-bottom:10px}
+.menu-group-head h3{font-family:"Barlow Condensed",Impact,sans-serif;text-transform:uppercase;font-size:31px;color:var(--navy);margin:0}
+.menu-group-head p{font-size:13px;color:var(--muted);margin:0}
+.menu-group .menu-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#hamburgueres .menu-grid,#acompanhamentos .menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.menu-group .product-card{display:flex;min-width:0;border-radius:14px;transition:border-color .15s,box-shadow .15s}
+.menu-group .product-card.is-selected{border-color:var(--blue);box-shadow:0 0 0 2px rgba(21,61,154,.09)}
+.menu-group .product-art{height:auto;min-height:155px;width:36%;flex:none}
+.menu-group .product-art:before{width:115px;height:115px}
+.menu-group .product-art span{font-size:67px;transform:none}
+.menu-group .art-fries-small,.menu-group .art-fries-large{background:#fff1bd}
+.menu-group .art-water{background:#dff5fa}
+.menu-group .product-info{min-width:0;flex:1;padding:18px;display:flex;flex-direction:column}
+.menu-group .product-title{display:block}
+.menu-group .product-title h4{font-family:"Barlow Condensed",Impact,sans-serif;font-size:28px;line-height:1;text-transform:uppercase;margin:0;color:var(--navy)}
+.menu-group .product-title strong{display:block;font-size:18px;margin-top:6px}
+.menu-group .product-info>p{min-height:0;margin:10px 0 16px}
+.menu-group .quantity{margin-top:auto;padding-top:12px}
+.menu-group .stepper{gap:8px}
+.menu-group .stepper button{width:36px;height:36px}
+.menu-feedback{background:var(--mist);padding:20px;border-radius:10px}
+.menu-feedback button{border:0;background:transparent;color:var(--blue);font-weight:800;text-decoration:underline}
+.order-section{padding:76px 0;scroll-margin-top:10px}
+.order-layout{grid-template-columns:.72fr 1fr;gap:55px}
+.order-card{padding:30px}
+.order-card-head{margin-bottom:16px}
+.cart-items{display:grid;gap:9px}
+.cart-items>p{margin:3px 0;color:var(--muted);font-size:14px}
+.cart-line{display:flex;justify-content:space-between;gap:15px;font-size:14px}
+.cart-line strong{white-space:nowrap}
+.edit-order{display:inline-block;margin:13px 0 19px;color:var(--blue);font-weight:800;font-size:13px;text-decoration:underline}
+.form-step-title{font-size:15px;margin:10px 0 12px;color:var(--navy)}
+.notes-details{margin-top:19px;font-size:13px}
+.notes-details summary{cursor:pointer;color:var(--blue);font-weight:800}
+.notes-details summary span{font-weight:500;color:var(--muted)}
+.notes-details label{display:block;margin:13px 0 7px;font-weight:700}
+.notes-details textarea{width:100%;border:1px solid #dce5f2;border-radius:9px;background:#fbfcff;padding:13px 14px;resize:vertical}
+.mobile-cart{display:none}
+@media(max-width:1000px){.menu-group .menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.order-layout{gap:30px}}
+@media(max-width:700px){
+  .site-shell .topbar{height:64px}
+  .site-shell .brand{font-size:15px;gap:7px}
+  .site-shell .nav-cta{font-size:12px;gap:3px}
+  .site-shell .hero,.site-shell .hero-inner{min-height:0}
+  .site-shell .hero-copy{padding:39px 0 33px}
+  .site-shell .hero h1{font-size:clamp(53px,13vw,72px);margin:22px 0 18px}
+  .site-shell .hero-copy>p{font-size:14px;line-height:1.55}
+  .site-shell .hero-actions{margin-top:23px;gap:13px}
+  .site-shell .hero-actions .button{width:100%}
+  .site-shell .hero-facts{margin-top:21px;font-size:12px}
+  .site-shell .hero-visual{display:none}
+  .menu-section{padding-top:48px;padding-bottom:60px}
+  .section-head{margin-bottom:5px}
+  .section-head>p{font-size:14px;margin-top:10px}
+  .menu-group{margin-top:29px}
+  .menu-group-head{display:block;margin-bottom:12px}
+  .menu-group-head h3{font-size:27px}
+  .menu-group-head p{margin-top:3px}
+  .menu-group .menu-grid,#hamburgueres .menu-grid,#acompanhamentos .menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .menu-group .product-card{display:block}
+  .menu-group .product-art{width:100%;height:92px;min-height:0}
+  .menu-group .product-art:before{width:95px;height:95px}
+  .menu-group .product-art span{font-size:53px}
+  .menu-group .product-info{padding:11px;min-height:174px}
+  .menu-group .product-title h4{font-size:23px}
+  .menu-group .product-title strong{font-size:16px}
+  .menu-group .product-info>p{font-size:11px;line-height:1.35;margin:7px 0 10px}
+  .menu-group .quantity{padding-top:9px;font-size:11px}
+  .menu-group .stepper{gap:4px}
+  .menu-group .stepper button{width:32px;height:32px}
+  .order-section{padding:52px 0}
+  .order-intro{margin-bottom:21px}
+  .order-intro h2{font-size:48px}
+  .order-intro>p:not(.section-kicker){margin:14px 0 19px;font-size:14px}
+  .pickup-box{padding:14px}
+  .order-card{padding:20px}
+  .method-options{gap:8px}
+  .method-options button{padding:9px;gap:6px}
+  .method-options button>span{font-size:12px}
+  .site-shell{padding-bottom:68px}
+  .mobile-cart{display:flex;align-items:center;justify-content:space-between;gap:10px;position:fixed;bottom:0;left:0;right:0;z-index:20;background:var(--yellow);color:var(--navy);padding:14px 20px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -7px 26px rgba(7,27,80,.18);font-size:13px;font-weight:700}
+  .mobile-cart strong{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+}
+@media(prefers-reduced-motion:reduce){.menu-group .product-card{transition:none}}

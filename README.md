@@ -4,7 +4,7 @@ Pré-venda da Noite do Hambúrguer de 29 de outubro de 2026, das 18h às 22h.
 
 ## O que está pronto
 
-- Loja responsiva com dois hambúrgueres, duas bebidas, retirada e entrega.
+- Loja responsiva com dois hambúrgueres, batata frita em dois tamanhos, água, refrigerantes, retirada e entrega.
 - Taxa de entrega definida no painel antes de liberar o Pix ao cliente.
 - Painel de pedidos com aviso na capacidade, pausa manual, aumento de vagas, preparo e entrega.
 - Continuação das vendas após 100 hambúrgueres, com aviso de disponibilidade ao comprador.
@@ -13,7 +13,7 @@ Pré-venda da Noite do Hambúrguer de 29 de outubro de 2026, das 18h às 22h.
 
 ## Configuração para vendas reais
 
-1. Confirme tamanho e preço das bebidas. Os R$ 6 das latas são fictícios.
+1. Confirme os preços sugeridos dos hambúrgueres e refrigerantes e o tamanho das porções e bebidas antes da venda real.
 2. Ative o Checkout Integrado da InfinitePay na conta que receberá os valores.
 3. Configure a conta para aceitar somente Pix. A seleção das formas de pagamento é feita na InfinitePay.
 4. Defina `INFINITEPAY_HANDLE` e `ADMIN_PASSWORD` nas variáveis de ambiente do Site, nunca no código.

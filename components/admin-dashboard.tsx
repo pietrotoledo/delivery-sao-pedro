@@ -1,10 +1,11 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 type Order={id:string;created_at:string;name:string;phone:string;method:string;neighborhood:string|null;address:string|null;notes:string|null;items_json:string;burger_count:number;subtotal:number;delivery_fee:number|null;total:number|null;status:string;paid_at:string|null;payment_mode:string|null;refund_note:string|null};
 type AdminData={orders:Order[];settings:{capacity:number;paused:boolean};paid:number;demo:boolean;error?:string};
 const money=(n:number)=>(n/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const labels:Record<string,string>={awaiting_quote:"Aguardando taxa",ready_for_payment:"Aguardando Pix",awaiting_payment:"Aguardando Pix",paid:"Pago",preparing:"Em preparo",ready:"Pronto",out_for_delivery:"Saiu para entrega",completed:"Concluído",refunded:"Devolução registrada"};
-const names:Record<string,string>={classic:"Clássico",bacon:"Bacon",coke:"Coca-Cola","coke-zero":"Coca-Cola Zero"};
+const names:Record<string,string>={classic:"Clássico",bacon:"Bacon","fries-small":"Batata pequena","fries-large":"Batata grande",water:"Água mineral",coke:"Coca-Cola","coke-zero":"Coca-Cola Zero"};
 export default function AdminDashboard(){
   const [data,setData]=useState<AdminData|null>(null);
   const [capacity,setCapacity]=useState(100);
@@ -12,7 +13,7 @@ export default function AdminDashboard(){
   const [password,setPassword]=useState("");
   const [feeInputs,setFeeInputs]=useState<Record<string,string>>({});
   const load=useCallback(async()=>{const r=await fetch("/api/admin");const x=await r.json() as AdminData;if(!r.ok)throw new Error(x.error||"Acesso restrito.");setData(x);setCapacity(x.settings.capacity);},[]);
-  useEffect(()=>{load().catch(e=>setError(e.message));const timer=setInterval(()=>load().catch(()=>{}),10000);return()=>clearInterval(timer)},[load]);
+  useEffect(()=>{const initial=setTimeout(()=>load().catch(e=>setError(e.message)),0);const timer=setInterval(()=>load().catch(()=>{}),10000);return()=>{clearTimeout(initial);clearInterval(timer)}},[load]);
   const paidOrders=data?.orders.filter(o=>o.paid_at&&o.status!=="refunded")??[];
   const revenue=paidOrders.reduce((s,o)=>s+(o.total??0),0);
   const pendingQuotes=data?.orders.filter(o=>o.status==="awaiting_quote").length??0;
@@ -26,7 +27,7 @@ export default function AdminDashboard(){
   async function orderAction(id:string,body:Record<string,unknown>){setError("");const r=await fetch(`/api/admin/orders/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const x=await r.json() as {error?:string};if(!r.ok){setError(x.error||"Falha ao atualizar.");return;}await load();}
   async function login(event:React.FormEvent){event.preventDefault();setError("");const r=await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});const x=await r.json() as {error?:string};if(!r.ok){setError(x.error||"Acesso negado.");return;}setPassword("");await load();}
   const over=Math.max(0,(data?.paid??0)-(data?.settings.capacity??100));
-  return <div className="admin-shell"><aside className="admin-side"><a className="brand" href="/"><span className="brand-mark">B<span>.</span></span><span>BLUECKYARDIGANS</span></a><nav className="side-nav"><a href="#visao-geral">Visão geral</a><a href="#pedidos">Pedidos</a><a href="/">Ver loja</a></nav><p className="side-foot">Painel da equipe · 29/10/2026</p></aside><main className="admin-main"><header className="admin-head"><div><p className="section-kicker">Painel da equipe</p><h1>Controle da noite</h1><p>Pedidos e pagamentos atualizados a cada 10 segundos.</p></div><a href="/" target="_blank" rel="noreferrer">Abrir loja ↗</a></header>
+  return <div className="admin-shell"><aside className="admin-side"><Link className="brand" href="/"><span className="brand-mark">B<span>.</span></span><span>BLUECKYARDIGANS</span></Link><nav className="side-nav"><a href="#visao-geral">Visão geral</a><a href="#pedidos">Pedidos</a><Link href="/">Ver loja</Link></nav><p className="side-foot">Painel da equipe · 29/10/2026</p></aside><main className="admin-main"><header className="admin-head"><div><p className="section-kicker">Painel da equipe</p><h1>Controle da noite</h1><p>Pedidos e pagamentos atualizados a cada 10 segundos.</p></div><Link href="/" target="_blank" rel="noreferrer">Abrir loja ↗</Link></header>
     {error&&<div className="admin-alert" role="alert">{error} {!data&&<a href="/signin-with-chatgpt?return_to=/admin" target="_top">Entrar com ChatGPT</a>}</div>}
     {!data&&<form className="admin-panel" onSubmit={login}><h2>Acesso da equipe</h2><p>Entre com a senha do painel ou com sua conta autorizada do Site privado.</p><div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={e=>setPassword(e.target.value)}/><button type="submit">Entrar</button></div></form>}
     {data&&<><section id="visao-geral" className="metric-grid"><div className={`metric ${data.paid>=data.settings.capacity?"warning":""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{width:`${Math.min(100,data.paid/data.settings.capacity*100)}%`}}/></div></div><div className="metric"><span>Pedidos pagos</span><strong>{paidOrders.length}</strong><small>{pendingQuotes} aguardando taxa</small></div><div className="metric"><span>Total recebido</span><strong style={{fontSize:37}}>{money(revenue)}</strong><small>Exclui devoluções registradas</small></div></section>

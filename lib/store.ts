@@ -1,10 +1,13 @@
 import { env } from "cloudflare:workers";
 
 export const menu = [
-  { id: "classic", name: "Clássico", price: 2000, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa." },
-  { id: "bacon", name: "Bacon", price: 2500, category: "burger", description: "Carne, queijo, bacon crocante e molho da casa." },
-  { id: "coke", name: "Coca-Cola", price: 600, category: "drink", description: "Lata 350 ml · preço fictício." },
-  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Lata 350 ml · preço fictício." },
+  { id: "classic", name: "Clássico", price: 2200, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa." },
+  { id: "bacon", name: "Bacon", price: 2700, category: "burger", description: "Carne, queijo, bacon crocante e molho da casa." },
+  { id: "fries-small", name: "Batata pequena", price: 800, category: "side", description: "Batata frita crocante · porção pequena." },
+  { id: "fries-large", name: "Batata grande", price: 1200, category: "side", description: "Batata frita crocante · porção grande." },
+  { id: "water", name: "Água mineral", price: 350, category: "drink", description: "Água mineral · unidade." },
+  { id: "coke", name: "Coca-Cola", price: 600, category: "drink", description: "Lata 350 ml." },
+  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Lata 350 ml." },
 ] as const;
 
 export type Order = {
