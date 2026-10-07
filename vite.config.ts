@@ -7,6 +7,9 @@ import { connectorPreview } from "./build/connector-preview-plugin.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
+const directCloudflare = process.env.CLOUDFLARE_DIRECT === "1";
+const cloudflareDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+const cloudflareWorkerName = process.env.CLOUDFLARE_WORKER_NAME || "delivery-sao-pedro";
 
 const { d1, r2 } = hostingConfig;
 
@@ -15,14 +18,16 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const managedLinux = readExecutionProfile() === "managed-linux";
 
 const localBindingConfig = {
-  main: "./build/sites-worker.ts",
+  ...(directCloudflare ? { name: cloudflareWorkerName } : {}),
+  main: directCloudflare ? "vinext/server/fetch-handler" : "./build/sites-worker.ts",
   compatibility_flags: ["nodejs_compat"],
   d1_databases: d1
     ? [
         {
           binding: d1,
-          database_name: "site-creator-d1",
-          database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          database_name: directCloudflare ? "blueckyardigans-orders" : "site-creator-d1",
+          database_id: directCloudflare ? cloudflareDatabaseId : SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          ...(directCloudflare ? { migrations_dir: "../../drizzle" } : {}),
         },
       ]
     : [],
@@ -62,14 +67,13 @@ export default defineConfig(async ({ command }) => {
     },
     plugins: [
       vinext(),
-      sites({ mockAuth: !managedLinux }),
-      connectorPreview(),
+      ...(!directCloudflare ? [sites({ mockAuth: !managedLinux }), connectorPreview()] : []),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
         config: {
           ...localBindingConfig,
-          ...(command === "serve"
+          ...(!directCloudflare && command === "serve"
             ? {
                 services: [
                   {
@@ -81,7 +85,7 @@ export default defineConfig(async ({ command }) => {
               }
             : {}),
         },
-        ...(command === "serve"
+        ...(!directCloudflare && command === "serve"
           ? {
               auxiliaryWorkers: [
                 {
