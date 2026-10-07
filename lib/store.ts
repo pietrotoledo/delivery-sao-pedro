@@ -11,7 +11,7 @@ export const menu = [
 ] as const;
 
 export type Order = {
-  id: string; created_at: string; updated_at: string; name: string; phone: string;
+  id: string; created_at: string; updated_at: string; name: string; phone: string; email: string | null;
   method: "pickup" | "delivery"; neighborhood: string | null; address: string | null;
   notes: string | null; items_json: string; burger_count: number; subtotal: number;
   delivery_fee: number | null; total: number | null; status: string;
@@ -32,12 +32,16 @@ export async function ensureSchema() {
       const database = db();
       await database.prepare(`CREATE TABLE IF NOT EXISTS orders (
         id text PRIMARY KEY NOT NULL, created_at text NOT NULL, updated_at text NOT NULL,
-        name text NOT NULL, phone text NOT NULL, method text NOT NULL,
+        name text NOT NULL, phone text NOT NULL, email text, method text NOT NULL,
         neighborhood text, address text, notes text, items_json text NOT NULL,
         burger_count integer NOT NULL, subtotal integer NOT NULL, delivery_fee integer,
         total integer, status text NOT NULL, payment_mode text, checkout_url text,
         invoice_slug text, transaction_nsu text, paid_at text, refund_note text
       )`).run();
+      const columns = await database.prepare("PRAGMA table_info(orders)").all<{name:string}>();
+      if (!columns.results?.some(column => column.name === "email")) {
+        await database.prepare("ALTER TABLE orders ADD COLUMN email text").run();
+      }
       await database.prepare(`CREATE TABLE IF NOT EXISTS settings (
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
         paused integer DEFAULT false NOT NULL

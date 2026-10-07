@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, MapPin, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, MapPin, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import BrandAvatar from "./brand-avatar";
 
 type Product = { id: string; name: string; price: number; category: string; description: string };
@@ -26,18 +25,9 @@ const photos: Record<string, string> = {
 };
 
 export default function Storefront() {
-  const router = useRouter();
   const [data, setData] = useState<PublicData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [method, setMethod] = useState<"pickup" | "delivery">("pickup");
-  const [neighborhood, setNeighborhood] = useState("Manaíra");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/public")
@@ -45,38 +35,29 @@ export default function Storefront() {
         if (!response.ok) throw new Error("Cardápio indisponível");
         return response.json() as Promise<PublicData>;
       })
-      .then(setData)
+      .then(result => {
+        setData(result);
+        try {
+          const saved = window.sessionStorage.getItem("blueckyardigans-cart");
+          if (saved) setQuantities(JSON.parse(saved) as Record<string, number>);
+        } catch { /* O cardápio continua disponível sem o carrinho salvo. */ }
+      })
       .catch(() => setLoadError(true));
   }, []);
+
+  useEffect(() => {
+    if (data) window.sessionStorage.setItem("blueckyardigans-cart", JSON.stringify(quantities));
+  }, [data, quantities]);
 
   const selected = useMemo(() => data?.menu.filter(product => (quantities[product.id] ?? 0) > 0) ?? [], [data, quantities]);
   const items = selected.map(product => ({ id: product.id, quantity: quantities[product.id] }));
   const burgerCount = selected.reduce((sum, product) => sum + (product.category === "burger" ? quantities[product.id] : 0), 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = selected.reduce((sum, product) => sum + product.price * quantities[product.id], 0);
+  const checkoutHref = `/checkout?items=${encodeURIComponent(items.map(item => `${item.id}:${item.quantity}`).join(","))}`;
 
   function change(id: string, delta: number) {
     setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, (current[id] ?? 0) + delta)) }));
-  }
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    setError("");
-    if (burgerCount < 1) {
-      setError("Escolha pelo menos um hambúrguer para continuar.");
-      document.getElementById("hamburgueres")?.scrollIntoView({ behavior: "smooth" });
-      return;
-    }
-    setBusy(true);
-    try {
-      const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone, method, neighborhood, address, notes, items }) });
-      const result = await response.json() as { id?: string; error?: string };
-      if (!response.ok || !result.id) throw new Error(result.error || "Não foi possível criar o pedido.");
-      router.push(`/pedido/${result.id}`);
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Não foi possível criar o pedido.");
-      setBusy(false);
-    }
   }
 
   return <div className="site-shell">
@@ -118,28 +99,18 @@ export default function Storefront() {
         {data && <p className="photo-note">Fotos ilustrativas. Apresentação e porções podem variar no dia do evento.</p>}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
-        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Falta pouco<br />para comer.</h2><p>Confira os itens e escolha como vai receber. Para entrega, você vê a taxa antes de pagar.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />29 de outubro, das 18h às 22h</span></div></div></div>
-        <form className="order-card" onSubmit={submit}>
-          <div className="order-card-head"><ShoppingBag size={23} /><h3>Finalizar pedido</h3></div>
+        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />29 de outubro, das 18h às 22h</span></div></div></div>
+        <div className="order-card">
+          <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={photos[product.id]} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
-          <a className="edit-order" href="#cardapio">{selected.length ? "Editar itens" : "Ver cardápio"}</a>
-          <h4 className="form-step-title">Como quer receber?</h4>
-          <div className="method-options"><button type="button" className={method === "pickup" ? "selected" : ""} aria-pressed={method === "pickup"} onClick={() => setMethod("pickup")}><MapPin size={20} /><span>Vou retirar<small>Na paróquia</small></span>{method === "pickup" && <Check size={17} />}</button><button type="button" className={method === "delivery" ? "selected" : ""} aria-pressed={method === "delivery"} onClick={() => setMethod("delivery")}><Truck size={20} /><span>Quero entrega<small>Taxa antes do Pix</small></span>{method === "delivery" && <Check size={17} />}</button></div>
-          <h4 className="form-step-title">Seus dados</h4>
-          <div className="fields"><label>Nome<input value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder="Seu nome" required minLength={2} /></label><label>WhatsApp<input value={phone} onChange={event => setPhone(event.target.value)} autoComplete="tel" inputMode="tel" placeholder="(83) 99999-9999" required /></label>
-            {method === "delivery" && <><label>Bairro<select value={neighborhood} onChange={event => setNeighborhood(event.target.value)}><option>Manaíra</option><option>Bessa</option><option>Tambaú</option></select></label><label>Endereço completo<input value={address} onChange={event => setAddress(event.target.value)} autoComplete="street-address" placeholder="Rua, número, complemento e referência" required minLength={8} /></label></>}
-          </div>
-          <details className="notes-details"><summary>Adicionar observação <span>opcional</span></summary><label htmlFor="order-notes">Observações do pedido</label><textarea id="order-notes" value={notes} onChange={event => setNotes(event.target.value)} placeholder="Alguma informação para a equipe?" rows={2} maxLength={300} /></details>
-          <div className="order-totals"><div><span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span><strong>{money(subtotal)}</strong></div>{method === "delivery" && <p>Taxa de entrega informada antes do pagamento.</p>}</div>
-          {data && data.paid >= data.capacity && <div className="notice">A produção prevista foi atingida. Seu pedido depende de disponibilidade; se não for atendido, o pagamento será devolvido.</div>}
+          <div className="order-totals"><div><span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span><strong>{money(subtotal)}</strong></div></div>
           {data?.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="button button-yellow submit-button" type="submit" disabled={busy || data?.paused || !data}>{busy ? "Criando pedido..." : method === "delivery" ? "Solicitar taxa de entrega" : "Continuar para o Pix"}<ArrowRight size={19} /></button>
-          <p className="form-foot">Pagamento por Pix · evento em 29/10/2026</p>
-        </form>
+          {burgerCount > 0 && !data?.paused ? <Link className="button button-yellow submit-button" href={checkoutHref}>Ir para o checkout <ArrowRight size={19} /></Link> : <a className="button button-yellow submit-button" href="#hamburgueres">Escolher hambúrguer <ArrowRight size={19} /></a>}
+          <p className="form-foot">Você confere tudo antes de criar o pedido.</p>
+        </div>
       </div></section>
     </main>
-    {itemCount > 0 && <a className="mobile-cart" href={burgerCount > 0 ? "#pedido" : "#hamburgueres"} aria-label={burgerCount > 0 ? `Ver pedido com ${itemCount} itens, total ${money(subtotal)}` : "Escolha um hambúrguer para continuar"}><span>{burgerCount > 0 ? `${itemCount} ${itemCount === 1 ? "item" : "itens"} · ${money(subtotal)}` : "Escolha um hambúrguer"}</span><strong>{burgerCount > 0 ? "Continuar" : "Ver opções"} <ArrowRight size={18} /></strong></a>}
+    {itemCount > 0 && <a className="mobile-cart" href={burgerCount > 0 ? checkoutHref : "#hamburgueres"} aria-label={burgerCount > 0 ? `Ver pedido com ${itemCount} itens, total ${money(subtotal)}` : "Escolha um hambúrguer para continuar"}><span>{burgerCount > 0 ? `${itemCount} ${itemCount === 1 ? "item" : "itens"} · ${money(subtotal)}` : "Escolha um hambúrguer"}</span><strong>{burgerCount > 0 ? "Continuar" : "Ver opções"} <ArrowRight size={18} /></strong></a>}
     <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 29 de outubro de 2026</p><a href="/admin">Acesso da equipe</a></div></footer>
   </div>;
 }

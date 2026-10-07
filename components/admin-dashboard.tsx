@@ -6,7 +6,7 @@ import { ArrowUpRight, CirclePause, Clock3, PackageCheck, RefreshCw } from "luci
 import BrandAvatar from "./brand-avatar";
 
 type Order = {
-  id: string; created_at: string; name: string; phone: string; method: string;
+  id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
   neighborhood: string | null; address: string | null; notes: string | null;
   items_json: string; burger_count: number; subtotal: number;
   delivery_fee: number | null; total: number | null; status: string;
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
               const products = JSON.parse(order.items_json) as { id: string; quantity: number }[];
               const position = paidPosition.get(order.id);
               return <article className="admin-order" key={order.id}>
-                <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}</small></div><span className="status-pill">{labels[order.status] || order.status}</span></div>
+                <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className="status-pill">{labels[order.status] || order.status}</span></div>
                 <p className="admin-order-items">{products.map(item => `${item.quantity}× ${names[item.id] || item.id}`).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada na paróquia"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
