@@ -7,8 +7,9 @@ import { connectorPreview } from "./build/connector-preview-plugin.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
-const directCloudflare = process.env.CLOUDFLARE_DIRECT === "1";
-const cloudflareDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+// Workers Builds invokes the default build command with WORKERS_CI=1.
+const directCloudflare = process.env.CLOUDFLARE_DIRECT === "1" || process.env.WORKERS_CI === "1";
+const cloudflareDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID || "d1da0187-8fb6-47de-9cfa-c72f50b2755b";
 const cloudflareWorkerName = process.env.CLOUDFLARE_WORKER_NAME || "delivery-sao-pedro";
 
 const { d1, r2 } = hostingConfig;
