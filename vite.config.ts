@@ -25,7 +25,7 @@ const localBindingConfig = {
     ? [
         {
           binding: d1,
-          database_name: directCloudflare ? "blueckyardigans-orders" : "site-creator-d1",
+          database_name: directCloudflare ? "sao-pedro-delivery" : "site-creator-d1",
           database_id: directCloudflare ? cloudflareDatabaseId : SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
           ...(directCloudflare ? { migrations_dir: "../../drizzle" } : {}),
         },

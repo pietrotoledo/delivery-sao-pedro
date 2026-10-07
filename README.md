@@ -38,7 +38,7 @@ O arquivo `vercel.json` prepara a identificação do projeto como Next.js e sele
 
 ## Cloudflare Workers com GitHub
 
-Crie um **Worker** (não Pages) ligado a este repositório e um banco D1 chamado `blueckyardigans-orders`. Configure no projeto:
+Crie um **Worker** (não Pages) ligado a este repositório e um banco D1 chamado `sao-pedro-delivery`. Configure no projeto:
 
 - Build command: `npm run build:cloudflare`
 - Deploy command: `npm run deploy:cloudflare`
