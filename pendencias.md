@@ -17,12 +17,14 @@ Valores sugeridos para os itens cujo preço não foi informado:
 
 ## Personalização dos hambúrgueres
 
-- [ ] Permitir que o cliente personalize o hambúrguer apenas removendo ingredientes existentes, por exemplo: **sem cebola** ou **sem salada**.
-- [ ] Não permitir adicionar ingredientes ou porções extras (como outro hambúrguer, queijo, bacon etc.).
-- [ ] Exibir as remoções escolhidas no carrinho e nos detalhes do pedido para a equipe de preparo.
+- [x] Permitir que o cliente personalize o hambúrguer apenas removendo ingredientes existentes, por exemplo: **sem cebola** ou **sem salada**.
+- [x] Não permitir adicionar ingredientes ou porções extras (como outro hambúrguer, queijo, bacon etc.).
+- [x] Exibir as remoções escolhidas no carrinho e nos detalhes do pedido para a equipe de preparo.
 
 ## Antes de publicar as vendas
 
 - [ ] Confirmar os preços sugeridos antes da venda real (o cardápio do site já foi atualizado).
 - [ ] Conferir disponibilidade e tamanho das porções e bebidas.
 - [ ] Substituir as fotos ilustrativas por fotos dos produtos reais quando estiverem disponíveis.
+
+> Personalização disponível para ingredientes cadastrados de cada hambúrguer. A escolha se aplica a todas as unidades do mesmo tipo no pedido; não altera o preço.
