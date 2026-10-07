@@ -1,4 +1,4 @@
-CREATE TABLE `orders` (
+CREATE TABLE IF NOT EXISTS `orders` (
 	`id` text PRIMARY KEY NOT NULL,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE `orders` (
 	`refund_note` text
 );
 --> statement-breakpoint
-CREATE TABLE `settings` (
+CREATE TABLE IF NOT EXISTS `settings` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`capacity` integer DEFAULT 100 NOT NULL,
 	`paused` integer DEFAULT false NOT NULL

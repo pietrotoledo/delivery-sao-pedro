@@ -21,19 +21,48 @@ export function db() {
   return env.DB;
 }
 
+let schemaPromise: Promise<void> | undefined;
+
+export async function ensureSchema() {
+  if (!schemaPromise) {
+    schemaPromise = (async () => {
+      const database = db();
+      await database.prepare(`CREATE TABLE IF NOT EXISTS orders (
+        id text PRIMARY KEY NOT NULL, created_at text NOT NULL, updated_at text NOT NULL,
+        name text NOT NULL, phone text NOT NULL, method text NOT NULL,
+        neighborhood text, address text, notes text, items_json text NOT NULL,
+        burger_count integer NOT NULL, subtotal integer NOT NULL, delivery_fee integer,
+        total integer, status text NOT NULL, payment_mode text, checkout_url text,
+        invoice_slug text, transaction_nsu text, paid_at text, refund_note text
+      )`).run();
+      await database.prepare(`CREATE TABLE IF NOT EXISTS settings (
+        id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
+        paused integer DEFAULT false NOT NULL
+      )`).run();
+    })().catch((error) => {
+      schemaPromise = undefined;
+      throw error;
+    });
+  }
+  await schemaPromise;
+}
+
 export function paymentHandle() { return env.INFINITEPAY_HANDLE?.trim() || ""; }
 
 export async function config() {
+  await ensureSchema();
   const row = await db().prepare("SELECT capacity, paused FROM settings WHERE id = 1").first<{capacity:number;paused:number}>();
   return { capacity: row?.capacity ?? 100, paused: Boolean(row?.paused) };
 }
 
 export async function paidCount() {
+  await ensureSchema();
   const row = await db().prepare("SELECT COALESCE(SUM(burger_count),0) AS count FROM orders WHERE paid_at IS NOT NULL AND status != 'refunded'").first<{count:number}>();
   return row?.count ?? 0;
 }
 
 export async function getOrder(id: string) {
+  await ensureSchema();
   return await db().prepare("SELECT * FROM orders WHERE id = ?").bind(id).first<Order>();
 }
 
