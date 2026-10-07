@@ -244,9 +244,10 @@ button { -webkit-touch-callout: none; }
 .brand-avatar img { object-fit: cover; transform: scale(2.2); transform-origin: 50% 20%; }
 .admin-side .brand-avatar { outline: 2px solid #fff; outline-offset: 1px; }
 @media (max-width: 700px) { .brand-avatar { width: 33px; height: 33px; } }
+/* Beverage photos are square; contain keeps the bottle cap and glass rim visible. */
+#bebidas .product-photo { object-fit: contain; object-position: center; }
 @media (min-width: 701px) {
-  #bebidas .product-art { aspect-ratio: 1 / 1; }
-  #bebidas .product-photo { object-fit: cover; object-position: center; }
+  #bebidas .product-art { height: clamp(250px, 28vw, 360px); aspect-ratio: auto; background: #082b70; }
 }
 
 /* Separate checkout keeps additions, delivery details, and total in one view. */
