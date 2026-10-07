@@ -383,3 +383,11 @@ button { -webkit-touch-callout: none; }
   .site-shell .button:hover:not(:disabled) { transform: none; }
   .site-shell .menu-group .product-card:hover { transform: none; }
 }
+
+/* Personalização por remoção no resumo do checkout. */
+.burger-customization { margin-top: 10px; font-size: 12px; }
+.burger-customization summary { color: var(--brand-blue); cursor: pointer; font-weight: 800; padding: 5px 0; }
+.burger-customization p { margin: 7px 0; color: #64748f; line-height: 1.4; }
+.burger-customization label { display: flex; align-items: center; gap: 7px; padding: 6px 0; cursor: pointer; color: var(--brand-deep); }
+.burger-customization input { accent-color: var(--brand-blue); width: 16px; height: 16px; }
+.checkout-line .burger-removal-summary { display: block; margin-top: 6px; color: #8c3816; font-size: 11px; line-height: 1.35; font-weight: 700; }
