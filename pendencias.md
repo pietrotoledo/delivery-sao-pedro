@@ -19,3 +19,4 @@ Valores sugeridos para os itens cujo preço não foi informado:
 
 - [ ] Confirmar os preços sugeridos antes da venda real (o cardápio do site já foi atualizado).
 - [ ] Conferir disponibilidade e tamanho das porções e bebidas.
+- [ ] Substituir as fotos ilustrativas por fotos dos produtos reais quando estiverem disponíveis.

@@ -14,7 +14,15 @@ const groups = [
   { category: "side", id: "acompanhamentos", title: "Para acompanhar", hint: "Uma porção para completar." },
   { category: "drink", id: "bebidas", title: "Bebidas", hint: "Adicione ao seu pedido." },
 ];
-const art: Record<string, string> = { classic: "🍔", bacon: "🥓", "fries-small": "🍟", "fries-large": "🍟", water: "💧", coke: "🥤", "coke-zero": "🥤" };
+const photos: Record<string, string> = {
+  classic: "/products/classic.webp",
+  bacon: "/products/bacon.webp",
+  "fries-small": "/products/fries-small.webp",
+  "fries-large": "/products/fries-large.webp",
+  water: "/products/water.webp",
+  coke: "/products/cola.webp",
+  "coke-zero": "/products/cola.webp",
+};
 
 export default function Storefront() {
   const router = useRouter();
@@ -79,34 +87,40 @@ export default function Storefront() {
     <main>
       <section className="hero"><div className="hero-inner wrap">
         <div className="hero-copy">
-          <div className="event-chip"><span className="event-dot" /> 29 de outubro · 18h às 22h</div>
-          <h1>Seu lanche da<br /><em>gincana</em> está aqui.</h1>
-          <p>Escolha seu hambúrguer, complete com batata e bebida, e peça em poucos passos.</p>
-          <div className="hero-actions"><a className="button button-yellow" href="#cardapio">Escolher meu lanche <ArrowRight size={19} /></a><span>Retirada ou entrega · pagamento por Pix</span></div>
-          <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador, Manaíra</span></div>
+          <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 29 de outubro</div>
+          <h1>O sabor da<br />nossa <em>gincana.</em></h1>
+          <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
+          <div className="hero-actions"><a className="button button-yellow" href="#hamburgueres">Escolher meu hambúrguer <ArrowRight size={19} /></a></div>
+          <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador</span><span>18h às 22h · retirada ou entrega</span></div>
         </div>
-        <div className="hero-visual"><div className="hero-orbit" /><Image src="/mascote.png" width={520} height={575} priority alt="Mascote azul e amarelo dos Blueckyardigans" /><div className="hero-sticker"><strong>29</strong><span>OUT</span></div></div>
+        <div className="hero-media">
+          <Image src="/products/classic.webp" fill priority sizes="(max-width: 800px) 100vw, 50vw" alt="Hambúrguer Clássico com queijo, alface e tomate" />
+          <div className="hero-media-caption"><span>Comece pelo clássico</span><strong>R$ 22,00</strong></div>
+          <div className="hero-mascot"><Image src="/mascote.png" width={112} height={112} alt="Mascote Blueckyardigans" /></div>
+        </div>
       </div></section>
+      <div className="service-strip"><div className="wrap service-strip-inner"><span>Escolha sem complicação</span><span>Retire na paróquia ou receba em casa</span><span>Pagamento por Pix</span></div></div>
       <section className="menu-section wrap" id="cardapio">
-        <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>Monte seu pedido</h2></div><p>Toque em + para adicionar. O total aparece na hora.</p></div>
+        <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>O que vai no seu pedido?</h2></div><p>Escolha os itens e veja o total na hora. É rápido.</p></div>
         {!data && !loadError && <p className="menu-feedback" role="status">Carregando cardápio...</p>}
         {loadError && <p className="menu-feedback" role="alert">Não foi possível carregar o cardápio. <button type="button" onClick={() => window.location.reload()}>Tentar novamente</button></p>}
         {data?.paused && <div className="notice">Os pedidos estão pausados no momento. Volte mais tarde para comprar.</div>}
         {data && groups.map(group => <section className="menu-group" id={group.id} key={group.category}>
           <div className="menu-group-head"><h3>{group.title}</h3><p>{group.hint}</p></div>
           <div className="menu-grid">{data.menu.filter(product => product.category === group.category).map(product => <article className={`product-card ${quantities[product.id] ? "is-selected" : ""}`} key={product.id}>
-            <div className={`product-art art-${product.id}`} aria-hidden="true"><span>{art[product.id] ?? "🍽️"}</span></div>
+            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={photos[product.id]} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={product.category === "drink" && product.id !== "water" ? "Refrigerante gelado em copo, imagem ilustrativa" : `${product.name}, imagem ilustrativa`} /></div>
             <div className="product-info"><div className="product-title"><h4>{product.name}</h4><strong>{money(product.price)}</strong></div><p>{product.description}</p>
               <div className="quantity"><span>{quantities[product.id] ? "No pedido" : "Adicionar"}</span><div className="stepper"><button type="button" aria-label={`Diminuir ${product.name}`} disabled={!quantities[product.id] || data.paused} onClick={() => change(product.id, -1)}><Minus size={17} /></button><b aria-live="polite">{quantities[product.id] ?? 0}</b><button type="button" aria-label={`Aumentar ${product.name}`} disabled={data.paused || (quantities[product.id] ?? 0) >= 20 || (product.category === "burger" && burgerCount >= 20)} onClick={() => change(product.id, 1)}><Plus size={17} /></button></div></div>
             </div>
           </article>)}</div>
         </section>)}
+        {data && <p className="photo-note">Fotos ilustrativas. Apresentação e porções podem variar no dia do evento.</p>}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
         <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Falta pouco<br />para comer.</h2><p>Confira os itens e escolha como vai receber. Para entrega, você vê a taxa antes de pagar.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />29 de outubro, das 18h às 22h</span></div></div></div>
         <form className="order-card" onSubmit={submit}>
           <div className="order-card-head"><ShoppingBag size={23} /><h3>Finalizar pedido</h3></div>
-          <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
+          <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={photos[product.id]} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
           <a className="edit-order" href="#cardapio">{selected.length ? "Editar itens" : "Ver cardápio"}</a>
           <h4 className="form-step-title">Como quer receber?</h4>
           <div className="method-options"><button type="button" className={method === "pickup" ? "selected" : ""} aria-pressed={method === "pickup"} onClick={() => setMethod("pickup")}><MapPin size={20} /><span>Vou retirar<small>Na paróquia</small></span>{method === "pickup" && <Check size={17} />}</button><button type="button" className={method === "delivery" ? "selected" : ""} aria-pressed={method === "delivery"} onClick={() => setMethod("delivery")}><Truck size={20} /><span>Quero entrega<small>Taxa antes do Pix</small></span>{method === "delivery" && <Check size={17} />}</button></div>
