@@ -5,6 +5,7 @@ import { ArrowRight, Check, MapPin, Minus, Plus, ShoppingBag, Truck } from "luci
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import BrandAvatar from "./brand-avatar";
 
 type Product = { id: string; name: string; price: number; category: string; description: string };
 type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean; demo: boolean };
@@ -80,7 +81,7 @@ export default function Storefront() {
 
   return <div className="site-shell">
     <header className="topbar wrap">
-      <Link className="brand" href="/" aria-label="BLUECKYARDIGANS, início"><Image className="brand-mark" src="/brand-b.svg" width={39} height={39} alt="" aria-hidden="true" /><span>BLUECKYARDIGANS</span></Link>
+      <Link className="brand" href="/" aria-label="BLUECKYARDIGANS, início"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
       <nav className="toplinks" aria-label="Navegação"><a href="#cardapio">Cardápio</a><a href="#pedido">Meu pedido</a></nav>
       <a className="nav-cta" href={itemCount ? "#pedido" : "#cardapio"}>{itemCount ? `Ver pedido · ${money(subtotal)}` : "Ver cardápio"}<ArrowRight size={17} /></a>
     </header>

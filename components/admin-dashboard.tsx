@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, CirclePause, Clock3, PackageCheck, RefreshCw } from "lucide-react";
+import BrandAvatar from "./brand-avatar";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; method: string;
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
 
   return <div className="admin-shell">
     <aside className="admin-side">
-      <Link className="brand" href="/"><Image className="brand-mark" src="/brand-b.svg" width={39} height={39} alt="" aria-hidden="true" /><span>BLUECKYARDIGANS</span></Link>
+      <Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
       <nav className="side-nav" aria-label="Painel"><a href="#visao-geral">Visão geral</a><a href="#pedidos">Pedidos</a><Link href="/">Ver loja</Link></nav>
       <p className="side-foot">Equipe · 29 de outubro de 2026</p>
     </aside>

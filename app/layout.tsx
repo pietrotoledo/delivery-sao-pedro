@@ -5,7 +5,7 @@ import "./experience.css";
 export const metadata: Metadata = {
   title: "BLUECKYARDIGANS | Noite do Hambúrguer",
   description: "Pré-venda da Noite do Hambúrguer da gincana Blueckyardigans.",
-  icons: { icon: "/favicon.svg" },
+  icons: { icon: "/mascote.png" },
 };
 
 export const viewport: Viewport = {

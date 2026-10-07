@@ -236,6 +236,10 @@ button { -webkit-touch-callout: none; }
   .admin-order-facts { display: block; }
   .admin-order-facts strong { display: block; margin-top: 4px; }
 }
+.brand-avatar { position: relative; display: block; flex: none; width: 39px; height: 39px; overflow: hidden; border-radius: 9px; background: #153d9a; }
+.brand-avatar img { object-fit: cover; transform: scale(2.2); transform-origin: 50% 20%; }
+.admin-side .brand-avatar { outline: 2px solid #fff; outline-offset: 1px; }
+@media (max-width: 700px) { .brand-avatar { width: 33px; height: 33px; } }
 @media (prefers-reduced-motion: reduce) {
   .site-shell .menu-group .product-card, .site-shell .button { transition: none; }
 }
