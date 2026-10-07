@@ -1,3 +1,4 @@
+import { allowedRemovals } from "@/lib/burger-customization";
 import { config, db, getProducts, json, sameOrigin, type OrderItem } from "@/lib/store";
 
 export async function POST(request: Request) {
@@ -28,7 +29,11 @@ export async function POST(request: Request) {
     if (!product || !Number.isInteger(quantity) || quantity < 0 || quantity > 20 || items.some((i)=>i.id===product.id)) {
       return json({error:"Quantidade ou produto inválido."},400);
     }
-    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price});
+    const removed = raw.removedIngredients ?? [];
+    if (!Array.isArray(removed) || removed.some(value => typeof value !== "string" || !allowedRemovals(product.id).includes(value)) || new Set(removed).size !== removed.length) {
+      return json({error:"Personalização inválida para este produto."},400);
+    }
+    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,removedIngredients:removed as string[]});
   }
   const burgerCount = items.reduce((sum,item)=>sum+(productsById.get(item.id)?.category==="burger"?item.quantity:0),0);
   if (burgerCount < 1 || burgerCount > 20) return json({error:"Escolha de 1 a 20 hambúrgueres."},400);
