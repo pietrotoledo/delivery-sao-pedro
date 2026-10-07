@@ -42,10 +42,10 @@ Crie um **Worker** (não Pages) ligado a este repositório e um banco D1 chamado
 
 - Build command: `npm run build:cloudflare`
 - Deploy command: `npm run deploy:cloudflare`
-- Variável de build `CLOUDFLARE_D1_DATABASE_ID`: ID do banco D1 criado na sua conta.
+- O ID do banco D1 `sao-pedro-delivery` já está configurado no build. `CLOUDFLARE_D1_DATABASE_ID` pode substituí-lo se o banco mudar.
 - Variável de build opcional `CLOUDFLARE_WORKER_NAME`: nome exato do Worker na Cloudflare; padrão `delivery-sao-pedro`.
 
-O comando de deploy aplica as migrações D1 pendentes antes de publicar o Worker. O build falha com uma mensagem clara se o ID do banco não estiver configurado. A Cloudflare deve fornecer acesso para o Wrangler executar o deploy.
+O comando de deploy aplica as migrações D1 pendentes antes de publicar o Worker. A Cloudflare deve fornecer acesso para o Wrangler executar o deploy.
 
 Para uma versão pública com vendas reais, configure também os segredos de runtime `ADMIN_PASSWORD` e `INFINITEPAY_HANDLE` e habilite apenas Pix na InfinitePay. Não compartilhe a senha nem credenciais por GitHub. Enquanto `INFINITEPAY_HANDLE` não estiver configurada, o site fica em modo de demonstração.
 
