@@ -1,4 +1,4 @@
-import { db, getOrder, menu, paymentHandle, type Order } from "./store";
+import { db, getOrder, orderItems, paymentHandle, type Order } from "./store";
 
 type PaymentNotice = { order_nsu?: string; transaction_nsu?: string; invoice_slug?: string; slug?: string; capture_method?: string };
 
@@ -23,11 +23,9 @@ export async function verifyPayment(notice: PaymentNotice) {
 export async function createCheckout(order: Order, origin: string) {
   const handle = paymentHandle();
   if (!handle) return { demo: true as const };
-  const items: {quantity:number;price:number;description:string}[] = (JSON.parse(order.items_json) as {id:string;quantity:number}[]).map((item) => {
-    const product = menu.find(candidate => candidate.id === item.id);
-    if (!product) throw new Error("Produto do pedido não encontrado no cardápio.");
-    return { quantity:item.quantity, price:product.price, description:product.name };
-  });
+  const items: {quantity:number;price:number;description:string}[] = orderItems(order).map(item => ({
+    quantity: item.quantity, price: item.price, description: item.name,
+  }));
   if (order.delivery_fee && order.delivery_fee > 0) items.push({ quantity:1, price:order.delivery_fee, description:"Taxa de entrega" });
   const response = await fetch("https://api.checkout.infinitepay.io/links", {
     method:"POST", headers:{"Content-Type":"application/json"},

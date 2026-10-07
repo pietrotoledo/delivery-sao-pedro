@@ -6,6 +6,7 @@ export const orders = sqliteTable("orders", {
   updatedAt: text("updated_at").notNull(),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
+  email: text("email"),
   method: text("method").notNull(),
   neighborhood: text("neighborhood"),
   address: text("address"),
@@ -28,4 +29,17 @@ export const settings = sqliteTable("settings", {
   id: integer("id").primaryKey(),
   capacity: integer("capacity").notNull().default(100),
   paused: integer("paused", { mode: "boolean" }).notNull().default(false),
+});
+
+export const products = sqliteTable("products", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  price: integer("price").notNull(),
+  imageUrl: text("image_url"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });

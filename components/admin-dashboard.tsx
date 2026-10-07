@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CirclePause, Clock3, PackageCheck, RefreshCw } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
+import AdminProducts from "./admin-products";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
@@ -29,7 +30,7 @@ const names: Record<string, string> = {
 };
 const closedStatuses = new Set(["completed", "refunded"]);
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" }) {
   const [data, setData] = useState<AdminData | null>(null);
   const [capacity, setCapacity] = useState(100);
   const [loading, setLoading] = useState(true);
@@ -114,14 +115,15 @@ export default function AdminDashboard() {
   return <div className="admin-shell">
     <aside className="admin-side">
       <Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
-      <nav className="side-nav" aria-label="Painel"><a href="#visao-geral">Visão geral</a><a href="#pedidos">Pedidos</a><Link href="/">Ver loja</Link></nav>
+      <nav className="side-nav" aria-label="Painel"><Link className={view === "orders" ? "active" : ""} href="/admin">Pedidos</Link><Link className={view === "products" ? "active" : ""} href="/admin/produtos">Produtos</Link><Link href="/">Ver loja</Link></nav>
       <p className="side-foot">Equipe · 29 de outubro de 2026</p>
     </aside>
     <main className="admin-main">
       <header className="admin-head">
-        <div><p className="section-kicker">Painel da equipe</p><h1>Controle da noite</h1><p>Pedidos e pagamentos atualizados a cada 10 segundos.</p></div>
+        <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : "Pedidos e pagamentos atualizados a cada 10 segundos."}</p></div>
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
+      <nav className="admin-tabs" aria-label="Seções do painel"><Link href="/admin" className={view === "orders" ? "active" : ""}>Pedidos</Link><Link href="/admin/produtos" className={view === "products" ? "active" : ""}>Produtos</Link></nav>
       {error && <div className="admin-alert" role="alert">{error} {!data && <a href="/signin-with-chatgpt?return_to=/admin" target="_top">Entrar com ChatGPT</a>}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
@@ -129,7 +131,8 @@ export default function AdminDashboard() {
         <p>Entre com a senha do painel ou com sua conta autorizada do Site privado.</p>
         <div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={event => setPassword(event.target.value)} /><button type="submit">Entrar</button></div>
       </form>}
-      {data && <>
+      {data && view === "products" && <AdminProducts />}
+      {data && view === "orders" && <>
         <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>
           <div className="metric"><span>Pedidos em andamento</span><strong>{openOrders}</strong><small>{pendingQuotes} aguardando taxa</small></div>
@@ -156,11 +159,11 @@ export default function AdminDashboard() {
           <div className="admin-orders">
             {visibleOrders.length === 0 && <p className="admin-empty">{filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
-              const products = JSON.parse(order.items_json) as { id: string; quantity: number }[];
+              const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string }[];
               const position = paidPosition.get(order.id);
               return <article className="admin-order" key={order.id}>
                 <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className="status-pill">{labels[order.status] || order.status}</span></div>
-                <p className="admin-order-items">{products.map(item => `${item.quantity}× ${names[item.id] || item.id}`).join(" · ")}</p>
+                <p className="admin-order-items">{products.map(item => `${item.quantity}× ${item.name || names[item.id] || item.id}`).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada na paróquia"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}

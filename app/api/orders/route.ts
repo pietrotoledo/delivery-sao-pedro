@@ -1,4 +1,4 @@
-import { config, db, json, menu, sameOrigin } from "@/lib/store";
+import { config, db, getProducts, json, sameOrigin, type OrderItem } from "@/lib/store";
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error:"Origem inválida." }, 403);
@@ -18,19 +18,22 @@ export async function POST(request: Request) {
     return json({error:"Informe um endereço válido em Manaíra, Bessa ou Tambaú."},400);
   }
   if (!Array.isArray(body.items)) return json({error:"Escolha ao menos um hambúrguer."},400);
-  const items: {id:string;quantity:number}[] = [];
+  const menu = await getProducts();
+  const productsById = new Map(menu.map(product => [product.id, product]));
+  const items: OrderItem[] = [];
   for (const candidate of body.items) {
-    const raw = candidate as Record<string,unknown>;
-    const product = menu.find((p)=>p.id === raw.id);
+    const raw = candidate && typeof candidate === "object" ? candidate as Record<string,unknown> : {};
+    const product = productsById.get(String(raw.id ?? ""));
     const quantity = Number(raw.quantity);
     if (!product || !Number.isInteger(quantity) || quantity < 0 || quantity > 20 || items.some((i)=>i.id===product.id)) {
       return json({error:"Quantidade ou produto inválido."},400);
     }
-    if (quantity) items.push({id:product.id,quantity});
+    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price});
   }
-  const burgerCount = items.reduce((sum,item)=>sum+(menu.find(p=>p.id===item.id)?.category==="burger"?item.quantity:0),0);
+  const burgerCount = items.reduce((sum,item)=>sum+(productsById.get(item.id)?.category==="burger"?item.quantity:0),0);
   if (burgerCount < 1 || burgerCount > 20) return json({error:"Escolha de 1 a 20 hambúrgueres."},400);
-  const subtotal = items.reduce((sum,item)=>sum+(menu.find(p=>p.id===item.id)?.price ?? 0)*item.quantity,0);
+  const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
+  if (Number(body.expectedSubtotal) !== subtotal) return json({error:"O cardápio mudou. Atualize a página e confira o novo total antes de pedir."},409);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const status = method === "delivery" ? "awaiting_quote" : "ready_for_payment";

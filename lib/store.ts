@@ -1,13 +1,20 @@
 import { env } from "cloudflare:workers";
 
+export type ProductCategory = "burger" | "side" | "drink";
+export type Product = {
+  id: string; name: string; description: string; category: ProductCategory;
+  price: number; imageUrl: string | null; active: boolean; sortOrder: number;
+};
+export type OrderItem = { id: string; quantity: number; name: string; price: number };
+
 export const menu = [
-  { id: "classic", name: "Clássico", price: 2200, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa." },
-  { id: "bacon", name: "Bacon", price: 2700, category: "burger", description: "Carne, queijo, bacon crocante e molho da casa." },
-  { id: "fries-small", name: "Batata pequena", price: 800, category: "side", description: "Batata frita crocante · porção pequena." },
-  { id: "fries-large", name: "Batata grande", price: 1200, category: "side", description: "Batata frita crocante · porção grande." },
-  { id: "water", name: "Água mineral", price: 350, category: "drink", description: "Água mineral · unidade." },
-  { id: "coke", name: "Coca-Cola", price: 600, category: "drink", description: "Lata 350 ml." },
-  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Lata 350 ml." },
+  { id: "classic", name: "Clássico", price: 2200, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa.", imageUrl: "/products/classic.webp" },
+  { id: "bacon", name: "Bacon", price: 2700, category: "burger", description: "Carne, queijo, bacon crocante e molho da casa.", imageUrl: "/products/bacon.webp" },
+  { id: "fries-small", name: "Batata pequena", price: 800, category: "side", description: "Batata frita crocante · porção pequena.", imageUrl: "/products/fries-small.webp" },
+  { id: "fries-large", name: "Batata grande", price: 1200, category: "side", description: "Batata frita crocante · porção grande.", imageUrl: "/products/fries-large.webp" },
+  { id: "water", name: "Água mineral", price: 350, category: "drink", description: "Água mineral · unidade.", imageUrl: "/products/water.webp" },
+  { id: "coke", name: "Coca-Cola", price: 600, category: "drink", description: "Lata 350 ml.", imageUrl: "/products/cola-lata.webp" },
+  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Lata 350 ml.", imageUrl: "/products/cola-zero.webp" },
 ] as const;
 
 export type Order = {
@@ -46,6 +53,20 @@ export async function ensureSchema() {
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
         paused integer DEFAULT false NOT NULL
       )`).run();
+      await database.prepare(`CREATE TABLE IF NOT EXISTS products (
+        id text PRIMARY KEY NOT NULL, name text NOT NULL, description text NOT NULL,
+        category text NOT NULL, price integer NOT NULL, image_url text,
+        active integer NOT NULL DEFAULT 1, sort_order integer NOT NULL DEFAULT 0,
+        created_at text NOT NULL, updated_at text NOT NULL
+      )`).run();
+      const existing = await database.prepare("SELECT COUNT(*) AS count FROM products").first<{count:number}>();
+      if (!existing?.count) {
+        const now = new Date().toISOString();
+        for (const [index, product] of menu.entries()) {
+          await database.prepare("INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
+            .bind(product.id,product.name,product.description,product.category,product.price,product.imageUrl,1,(index+1)*10,now,now).run();
+        }
+      }
     })().catch((error) => {
       schemaPromise = undefined;
       throw error;
@@ -55,6 +76,28 @@ export async function ensureSchema() {
 }
 
 export function paymentHandle() { return env.INFINITEPAY_HANDLE?.trim() || ""; }
+
+type ProductRow = {
+  id: string; name: string; description: string; category: ProductCategory;
+  price: number; image_url: string | null; active: number; sort_order: number;
+};
+
+export async function getProducts(includeInactive = false): Promise<Product[]> {
+  await ensureSchema();
+  const result = await db().prepare(`SELECT id,name,description,category,price,image_url,active,sort_order FROM products ${includeInactive ? "" : "WHERE active = 1"} ORDER BY sort_order, created_at, id`).all<ProductRow>();
+  return result.results.map(row => ({
+    id: row.id, name: row.name, description: row.description, category: row.category,
+    price: row.price, imageUrl: row.image_url, active: Boolean(row.active), sortOrder: row.sort_order,
+  }));
+}
+
+export function orderItems(order: Order): OrderItem[] {
+  const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number}[];
+  return saved.map(item => {
+    const original = menu.find(product => product.id === item.id);
+    return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0 };
+  });
+}
 
 export async function config() {
   await ensureSchema();
@@ -77,7 +120,7 @@ export function publicOrder(order: Order) {
   return {
     id: order.id, createdAt: order.created_at, name: order.name,
     method: order.method, neighborhood: order.neighborhood, address: order.address,
-    notes: order.notes, items: JSON.parse(order.items_json), burgerCount: order.burger_count,
+    notes: order.notes, items: orderItems(order), burgerCount: order.burger_count,
     subtotal: order.subtotal, deliveryFee: order.delivery_fee, total: order.total,
     status: order.status, checkoutUrl: order.checkout_url, paidAt: order.paid_at,
   };

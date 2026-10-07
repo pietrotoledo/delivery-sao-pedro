@@ -5,8 +5,9 @@ import { ArrowRight, MapPin, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
+import { externalPhoto, productPhoto } from "@/lib/product-images";
 
-type Product = { id: string; name: string; price: number; category: string; description: string };
+type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null };
 type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean; demo: boolean };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const groups = [
@@ -14,16 +15,6 @@ const groups = [
   { category: "side", id: "acompanhamentos", title: "Para acompanhar", hint: "Uma porção para completar." },
   { category: "drink", id: "bebidas", title: "Bebidas", hint: "Adicione ao seu pedido." },
 ];
-const photos: Record<string, string> = {
-  classic: "/products/classic.webp",
-  bacon: "/products/bacon.webp",
-  "fries-small": "/products/fries-small.webp",
-  "fries-large": "/products/fries-large.webp",
-  water: "/products/water.webp",
-  coke: "/products/cola-lata.webp",
-  "coke-zero": "/products/cola-zero.webp",
-};
-
 export default function Storefront() {
   const [data, setData] = useState<PublicData | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -54,6 +45,7 @@ export default function Storefront() {
   const burgerCount = selected.reduce((sum, product) => sum + (product.category === "burger" ? quantities[product.id] : 0), 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = selected.reduce((sum, product) => sum + product.price * quantities[product.id], 0);
+  const featured = data?.menu.find(product => product.id === "classic") ?? data?.menu.find(product => product.category === "burger");
   const checkoutHref = `/checkout?items=${encodeURIComponent(items.map(item => `${item.id}:${item.quantity}`).join(","))}`;
 
   function change(id: string, delta: number) {
@@ -76,8 +68,8 @@ export default function Storefront() {
           <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador</span><span>18h às 22h · retirada ou entrega</span></div>
         </div>
         <div className="hero-media">
-          <Image src="/products/classic.webp" fill priority sizes="(max-width: 800px) 100vw, 50vw" alt="Hambúrguer Clássico com queijo, alface e tomate" />
-          <div className="hero-media-caption"><span>Comece pelo clássico</span><strong>R$ 22,00</strong></div>
+          <Image src={featured ? productPhoto(featured) : "/products/classic.webp"} unoptimized={featured ? externalPhoto(productPhoto(featured)) : false} fill priority sizes="(max-width: 800px) 100vw, 50vw" alt={featured ? featured.name : "Hambúrguer"} />
+          {featured && <div className="hero-media-caption"><span>{featured.name}</span><strong>{money(featured.price)}</strong></div>}
           <div className="hero-mascot"><Image src="/mascote.png" width={112} height={112} alt="Mascote Blueckyardigans" /></div>
         </div>
       </div></section>
@@ -90,7 +82,7 @@ export default function Storefront() {
         {data && groups.map(group => <section className="menu-group" id={group.id} key={group.category}>
           <div className="menu-group-head"><h3>{group.title}</h3><p>{group.hint}</p></div>
           <div className="menu-grid">{data.menu.filter(product => product.category === group.category).map(product => <article className={`product-card ${quantities[product.id] ? "is-selected" : ""}`} key={product.id}>
-            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={photos[product.id]} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={`${product.name}, imagem ilustrativa`} /></div>
+            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={`${product.name}, imagem ilustrativa`} /></div>
             <div className="product-info"><div className="product-title"><h4>{product.name}</h4><strong>{money(product.price)}</strong></div><p>{product.description}</p>
               <div className="quantity"><span>{quantities[product.id] ? "No pedido" : "Adicionar"}</span><div className="stepper"><button type="button" aria-label={`Diminuir ${product.name}`} disabled={!quantities[product.id] || data.paused} onClick={() => change(product.id, -1)}><Minus size={17} /></button><b aria-live="polite">{quantities[product.id] ?? 0}</b><button type="button" aria-label={`Aumentar ${product.name}`} disabled={data.paused || (quantities[product.id] ?? 0) >= 20 || (product.category === "burger" && burgerCount >= 20)} onClick={() => change(product.id, 1)}><Plus size={17} /></button></div></div>
             </div>
@@ -102,7 +94,7 @@ export default function Storefront() {
         <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />29 de outubro, das 18h às 22h</span></div></div></div>
         <div className="order-card">
           <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
-          <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={photos[product.id]} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
+          <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
           <div className="order-totals"><div><span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span><strong>{money(subtotal)}</strong></div></div>
           {data?.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}
           {burgerCount > 0 && !data?.paused ? <Link className="button button-yellow submit-button" href={checkoutHref}>Ir para o checkout <ArrowRight size={19} /></Link> : <a className="button button-yellow submit-button" href="#hamburgueres">Escolher hambúrguer <ArrowRight size={19} /></a>}
