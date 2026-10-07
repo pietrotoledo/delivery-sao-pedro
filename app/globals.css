@@ -106,3 +106,7 @@
   .mobile-cart strong{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 }
 @media(prefers-reduced-motion:reduce){.menu-group .product-card{transition:none}}
+
+/* Marca oficial em todas as telas. */
+.brand img.brand-mark{display:block;flex:none;background:transparent;border-radius:0;object-fit:contain}
+.admin-side .brand img.brand-mark{background:#fff;border-radius:9px;padding:2px}

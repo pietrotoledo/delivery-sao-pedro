@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "BLUECKYARDIGANS | Noite do Hambúrguer",
   description: "Pré-venda da Noite do Hambúrguer da gincana Blueckyardigans.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

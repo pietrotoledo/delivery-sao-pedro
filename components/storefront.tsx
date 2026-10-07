@@ -72,7 +72,7 @@ export default function Storefront() {
 
   return <div className="site-shell">
     <header className="topbar wrap">
-      <Link className="brand" href="/" aria-label="BLUECKYARDIGANS, início"><span className="brand-mark">B<span>.</span></span><span>BLUECKYARDIGANS</span></Link>
+      <Link className="brand" href="/" aria-label="BLUECKYARDIGANS, início"><Image className="brand-mark" src="/brand-b.svg" width={39} height={39} alt="" aria-hidden="true" /><span>BLUECKYARDIGANS</span></Link>
       <nav className="toplinks" aria-label="Navegação"><a href="#cardapio">Cardápio</a><a href="#pedido">Meu pedido</a></nav>
       <a className="nav-cta" href={itemCount ? "#pedido" : "#cardapio"}>{itemCount ? `Ver pedido · ${money(subtotal)}` : "Ver cardápio"}<ArrowRight size={17} /></a>
     </header>
