@@ -15,6 +15,12 @@ Valores sugeridos para os itens cujo preço não foi informado:
 - [x] Coca-Cola lata 350 ml — R$ 6,00.
 - [x] Coca-Cola Zero lata 350 ml — R$ 6,00.
 
+## Personalização dos hambúrgueres
+
+- [ ] Permitir que o cliente personalize o hambúrguer apenas removendo ingredientes existentes, por exemplo: **sem cebola** ou **sem salada**.
+- [ ] Não permitir adicionar ingredientes ou porções extras (como outro hambúrguer, queijo, bacon etc.).
+- [ ] Exibir as remoções escolhidas no carrinho e nos detalhes do pedido para a equipe de preparo.
+
 ## Antes de publicar as vendas
 
 - [ ] Confirmar os preços sugeridos antes da venda real (o cardápio do site já foi atualizado).
