@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, MapPin, Minus, Plus } from "lucide-react";
+import { ArrowRight, MapPin, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
@@ -20,8 +20,8 @@ const photos: Record<string, string> = {
   "fries-small": "/products/fries-small.webp",
   "fries-large": "/products/fries-large.webp",
   water: "/products/water.webp",
-  coke: "/products/cola.webp",
-  "coke-zero": "/products/cola.webp",
+  coke: "/products/cola-lata.webp",
+  "coke-zero": "/products/cola-zero.webp",
 };
 
 export default function Storefront() {
@@ -60,7 +60,7 @@ export default function Storefront() {
     setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, (current[id] ?? 0) + delta)) }));
   }
 
-  return <div className="site-shell">
+  return <div className={`site-shell ${itemCount > 0 ? "has-desktop-cart" : ""}`}>
     <header className="topbar wrap">
       <Link className="brand" href="/" aria-label="BLUECKYARDIGANS, início"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
       <nav className="toplinks" aria-label="Navegação"><a href="#cardapio">Cardápio</a><a href="#pedido">Meu pedido</a></nav>
@@ -90,7 +90,7 @@ export default function Storefront() {
         {data && groups.map(group => <section className="menu-group" id={group.id} key={group.category}>
           <div className="menu-group-head"><h3>{group.title}</h3><p>{group.hint}</p></div>
           <div className="menu-grid">{data.menu.filter(product => product.category === group.category).map(product => <article className={`product-card ${quantities[product.id] ? "is-selected" : ""}`} key={product.id}>
-            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={photos[product.id]} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={product.category === "drink" && product.id !== "water" ? "Refrigerante gelado em copo, imagem ilustrativa" : `${product.name}, imagem ilustrativa`} /></div>
+            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={photos[product.id]} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={`${product.name}, imagem ilustrativa`} /></div>
             <div className="product-info"><div className="product-title"><h4>{product.name}</h4><strong>{money(product.price)}</strong></div><p>{product.description}</p>
               <div className="quantity"><span>{quantities[product.id] ? "No pedido" : "Adicionar"}</span><div className="stepper"><button type="button" aria-label={`Diminuir ${product.name}`} disabled={!quantities[product.id] || data.paused} onClick={() => change(product.id, -1)}><Minus size={17} /></button><b aria-live="polite">{quantities[product.id] ?? 0}</b><button type="button" aria-label={`Aumentar ${product.name}`} disabled={data.paused || (quantities[product.id] ?? 0) >= 20 || (product.category === "burger" && burgerCount >= 20)} onClick={() => change(product.id, 1)}><Plus size={17} /></button></div></div>
             </div>
@@ -110,6 +110,7 @@ export default function Storefront() {
         </div>
       </div></section>
     </main>
+    {itemCount > 0 && <div className="desktop-cart"><span className="desktop-cart-icon"><ShoppingBag size={22} /></span><span className="desktop-cart-total"><b>{itemCount} {itemCount === 1 ? "item" : "itens"} no pedido</b><strong>{money(subtotal)}</strong></span><Link className="button button-yellow" href={burgerCount > 0 ? checkoutHref : "#hamburgueres"} aria-label={burgerCount > 0 ? "Continuar para o checkout" : "Continuar escolhendo um hambúrguer"}>Continuar <ArrowRight size={18} /></Link></div>}
     {itemCount > 0 && <a className="mobile-cart" href={burgerCount > 0 ? checkoutHref : "#hamburgueres"} aria-label={burgerCount > 0 ? `Ver pedido com ${itemCount} itens, total ${money(subtotal)}` : "Escolha um hambúrguer para continuar"}><span>{burgerCount > 0 ? `${itemCount} ${itemCount === 1 ? "item" : "itens"} · ${money(subtotal)}` : "Escolha um hambúrguer"}</span><strong>{burgerCount > 0 ? "Continuar" : "Ver opções"} <ArrowRight size={18} /></strong></a>}
     <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 29 de outubro de 2026</p><a href="/admin">Acesso da equipe</a></div></footer>
   </div>;

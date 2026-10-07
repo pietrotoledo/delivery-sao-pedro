@@ -248,7 +248,14 @@ button { -webkit-touch-callout: none; }
 #bebidas .product-photo { object-fit: contain; object-position: center; }
 @media (min-width: 701px) {
   #bebidas .product-art { height: clamp(250px, 28vw, 360px); aspect-ratio: auto; background: #082b70; }
+  .site-shell.has-desktop-cart { padding-bottom: 82px; }
+  .desktop-cart { position: fixed; right: 26px; bottom: 24px; z-index: 30; display: flex; align-items: center; gap: 13px; width: min(430px, calc(100vw - 52px)); padding: 11px 12px; border: 1px solid var(--line-soft); border-radius: 14px; background: #fff; box-shadow: 0 16px 45px rgba(7,27,80,.2); }
+  .desktop-cart-icon { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 9px; background: #eaf0ff; color: var(--brand-blue); }
+  .desktop-cart-total { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; color: #667895; font-size: 12px; }
+  .desktop-cart-total strong { color: var(--brand-deep); font-size: 18px; }
+  .desktop-cart .button { min-height: 45px; padding: 10px 14px; white-space: nowrap; font-size: 13px; box-shadow: none; }
 }
+@media (max-width: 700px) { .desktop-cart { display: none; } }
 
 /* Separate checkout keeps additions, delivery details, and total in one view. */
 .checkout-page { min-height: 100vh; background: var(--surface-soft); color: var(--brand-deep); }

@@ -13,7 +13,7 @@ const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: 
 const photos: Record<string, string> = {
   classic: "/products/classic.webp", bacon: "/products/bacon.webp",
   "fries-small": "/products/fries-small.webp", "fries-large": "/products/fries-large.webp",
-  water: "/products/water.webp", coke: "/products/cola.webp", "coke-zero": "/products/cola.webp",
+  water: "/products/water.webp", coke: "/products/cola-lata.webp", "coke-zero": "/products/cola-zero.webp",
 };
 
 export default function CheckoutPage() {
