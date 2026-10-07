@@ -92,7 +92,7 @@
 .site-shell .order-intro h2 { max-width: 430px; }
 .site-shell .order-intro > p:not(.section-kicker) { margin-top: 20px; }
 .site-shell .pickup-box { border-left-color: var(--brand-yellow); box-shadow: 0 4px 24px rgba(21,61,154,.04); }
-.site-shell .order-card { border: 1px solid var(--line-soft); box-shadow: 0 12px 36px rgba(7,27,80,.06); border-radius: 17px; padding: 31px; }
+.site-shell .order-card { background: var(--brand-blue); border: 1px solid var(--line-soft); box-shadow: 0 12px 36px rgba(7,27,80,.06); border-radius: 17px; padding: 31px; }
 .site-shell .order-card-head { padding-bottom: 16px; }
 .site-shell .cart-items { gap: 10px; }
 .site-shell .cart-line { align-items: center; gap: 12px; }
