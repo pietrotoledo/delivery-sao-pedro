@@ -138,9 +138,7 @@ export async function adminOnly(request: Request) {
     const token=cookie.match(/(?:^|; )blueck_admin=([a-f0-9]+)/)?.[1];
     return token===await sessionSignature(env.ADMIN_PASSWORD);
   }
-  // In the owner-private demo, authenticated Site visitors can manage orders.
-  // Real payments require ADMIN_PASSWORD before this dashboard is enabled.
-  return !paymentHandle() && Boolean(request.headers.get("oai-authenticated-user-id"));
+  return false;
 }
 
 export async function loginSession(password:string) {

@@ -125,11 +125,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
       <nav className="admin-tabs" aria-label="Seções do painel"><Link href="/admin" className={view === "orders" ? "active" : ""}>Pedidos</Link><Link href="/admin/produtos" className={view === "products" ? "active" : ""}>Produtos</Link><Link href="/admin/contatos" className={view === "contacts" ? "active" : ""}>Contatos</Link></nav>
-      {error && <div className="admin-alert" role="alert">{error} {!data && <a href="/signin-with-chatgpt?return_to=/admin" target="_top">Entrar com ChatGPT</a>}</div>}
+      {error && <div className="admin-alert" role="alert">{error}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
         <h2>Acesso da equipe</h2>
-        <p>Entre com a senha do painel ou com sua conta autorizada do Site privado.</p>
+        <p>Entre com a senha do painel.</p>
         <div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={event => setPassword(event.target.value)} /><button type="submit">Entrar</button></div>
       </form>}
       {data && view === "products" && <AdminProducts />}
