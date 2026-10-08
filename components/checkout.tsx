@@ -91,7 +91,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
       const result = await response.json() as { id?: string; error?: string; paymentUrl?: string };
       if (!response.ok || !result.id) throw new Error(result.error || "Não foi possível criar o pedido.");
       try { window.sessionStorage.removeItem("blueckyardigans-cart"); } catch { /* O pedido já foi criado. */ }
-      window.location.assign(result.paymentUrl || `/pedido/${result.id}`);
+      window.location.assign(`/pedido/${result.id}${result.paymentUrl ? "?abrir-pix=1" : ""}`);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Não foi possível criar o pedido.");
       setBusy(false);
