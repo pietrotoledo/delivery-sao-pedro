@@ -1,5 +1,6 @@
 import { allowedRemovals } from "@/lib/burger-customization";
 import { createCheckout } from "@/lib/payment";
+import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, getOrder, getProducts, json, paymentHandle, sameOrigin, type OrderItem } from "@/lib/store";
 
 export async function POST(request: Request) {
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   const neighborhood = method === "delivery" ? String(body.neighborhood ?? "").trim() : null;
   const address = method === "delivery" ? String(body.address ?? "").trim().slice(0,220) : null;
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
+  const whatsappOptIn = body.whatsappOptIn === true && evolutionEnabled() ? 1 : 0;
   if (name.length < 2 || phone.length < 10 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
   if (method === "delivery" && (!["Manaíra","Bessa","Tambaú"].includes(neighborhood ?? "") || !address || address.length < 8)) {
     return json({error:"Informe um endereço válido em Manaíra, Bessa ou Tambaú."},400);
@@ -52,9 +54,9 @@ export async function POST(request: Request) {
   const availabilityArgs = items.flatMap(item => [item.id, item.quantity]);
   const database = db();
   const statements = [
-    database.prepare(`INSERT INTO orders (id,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status)
-      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
-      .bind(id,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status,...availabilityArgs,items.length),
+    database.prepare(`INSERT INTO orders (id,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
+      .bind(id,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status,whatsappOptIn,...availabilityArgs,items.length),
     ...items.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),
   ];

@@ -14,8 +14,11 @@ type Order = {
   paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null; checkout_url: string | null;
   handoff_confirmed_at: string | null; handoff_note: string | null;
 };
-type AdminData = { orders: Order[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
+type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null };
+type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
 type Filter = "all" | "attention" | "payment" | "active" | "closed";
+const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão" };
+const noticeStates: Record<string, string> = { accepted: "aceito pela Evolution", failed: "falhou; nova tentativa programada", superseded: "substituído", pending: "pendente", sending: "enviando" };
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const labels: Record<string, string> = {
@@ -197,6 +200,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
             {visibleOrders.length === 0 && <p className="admin-empty">{filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
               const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[] }[];
+              const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
               const position = paidPosition.get(order.id);
               return <article className="admin-order" key={order.id}>
                 <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className="status-pill">{labels[order.status] || order.status}</span></div>
@@ -204,6 +208,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada na paróquia"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
+                {notices.length > 0 && <p className="admin-order-note">WhatsApp: {notices.map(notice => `${noticeEvents[notice.event] ?? notice.event} (${noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}
                 <div className="admin-order-actions">
                   {order.status === "awaiting_quote" && <><input aria-label="Taxa de entrega em reais" type="number" min="0" max="100" step=".01" placeholder="Taxa em R$" value={feeInputs[order.id] ?? ""} onChange={event => setFeeInputs(current => ({ ...current, [order.id]: event.target.value }))} /><button className="mini-button" onClick={() => orderAction(order.id, { action: "quote", fee: Math.round(Number(feeInputs[order.id]) * 100) })}>Definir taxa</button></>}
                   {data.demo && order.total !== null && !order.paid_at && <button className="mini-button" onClick={() => orderAction(order.id, { action: "demo_paid" })}>Simular pagamento</button>}

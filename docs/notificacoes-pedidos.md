@@ -1,6 +1,6 @@
 # Plano de notificações dos pedidos
 
-Atualizado em 8 de outubro de 2026. Este documento registra uma proposta; os envios por e-mail e WhatsApp ainda não foram implementados.
+Atualizado em 8 de outubro de 2026. O envio por WhatsApp via Evolution API foi preparado no código e só funciona após a configuração de uma instância. O envio por e-mail permanece como proposta.
 
 ## Fluxo atual
 
@@ -8,12 +8,27 @@ Atualizado em 8 de outubro de 2026. Este documento registra uma proposta; os env
 - A InfinitePay chama o webhook após o pagamento. O servidor consulta `payment_check` e só marca o pedido como pago quando confirma Pix e valor correto.
 - A página `/pedido/{id}` permite ao comprador acompanhar as mudanças de estado.
 
-## Implementação sugerida
+## Avisos automáticos via Evolution API
 
-1. Criar uma tabela `notification_outbox` com `order_id`, evento, canal, destinatário, estado, tentativas, último erro e data de envio. Usar uma chave única por pedido, evento e canal para evitar duplicações.
-2. Registrar avisos quando o link Pix estiver pronto, quando o pagamento for confirmado e quando o pedido mudar para preparo, pronto, saiu para entrega e concluído. O evento de pagamento deve vir da confirmação validada pela InfinitePay, nunca apenas do retorno do navegador ou do webhook sem consulta.
-3. Enviar em segundo plano e tentar novamente quando o provedor falhar. O estado do pedido não deve depender do sucesso de uma notificação. Exibir o resultado do envio para a equipe no painel.
-4. Enviar mensagens curtas com número do pedido e link de acompanhamento. Não incluir dados de pagamento sensíveis nem o código de confirmação da entrega.
+O comprador pode aceitar avisos pelo WhatsApp no checkout quando a integração estiver configurada. A loja registra uma mensagem por evento e pedido para reduzir envios repetidos. Ela tenta enviar em segundo plano e registra se a Evolution aceitou a mensagem ou retornou erro. Falhas são repetidas quando o painel admin está aberto. O estado do pedido não depende do WhatsApp.
+
+Eventos: Pix disponível; pagamento confirmado; em preparo; pronto; saiu para entrega; concluído. O link Pix é enviado apenas depois de gerado pela InfinitePay. O pagamento é comunicado somente depois da verificação pelo `payment_check`.
+
+Configure estes segredos de runtime no Worker da Cloudflare, sem gravar valores no Git:
+
+| Nome | Valor |
+| --- | --- |
+| `EVOLUTION_API_URL` | URL pública HTTPS da Evolution API, sem barra final |
+| `EVOLUTION_API_KEY` | Chave de API da Evolution |
+| `EVOLUTION_INSTANCE` | Nome da instância conectada ao WhatsApp |
+
+A Evolution API precisa estar instalada em um servidor próprio e a instância precisa estar conectada. A integração usa `POST /message/sendText/{instanceName}` com `apikey` no cabeçalho. O site continua funcionando se a Evolution ficar indisponível; o painel mostra a falha e tenta novamente enquanto estiver aberto. O HTTP aceito pela Evolution não comprova entrega no aparelho do cliente.
+
+## Melhorias futuras
+
+1. Adicionar um gatilho agendado para tentar novamente mesmo com o painel admin fechado.
+2. Receber confirmação de entrega por webhook da Evolution, distinguindo mensagem aceita pela API de mensagem entregue no WhatsApp.
+3. Adicionar e-mail automático como segundo canal.
 
 ## Canais e custo
 
@@ -33,9 +48,9 @@ Para a API oficial do WhatsApp, obter consentimento explícito no checkout para 
 - **Baileys:** biblioteca TypeScript que se conecta ao protocolo do WhatsApp Web por WebSocket.
 - **WPPConnect Server:** servidor Node.js/Docker com API para automatizar WhatsApp Web.
 
-Esses projetos têm código aberto, mas não são a API oficial da Meta. A licença gratuita do software não garante envio gratuito, estável ou autorizado. Precisam de uma sessão do WhatsApp Web e de um processo/servidor que permaneça ativo; não são uma substituição direta da API oficial dentro deste Cloudflare Worker. Os termos do WhatsApp Business App restringem aplicações que interagem com o aplicativo sem autorização prévia, e a Meta pode limitar o acesso por uso não autorizado. Por isso, não são a escolha indicada para avisos essenciais de pagamento e entrega desta loja.
+Esses projetos têm código aberto, mas não são a API oficial da Meta. A licença gratuita do software não garante envio gratuito, estável ou autorizado. Precisam de uma sessão do WhatsApp Web e de um processo/servidor que permaneça ativo; não são uma substituição direta da API oficial dentro deste Cloudflare Worker. Os termos do WhatsApp Business App restringem aplicações que interagem com o aplicativo sem autorização prévia, e a Meta pode limitar o acesso por uso não autorizado. Para avisos essenciais de pagamento e entrega, acompanhe as falhas no painel e mantenha a página de acompanhamento disponível ao comprador.
 
-**Escolha recomendada:** implementar primeiro e-mail automático com registro de envios e tentativas, manter a página de acompanhamento e adicionar o botão de mensagem pronta no painel. Adicionar a Cloud API oficial se o envio automático por WhatsApp justificar o custo e a configuração.
+**Escolha atual:** Evolution API. Ela aceita tanto uma instância Baileys quanto uma instância ligada à Cloud API oficial. A loja usa a mesma interface de envio para as duas; o custo e as regras do WhatsApp dependem do tipo da instância.
 
 ## Referências
 
@@ -46,3 +61,4 @@ Esses projetos têm código aberto, mas não são a API oficial da Meta. A licen
 - [Baileys](https://github.com/WhiskeySockets/Baileys)
 - [WPPConnect Server](https://github.com/wppconnect-team/wppconnect-server)
 - [Termos do WhatsApp Business App](https://www.whatsapp.com/legal/WhatsApp-Terms-for-WhatsApp-Business-App)
+- [Evolution API](https://github.com/evolution-foundation/evolution-api)

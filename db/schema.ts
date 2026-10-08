@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),
@@ -25,11 +25,25 @@ export const orders = sqliteTable("orders", {
   paymentNote: text("payment_note"),
   refundNote: text("refund_note"),
   contactDeletedAt: text("contact_deleted_at"),
+  whatsappOptIn: integer("whatsapp_opt_in").notNull().default(0),
   handoffConfirmedAt: text("handoff_confirmed_at"),
   handoffAttempts: integer("handoff_attempts").notNull().default(0),
   handoffLockedUntil: text("handoff_locked_until"),
   handoffNote: text("handoff_note"),
 });
+
+export const orderNotifications = sqliteTable("order_notifications", {
+  id: text("id").primaryKey(),
+  orderId: text("order_id").notNull(),
+  event: text("event").notNull(),
+  message: text("message").notNull(),
+  state: text("state").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: text("next_attempt_at"),
+  lastError: text("last_error"),
+  acceptedAt: text("accepted_at"),
+  updatedAt: text("updated_at").notNull(),
+}, table => [uniqueIndex("order_notifications_order_event").on(table.orderId, table.event)]);
 
 export const settings = sqliteTable("settings", {
   id: integer("id").primaryKey(),

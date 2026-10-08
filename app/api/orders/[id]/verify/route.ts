@@ -8,6 +8,6 @@ export async function POST(request: Request, context: {params: Promise<{id:strin
   if (!order) return json({error:"Pedido não encontrado."},404);
   if (order.paid_at) return json({paid:true});
   const body = await request.json() as {transaction_nsu?:string;slug?:string};
-  const paid = await verifyPayment({order_nsu:id,transaction_nsu:body.transaction_nsu,slug:body.slug});
+  const paid = await verifyPayment({order_nsu:id,transaction_nsu:body.transaction_nsu,slug:body.slug},new URL(request.url).origin);
   return json({paid});
 }

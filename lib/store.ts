@@ -25,6 +25,7 @@ export type Order = {
   payment_mode: string | null; checkout_url: string | null; invoice_slug: string | null;
   transaction_nsu: string | null; paid_at: string | null; payment_note: string | null; refund_note: string | null;
   contact_deleted_at: string | null;
+  whatsapp_opt_in: number;
   handoff_confirmed_at: string | null; handoff_attempts: number; handoff_locked_until: string | null; handoff_note: string | null;
 };
 
@@ -46,7 +47,7 @@ export async function ensureSchema() {
         burger_count integer NOT NULL, subtotal integer NOT NULL, delivery_fee integer,
         total integer, status text NOT NULL, payment_mode text, checkout_url text,
         invoice_slug text, transaction_nsu text, paid_at text, payment_note text, refund_note text,
-        contact_deleted_at text, handoff_confirmed_at text,
+        contact_deleted_at text, whatsapp_opt_in integer NOT NULL DEFAULT 0, handoff_confirmed_at text,
         handoff_attempts integer NOT NULL DEFAULT 0, handoff_locked_until text, handoff_note text
       )`).run();
       const columns = await database.prepare("PRAGMA table_info(orders)").all<{name:string}>();
@@ -59,6 +60,9 @@ export async function ensureSchema() {
       if (!columns.results?.some(column => column.name === "contact_deleted_at")) {
         await database.prepare("ALTER TABLE orders ADD COLUMN contact_deleted_at text").run();
       }
+      if (!columns.results?.some(column => column.name === "whatsapp_opt_in")) {
+        await database.prepare("ALTER TABLE orders ADD COLUMN whatsapp_opt_in integer NOT NULL DEFAULT 0").run();
+      }
       for (const [name, definition] of [
         ["handoff_confirmed_at", "text"],
         ["handoff_attempts", "integer NOT NULL DEFAULT 0"],
@@ -69,6 +73,12 @@ export async function ensureSchema() {
           await database.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
         }
       }
+      await database.prepare(`CREATE TABLE IF NOT EXISTS order_notifications (
+        id text PRIMARY KEY NOT NULL, order_id text NOT NULL, event text NOT NULL,
+        message text NOT NULL, state text NOT NULL DEFAULT 'pending', attempts integer NOT NULL DEFAULT 0,
+        next_attempt_at text, last_error text, accepted_at text, updated_at text NOT NULL,
+        UNIQUE(order_id, event)
+      )`).run();
       await database.prepare(`CREATE TABLE IF NOT EXISTS settings (
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
         paused integer DEFAULT false NOT NULL
