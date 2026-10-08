@@ -5,11 +5,7 @@ export type Product = {
   id: string; name: string; description: string; category: ProductCategory;
   price: number; imageUrl: string | null; active: boolean; sortOrder: number;
 };
- feat/checkout-sugestoes-personalizacao
-export type OrderItem = { id: string; quantity: number; name: string; price: number; removed?: string[] };
-
 export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[] };
- main
 
 export const menu = [
   { id: "classic", name: "Clássico", price: 2200, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa.", imageUrl: "/products/classic.webp" },
@@ -96,17 +92,10 @@ export async function getProducts(includeInactive = false): Promise<Product[]> {
 }
 
 export function orderItems(order: Order): OrderItem[] {
- feat/checkout-sugestoes-personalizacao
-  const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number;removed?:string[]}[];
-  return saved.map(item => {
-    const original = menu.find(product => product.id === item.id);
-    return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0, removed: item.removed };
-
   const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number;removedIngredients?:string[]}[];
   return saved.map(item => {
     const original = menu.find(product => product.id === item.id);
     return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0, removedIngredients: item.removedIngredients ?? [] };
-main
   });
 }
 

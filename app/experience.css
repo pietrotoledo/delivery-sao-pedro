@@ -81,6 +81,7 @@
 .site-shell .menu-group .product-title strong { margin-top: 0; font-size: 18px; color: var(--brand-blue); }
 .site-shell .menu-group .product-info > p { margin: 9px 0 18px; min-height: 38px; line-height: 1.45; font-size: 13px; }
 .site-shell .menu-group .quantity { border-top: 1px solid var(--line-soft); padding-top: 13px; color: var(--brand-blue); }
+.site-shell .menu-group .add-label { border: 0; background: transparent; color: inherit; padding: 8px 0; font-size: 13px; font-weight: 800; }
 .site-shell .menu-group .stepper { gap: 9px; }
 .site-shell .menu-group .stepper button { width: 40px; height: 40px; border-radius: 9px; }
 .site-shell .menu-group .stepper button:last-child { color: var(--brand-deep); background: var(--brand-yellow); border-color: var(--brand-yellow); }
@@ -260,6 +261,7 @@ button { -webkit-touch-callout: none; }
   .site-shell .menu-group .product-info > p { font-size: 11px; min-height: 45px; margin: 7px 0 8px; }
   .site-shell .menu-group .quantity { justify-content: flex-end; padding-top: 10px; }
   .site-shell .menu-group .quantity > span { display: none; }
+  .site-shell .menu-group .quantity > .add-label { display: none; }
   .site-shell .menu-group .stepper { width: 100%; justify-content: space-between; }
   .site-shell .menu-group .stepper button { width: 38px; height: 38px; }
   .photo-note { font-size: 11px; }
