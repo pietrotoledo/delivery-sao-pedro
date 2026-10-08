@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { ArrowUpRight, CirclePause, Clock3, PackageCheck, RefreshCw } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import AdminProducts from "./admin-products";
@@ -115,16 +114,16 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
 
   return <div className="admin-shell">
     <aside className="admin-side">
-      <Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
-      <nav className="side-nav" aria-label="Painel"><Link className={view === "orders" ? "active" : ""} href="/admin">Pedidos</Link><Link className={view === "products" ? "active" : ""} href="/admin/produtos">Produtos</Link><Link className={view === "contacts" ? "active" : ""} href="/admin/contatos">Contatos</Link><Link href="/">Ver loja</Link></nav>
+      <a className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></a>
+      <nav className="side-nav" aria-label="Painel"><a className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}>Produtos</a><a className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/">Ver loja</a></nav>
       <p className="side-foot">Equipe · 29 de outubro de 2026</p>
     </aside>
     <main className="admin-main">
       <header className="admin-head">
         <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : "Pedidos e pagamentos atualizados a cada 10 segundos."}</p></div>
-        <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
+        <a href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></a>
       </header>
-      <nav className="admin-tabs" aria-label="Seções do painel"><Link href="/admin" className={view === "orders" ? "active" : ""}>Pedidos</Link><Link href="/admin/produtos" className={view === "products" ? "active" : ""}>Produtos</Link><Link href="/admin/contatos" className={view === "contacts" ? "active" : ""}>Contatos</Link></nav>
+      <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/">Ver loja</a></nav>
       {error && <div className="admin-alert" role="alert">{error}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
