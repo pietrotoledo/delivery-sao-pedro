@@ -11,15 +11,15 @@ type Order = {
   neighborhood: string | null; address: string | null; notes: string | null;
   items_json: string; burger_count: number; subtotal: number;
   delivery_fee: number | null; total: number | null; status: string;
-  paid_at: string | null; payment_mode: string | null; refund_note: string | null;
+  paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null;
 };
 type AdminData = { orders: Order[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
-type Filter = "all" | "attention" | "active" | "closed";
+type Filter = "all" | "attention" | "payment" | "active" | "closed";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const labels: Record<string, string> = {
-  awaiting_quote: "Aguardando taxa", ready_for_payment: "Aguardando Pix",
-  awaiting_payment: "Aguardando Pix", paid: "Pago", preparing: "Em preparo",
+  awaiting_quote: "Aguardando taxa", ready_for_payment: "Aguardando pagamento",
+  awaiting_payment: "Aguardando pagamento", paid: "Pago", preparing: "Em preparo",
   ready: "Pronto", out_for_delivery: "Saiu para entrega",
   completed: "Concluído", refunded: "Devolução registrada",
 };
@@ -58,6 +58,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const paidOrders = data?.orders.filter(order => order.paid_at && order.status !== "refunded") ?? [];
   const revenue = paidOrders.reduce((sum, order) => sum + (order.total ?? 0), 0);
   const pendingQuotes = data?.orders.filter(order => order.status === "awaiting_quote").length ?? 0;
+  const pendingPayments = data?.orders.filter(order => !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status)).length ?? 0;
   const openOrders = data?.orders.filter(order => !closedStatuses.has(order.status)).length ?? 0;
   const over = Math.max(0, (data?.paid ?? 0) - (data?.settings.capacity ?? 100));
   const paidPosition = new Map<string, { start: number; end: number }>();
@@ -69,6 +70,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   }
   const visibleOrders = data?.orders.filter(order => {
     if (filter === "attention") return order.status === "awaiting_quote";
+    if (filter === "payment") return !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status);
     if (filter === "active") return !closedStatuses.has(order.status) && order.status !== "awaiting_quote";
     if (filter === "closed") return closedStatuses.has(order.status);
     return true;
@@ -96,6 +98,13 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       if (!response.ok) throw new Error(result.error || "Falha ao atualizar.");
       await load();
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Falha ao atualizar."); }
+  }
+
+  function confirmManualPayment(order: Order) {
+    const note = window.prompt(`Informe a referência do pagamento recebido para o pedido #${order.id.slice(0, 8).toUpperCase()} (total ${money(order.total ?? 0)}):`);
+    if (!note?.trim()) return;
+    if (!window.confirm("Confirme apenas se o valor já entrou na conta. Esta ação marcará o pedido como pago sem cobrar pela InfinitePay. Continuar?")) return;
+    void orderAction(order.id, { action: "manual_paid", note: note.trim() });
   }
 
   async function login(event: React.FormEvent) {
@@ -153,6 +162,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
             {([
               ["all", "Todos", data.orders.length],
               ["attention", "Aguardando taxa", pendingQuotes],
+              ["payment", "Aguardando pagamento", pendingPayments],
               ["active", "Em andamento", openOrders - pendingQuotes],
               ["closed", "Concluídos", data.orders.length - openOrders],
             ] as [Filter, string, number][]).map(([value, label, count]) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>)}
@@ -171,8 +181,10 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                 <div className="admin-order-actions">
                   {order.status === "awaiting_quote" && <><input aria-label="Taxa de entrega em reais" type="number" min="0" max="100" step=".01" placeholder="Taxa em R$" value={feeInputs[order.id] ?? ""} onChange={event => setFeeInputs(current => ({ ...current, [order.id]: event.target.value }))} /><button className="mini-button" onClick={() => orderAction(order.id, { action: "quote", fee: Math.round(Number(feeInputs[order.id]) * 100) })}>Definir taxa</button></>}
                   {data.demo && order.total !== null && !order.paid_at && <button className="mini-button" onClick={() => orderAction(order.id, { action: "demo_paid" })}>Simular pagamento</button>}
+                  {!data.demo && order.total !== null && !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status) && <button className="mini-button" onClick={() => confirmManualPayment(order)}>Confirmar pagamento manual</button>}
                   {order.paid_at && order.status !== "refunded" && <><select aria-label="Atualizar situação" value={order.status} onChange={event => orderAction(order.id, { action: "status", status: event.target.value })}><option value="paid">Pago</option><option value="preparing">Em preparo</option><option value="ready">Pronto</option><option value="out_for_delivery">Saiu para entrega</option><option value="completed">Concluído</option></select><button className="mini-button secondary" onClick={() => { const note = window.prompt("Depois de devolver o valor fora do sistema, registre aqui o motivo ou referência da devolução:"); if (note) orderAction(order.id, { action: "refund", note }); }}>Registrar devolução</button></>}
                   {order.refund_note && <small>Devolução: {order.refund_note}</small>}
+                  {order.payment_mode === "manual" && order.payment_note && <small>Pagamento manual: {order.payment_note}</small>}
                   <a className="mini-button secondary" href={`/pedido/${order.id}`} target="_blank" rel="noreferrer">Ver pedido</a>
                 </div>
               </article>;

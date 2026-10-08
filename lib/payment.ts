@@ -15,7 +15,7 @@ export async function verifyPayment(notice: PaymentNotice) {
   const result = await response.json() as { success?:boolean;paid?:boolean;amount?:number;capture_method?:string };
   if (!result.success || !result.paid || result.capture_method !== "pix" || result.amount !== order.total) return false;
   const now = new Date().toISOString();
-  await db().prepare("UPDATE orders SET status = CASE WHEN paid_at IS NULL THEN 'paid' ELSE status END, paid_at = COALESCE(paid_at, ?), updated_at = ?, transaction_nsu = ?, invoice_slug = ? WHERE id = ? AND status != 'refunded'")
+  await db().prepare("UPDATE orders SET status = 'paid', payment_mode = 'infinitepay', paid_at = ?, updated_at = ?, transaction_nsu = ?, invoice_slug = ? WHERE id = ? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment')")
     .bind(now, now, notice.transaction_nsu, notice.invoice_slug || notice.slug, order.id).run();
   return true;
 }
@@ -27,13 +27,15 @@ export async function createCheckout(order: Order, origin: string) {
     quantity: item.quantity, price: item.price, description: item.name,
   }));
   if (order.delivery_fee && order.delivery_fee > 0) items.push({ quantity:1, price:order.delivery_fee, description:"Taxa de entrega" });
+  const phone = order.phone.replace(/\D/g, "");
+  const phoneNumber = phone.startsWith("55") ? `+${phone}` : `+55${phone}`;
   const response = await fetch("https://api.checkout.infinitepay.io/links", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       handle, order_nsu:order.id, items,
       redirect_url:`${origin}/pedido/${order.id}`,
       webhook_url:`${origin}/api/webhook/infinitepay`,
-      customer:{name:order.name, phone_number:order.phone},
+      customer:{name:order.name, email:order.email ?? undefined, phone_number:phoneNumber},
     }),
   });
   const result = await response.json() as {url?:string};

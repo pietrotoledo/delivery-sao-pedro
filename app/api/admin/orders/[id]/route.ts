@@ -19,6 +19,14 @@ export async function PATCH(request: Request, context: {params:Promise<{id:strin
   } else if (body.action === "demo_paid") {
     if (paymentHandle() || order.total===null || order.paid_at) return json({error:"Simulação indisponível."},400);
     await db().prepare("UPDATE orders SET status='paid',payment_mode='demo',paid_at=?,updated_at=? WHERE id=?").bind(now,now,id).run();
+  } else if (body.action === "manual_paid") {
+    const note = String(body.note ?? "").trim().slice(0, 300);
+    if (!note || order.total === null || order.paid_at || order.status === "refunded" || !["ready_for_payment", "awaiting_payment"].includes(order.status)) {
+      return json({error:"Confirme um pagamento pendente e informe a referência do recebimento."},400);
+    }
+    const result = await db().prepare("UPDATE orders SET status='paid',payment_mode='manual',payment_note=?,paid_at=?,updated_at=? WHERE id=? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment')")
+      .bind(note,now,now,id).run();
+    if (!result.meta.changes) return json({error:"Este pedido já foi atualizado. Recarregue o painel."},409);
   } else if (body.action === "refund") {
     const note = String(body.note??"").trim().slice(0,300);
     if (!order.paid_at || order.status==="refunded" || !note) return json({error:"Registre o motivo e devolva o valor antes de marcar como reembolsado."},400);

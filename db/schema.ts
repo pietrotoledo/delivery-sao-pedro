@@ -22,6 +22,7 @@ export const orders = sqliteTable("orders", {
   invoiceSlug: text("invoice_slug"),
   transactionNsu: text("transaction_nsu"),
   paidAt: text("paid_at"),
+  paymentNote: text("payment_note"),
   refundNote: text("refund_note"),
 });
 
