@@ -60,6 +60,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const pendingQuotes = data?.orders.filter(order => order.status === "awaiting_quote").length ?? 0;
   const pendingPayments = data?.orders.filter(order => !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status)).length ?? 0;
   const openOrders = data?.orders.filter(order => !closedStatuses.has(order.status)).length ?? 0;
+  const activeOrders = data?.orders.filter(order => order.paid_at && !closedStatuses.has(order.status)).length ?? 0;
   const over = Math.max(0, (data?.paid ?? 0) - (data?.settings.capacity ?? 100));
   const paidPosition = new Map<string, { start: number; end: number }>();
   let running = 0;
@@ -71,7 +72,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const visibleOrders = data?.orders.filter(order => {
     if (filter === "attention") return order.status === "awaiting_quote";
     if (filter === "payment") return !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status);
-    if (filter === "active") return !closedStatuses.has(order.status) && order.status !== "awaiting_quote";
+    if (filter === "active") return Boolean(order.paid_at) && !closedStatuses.has(order.status);
     if (filter === "closed") return closedStatuses.has(order.status);
     return true;
   }) ?? [];
@@ -145,7 +146,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       {data && view === "orders" && <>
         <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>
-          <div className="metric"><span>Pedidos em andamento</span><strong>{openOrders}</strong><small>{pendingQuotes} aguardando taxa</small></div>
+          <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Pagamentos confirmados</small></div>
           <div className="metric"><span>Total recebido</span><strong className="metric-money">{money(revenue)}</strong><small>Exclui devoluções registradas</small></div>
         </section>
         {data.paid >= data.settings.capacity && <div className="admin-alert">A capacidade de {data.settings.capacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
@@ -163,7 +164,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               ["all", "Todos", data.orders.length],
               ["attention", "Aguardando taxa", pendingQuotes],
               ["payment", "Aguardando pagamento", pendingPayments],
-              ["active", "Em andamento", openOrders - pendingQuotes],
+              ["active", "Em andamento", activeOrders],
               ["closed", "Concluídos", data.orders.length - openOrders],
             ] as [Filter, string, number][]).map(([value, label, count]) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>)}
           </div>
