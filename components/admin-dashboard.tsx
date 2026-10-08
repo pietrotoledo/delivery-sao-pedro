@@ -12,6 +12,7 @@ type Order = {
   items_json: string; burger_count: number; subtotal: number;
   delivery_fee: number | null; total: number | null; status: string;
   paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null; checkout_url: string | null;
+  handoff_confirmed_at: string | null; handoff_note: string | null;
 };
 type AdminData = { orders: Order[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
 type Filter = "all" | "attention" | "payment" | "active" | "closed";
@@ -125,6 +126,13 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     void orderAction(order.id, { action: "manual_paid", note: note.trim() });
   }
 
+  function confirmManualHandoff(order: Order) {
+    const note = window.prompt(`Por que o pedido #${order.id.slice(0, 8).toUpperCase()} será concluído sem o código do cliente?`);
+    if (!note?.trim()) return;
+    if (!window.confirm("Confirma que o cliente recebeu o pedido? Esta ação finaliza a entrega ou retirada.")) return;
+    void orderAction(order.id, { action: "manual_handoff", note: note.trim() });
+  }
+
   async function login(event: React.FormEvent) {
     event.preventDefault();
     setError("");
@@ -200,10 +208,14 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                   {order.status === "awaiting_quote" && <><input aria-label="Taxa de entrega em reais" type="number" min="0" max="100" step=".01" placeholder="Taxa em R$" value={feeInputs[order.id] ?? ""} onChange={event => setFeeInputs(current => ({ ...current, [order.id]: event.target.value }))} /><button className="mini-button" onClick={() => orderAction(order.id, { action: "quote", fee: Math.round(Number(feeInputs[order.id]) * 100) })}>Definir taxa</button></>}
                   {data.demo && order.total !== null && !order.paid_at && <button className="mini-button" onClick={() => orderAction(order.id, { action: "demo_paid" })}>Simular pagamento</button>}
                   {!data.demo && order.total !== null && !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status) && <button className="mini-button" onClick={() => confirmManualPayment(order)}>Confirmar pagamento manual</button>}
-                  {order.paid_at && order.status !== "refunded" && <><select aria-label="Atualizar situação" value={order.status} onChange={event => orderAction(order.id, { action: "status", status: event.target.value })}><option value="paid">Pago</option><option value="preparing">Em preparo</option><option value="ready">Pronto</option><option value="out_for_delivery">Saiu para entrega</option><option value="completed">Concluído</option></select><button className="mini-button secondary" onClick={() => { const note = window.prompt("Depois de devolver o valor fora do sistema, registre aqui o motivo ou referência da devolução:"); if (note) orderAction(order.id, { action: "refund", note }); }}>Registrar devolução</button></>}
+                  {order.paid_at && order.status !== "refunded" && <><select aria-label="Atualizar situação" value={order.status} disabled={order.status === "completed"} onChange={event => orderAction(order.id, { action: "status", status: event.target.value })}><option value="paid">Pago</option><option value="preparing">Em preparo</option><option value="ready">Pronto</option><option value="out_for_delivery">Saiu para entrega</option>{order.status === "completed" && <option value="completed">Concluído</option>}</select><button className="mini-button secondary" onClick={() => { const note = window.prompt("Depois de devolver o valor fora do sistema, registre aqui o motivo ou referência da devolução:"); if (note) orderAction(order.id, { action: "refund", note }); }}>Registrar devolução</button></>}
+                  {order.paid_at && order.status === (order.method === "delivery" ? "out_for_delivery" : "ready") && <button className="mini-button secondary" type="button" onClick={() => confirmManualHandoff(order)}>Concluir manualmente</button>}
+                  {order.handoff_confirmed_at && <small>Recebimento confirmado: {new Date(order.handoff_confirmed_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}{order.handoff_note ? ` · ${order.handoff_note}` : ""}</small>}
                   {order.refund_note && <small>Devolução: {order.refund_note}</small>}
                   {order.payment_mode === "manual" && order.payment_note && <small>Pagamento manual: {order.payment_note}</small>}
                   <a className="mini-button secondary" href={`/pedido/${order.id}`} target="_blank" rel="noreferrer">Ver pedido</a>
+                  <a className="mini-button secondary" href={`/api/admin/orders/${order.id}/team-link`} target="_blank" rel="noreferrer">{order.method === "delivery" ? "Tela do entregador" : "Tela da retirada"}</a>
+                  <a className="mini-button secondary" href={`/api/admin/orders/${order.id}/team-link?print=1`} target="_blank" rel="noreferrer">Imprimir nota</a>
                   <button className="mini-button danger" type="button" onClick={() => deleteOrder(order)}>Apagar pedido</button>
                 </div>
               </article>;

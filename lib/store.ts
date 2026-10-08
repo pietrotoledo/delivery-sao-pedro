@@ -25,6 +25,7 @@ export type Order = {
   payment_mode: string | null; checkout_url: string | null; invoice_slug: string | null;
   transaction_nsu: string | null; paid_at: string | null; payment_note: string | null; refund_note: string | null;
   contact_deleted_at: string | null;
+  handoff_confirmed_at: string | null; handoff_attempts: number; handoff_locked_until: string | null; handoff_note: string | null;
 };
 
 export function db() {
@@ -45,7 +46,8 @@ export async function ensureSchema() {
         burger_count integer NOT NULL, subtotal integer NOT NULL, delivery_fee integer,
         total integer, status text NOT NULL, payment_mode text, checkout_url text,
         invoice_slug text, transaction_nsu text, paid_at text, payment_note text, refund_note text,
-        contact_deleted_at text
+        contact_deleted_at text, handoff_confirmed_at text,
+        handoff_attempts integer NOT NULL DEFAULT 0, handoff_locked_until text, handoff_note text
       )`).run();
       const columns = await database.prepare("PRAGMA table_info(orders)").all<{name:string}>();
       if (!columns.results?.some(column => column.name === "email")) {
@@ -56,6 +58,16 @@ export async function ensureSchema() {
       }
       if (!columns.results?.some(column => column.name === "contact_deleted_at")) {
         await database.prepare("ALTER TABLE orders ADD COLUMN contact_deleted_at text").run();
+      }
+      for (const [name, definition] of [
+        ["handoff_confirmed_at", "text"],
+        ["handoff_attempts", "integer NOT NULL DEFAULT 0"],
+        ["handoff_locked_until", "text"],
+        ["handoff_note", "text"],
+      ]) {
+        if (!columns.results?.some(column => column.name === name)) {
+          await database.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
+        }
       }
       await database.prepare(`CREATE TABLE IF NOT EXISTS settings (
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
@@ -159,6 +171,28 @@ export async function adminOnly(request: Request) {
 export async function loginSession(password:string) {
   if (!env.ADMIN_PASSWORD || password!==env.ADMIN_PASSWORD) return null;
   return await sessionSignature(env.ADMIN_PASSWORD);
+}
+
+const handoffMessage = (id: string) => new TextEncoder().encode(`blueckyardigans-handoff-v1:${id}`);
+
+async function handoffKey() {
+  if (!env.ADMIN_PASSWORD) return null;
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(env.ADMIN_PASSWORD), {name:"HMAC",hash:"SHA-256"}, false, ["sign","verify"]);
+}
+
+export async function handoffToken(id: string) {
+  const key = await handoffKey();
+  if (!key) return null;
+  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, handoffMessage(id)));
+  return Array.from(signature, byte => byte.toString(16).padStart(2,"0")).join("");
+}
+
+export async function handoffOnly(id: string, token: string | null) {
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return false;
+  const key = await handoffKey();
+  if (!key) return false;
+  const bytes = Uint8Array.from(token.match(/.{2}/g)!, part => parseInt(part,16));
+  return crypto.subtle.verify("HMAC", key, bytes, handoffMessage(id));
 }
 
 export function json(data: unknown, status = 200) {

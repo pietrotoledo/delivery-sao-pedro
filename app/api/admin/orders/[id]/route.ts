@@ -1,7 +1,7 @@
 import { createCheckout } from "@/lib/payment";
 import { adminOnly, db, getOrder, json, orderItems, paymentHandle, sameOrigin } from "@/lib/store";
 
-const statuses = ["paid","preparing","ready","out_for_delivery","completed"];
+const statuses = ["paid","preparing","ready","out_for_delivery"];
 
 export async function PATCH(request: Request, context: {params:Promise<{id:string}>}) {
   if (!await adminOnly(request) || !sameOrigin(request)) return json({error:"Acesso restrito."},403);
@@ -23,8 +23,15 @@ export async function PATCH(request: Request, context: {params:Promise<{id:strin
       }
     }
   } else if (body.action === "status") {
-    if (!order.paid_at || !statuses.includes(body.status ?? "") || order.status === "refunded") return json({error:"Estado inválido."},400);
+    if (!order.paid_at || !statuses.includes(body.status ?? "") || ["refunded", "completed"].includes(order.status) || (order.method === "pickup" && body.status === "out_for_delivery")) return json({error:"Estado inválido."},400);
     await db().prepare("UPDATE orders SET status=?,updated_at=? WHERE id=?").bind(body.status,now,id).run();
+  } else if (body.action === "manual_handoff") {
+    const note = String(body.note ?? "").trim().slice(0, 300);
+    const expected = order.method === "delivery" ? "out_for_delivery" : "ready";
+    if (!order.paid_at || order.status !== expected || !note) return json({error:"Informe o motivo para concluir um pedido pago e pronto para entrega ou retirada."},400);
+    const result = await db().prepare("UPDATE orders SET status='completed',handoff_confirmed_at=?,handoff_note=?,updated_at=? WHERE id=? AND status=? AND paid_at IS NOT NULL")
+      .bind(now,`Confirmação manual: ${note}`,now,id,expected).run();
+    if (!result.meta.changes) return json({error:"Este pedido já foi atualizado. Recarregue o painel."},409);
   } else if (body.action === "demo_paid") {
     if (paymentHandle() || order.total===null || order.paid_at) return json({error:"Simulação indisponível."},400);
     await db().prepare("UPDATE orders SET status='paid',payment_mode='demo',paid_at=?,updated_at=? WHERE id=?").bind(now,now,id).run();

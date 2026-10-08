@@ -25,6 +25,10 @@ export const orders = sqliteTable("orders", {
   paymentNote: text("payment_note"),
   refundNote: text("refund_note"),
   contactDeletedAt: text("contact_deleted_at"),
+  handoffConfirmedAt: text("handoff_confirmed_at"),
+  handoffAttempts: integer("handoff_attempts").notNull().default(0),
+  handoffLockedUntil: text("handoff_locked_until"),
+  handoffNote: text("handoff_note"),
 });
 
 export const settings = sqliteTable("settings", {
