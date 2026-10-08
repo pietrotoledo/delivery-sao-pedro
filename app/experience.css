@@ -486,14 +486,15 @@ button { -webkit-touch-callout: none; }
 .checkout-page .checkout-panel-number { background: var(--brand-yellow); color: var(--brand-deep); }
 .checkout-page .method-options button.selected { background: #fff8d9; border-color: #e3b900; box-shadow: inset 0 0 0 1px var(--brand-yellow); }
 .checkout-page .fields input:focus, .checkout-page .fields select:focus, .checkout-page .notes-details textarea:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px #dce7ff; }
-.checkout-summary { background: var(--brand-deep); color: #fff; border-color: #36559a; }
-.checkout-summary .checkout-panel-heading, .checkout-summary .checkout-panel-heading h2 { color: #fff; }
-.checkout-summary .checkout-panel-heading p, .checkout-summary .checkout-line > div > span { color: #cddcff; }
-.checkout-summary .checkout-line, .checkout-summary .checkout-total { border-color: rgba(255,255,255,.24); }
-.checkout-summary .checkout-edit, .checkout-summary .checkout-total strong, .checkout-summary .checkout-empty a { color: var(--brand-yellow); }
-.checkout-summary .checkout-fee, .checkout-summary .checkout-submit-note, .checkout-summary .checkout-empty { color: #dce7ff; }
-.checkout-summary .checkout-stepper button { border-color: #b8c9eb; }
-.checkout-summary .burger-removal-summary { color: var(--brand-yellow); }
+.checkout-summary { background: #fff; color: var(--brand-deep); border-color: var(--line-soft); box-shadow: 0 8px 30px rgba(7,27,80,.035); }
+.checkout-summary .checkout-panel-heading { color: var(--brand-blue); }
+.checkout-summary .checkout-panel-heading h2 { color: var(--brand-deep); }
+.checkout-summary .checkout-panel-heading p, .checkout-summary .checkout-line > div > span { color: #6a7993; }
+.checkout-summary .checkout-line, .checkout-summary .checkout-total { border-color: var(--line-soft); }
+.checkout-summary .checkout-edit, .checkout-summary .checkout-total strong, .checkout-summary .checkout-empty a { color: var(--brand-blue); }
+.checkout-summary .checkout-fee, .checkout-summary .checkout-submit-note, .checkout-summary .checkout-empty { color: #71809b; }
+.checkout-summary .checkout-stepper button { border-color: var(--line-soft); }
+.checkout-summary .burger-removal-summary { color: var(--brand-blue); }
 .checkout-summary .notice { color: var(--brand-deep); }
 
 .order-page { background: #eaf1ff; }
