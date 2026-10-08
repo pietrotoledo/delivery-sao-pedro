@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight, CirclePause, Clock3, PackageCheck, RefreshCw } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import AdminProducts from "./admin-products";
+import AdminContacts from "./admin-contacts";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
@@ -30,7 +31,7 @@ const names: Record<string, string> = {
 };
 const closedStatuses = new Set(["completed", "refunded"]);
 
-export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" }) {
+export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" | "contacts" }) {
   const [data, setData] = useState<AdminData | null>(null);
   const [capacity, setCapacity] = useState(100);
   const [loading, setLoading] = useState(true);
@@ -51,9 +52,9 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     const initial = setTimeout(() => {
       load().catch(failure => setError(failure.message)).finally(() => setLoading(false));
     }, 0);
-    const timer = setInterval(() => load().catch(() => {}), 10000);
-    return () => { clearTimeout(initial); clearInterval(timer); };
-  }, [load]);
+    const timer = view === "orders" ? setInterval(() => load().catch(() => {}), 10000) : undefined;
+    return () => { clearTimeout(initial); if (timer) clearInterval(timer); };
+  }, [load, view]);
 
   const paidOrders = data?.orders.filter(order => order.paid_at && order.status !== "refunded") ?? [];
   const revenue = paidOrders.reduce((sum, order) => sum + (order.total ?? 0), 0);
@@ -115,15 +116,15 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   return <div className="admin-shell">
     <aside className="admin-side">
       <Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
-      <nav className="side-nav" aria-label="Painel"><Link className={view === "orders" ? "active" : ""} href="/admin">Pedidos</Link><Link className={view === "products" ? "active" : ""} href="/admin/produtos">Produtos</Link><Link href="/">Ver loja</Link></nav>
+      <nav className="side-nav" aria-label="Painel"><Link className={view === "orders" ? "active" : ""} href="/admin">Pedidos</Link><Link className={view === "products" ? "active" : ""} href="/admin/produtos">Produtos</Link><Link className={view === "contacts" ? "active" : ""} href="/admin/contatos">Contatos</Link><Link href="/">Ver loja</Link></nav>
       <p className="side-foot">Equipe · 29 de outubro de 2026</p>
     </aside>
     <main className="admin-main">
       <header className="admin-head">
-        <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : "Pedidos e pagamentos atualizados a cada 10 segundos."}</p></div>
+        <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : "Pedidos e pagamentos atualizados a cada 10 segundos."}</p></div>
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
-      <nav className="admin-tabs" aria-label="Seções do painel"><Link href="/admin" className={view === "orders" ? "active" : ""}>Pedidos</Link><Link href="/admin/produtos" className={view === "products" ? "active" : ""}>Produtos</Link></nav>
+      <nav className="admin-tabs" aria-label="Seções do painel"><Link href="/admin" className={view === "orders" ? "active" : ""}>Pedidos</Link><Link href="/admin/produtos" className={view === "products" ? "active" : ""}>Produtos</Link><Link href="/admin/contatos" className={view === "contacts" ? "active" : ""}>Contatos</Link></nav>
       {error && <div className="admin-alert" role="alert">{error} {!data && <a href="/signin-with-chatgpt?return_to=/admin" target="_top">Entrar com ChatGPT</a>}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
@@ -132,6 +133,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
         <div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={event => setPassword(event.target.value)} /><button type="submit">Entrar</button></div>
       </form>}
       {data && view === "products" && <AdminProducts />}
+      {data && view === "contacts" && <AdminContacts demo={data.demo} />}
       {data && view === "orders" && <>
         <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>

@@ -29,12 +29,16 @@ Valores sugeridos para os itens cujo preço não foi informado:
 
 > Personalização disponível para ingredientes cadastrados de cada hambúrguer. A escolha se aplica a todas as unidades do mesmo tipo no pedido; não altera o preço.
 
-## Confirma??es de pedidos
+## Contatos e pagamentos
 
-- [ ] Escolher e configurar um provedor de mensagens para WhatsApp e outro para e-mail, com credenciais separadas por ambiente.
-- [ ] Definir as mensagens de confirma??o ap?s o pagamento: n?mero do pedido, itens, total, retirada ou entrega e link de acompanhamento.
-- [ ] Enviar as confirma??es apenas quando o pagamento for verificado, inclusive para pedidos com taxa de entrega.
-- [ ] Registrar o resultado de cada envio e impedir duplica??es quando o webhook ou a verifica??o do pagamento forem repetidos.
-- [ ] Testar envio, falha, nova tentativa e os dados de contato em ambiente de teste antes de ativar em produ??o.
+- [x] Guardar nome, WhatsApp e e-mail com cada pedido no painel administrativo.
+- [x] Baixar todos os pedidos e contatos em CSV, com código, total e links disponíveis.
+- [x] Preparar mensagens manuais para WhatsApp e e-mail com código, acompanhamento e link Pix quando gerado.
+- [x] Permitir que a equipe gere o link Pix após definir o total do pedido.
 
-O checkout j? coleta e salva o e-mail e o WhatsApp. O envio autom?tico ainda depende da integra??o dos provedores acima.
+## Confirmações automáticas pendentes
+
+- [ ] Escolher e configurar provedores de WhatsApp e e-mail, com credenciais separadas por ambiente.
+- [ ] Enviar a confirmação automaticamente apenas quando o pagamento for verificado.
+- [ ] Registrar o resultado de cada envio e impedir duplicações quando o webhook ou a verificação do pagamento forem repetidos.
+- [ ] Testar envio, falha e nova tentativa antes de ativar em produção.
