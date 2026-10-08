@@ -24,6 +24,7 @@ export const orders = sqliteTable("orders", {
   paidAt: text("paid_at"),
   paymentNote: text("payment_note"),
   refundNote: text("refund_note"),
+  contactDeletedAt: text("contact_deleted_at"),
 });
 
 export const settings = sqliteTable("settings", {

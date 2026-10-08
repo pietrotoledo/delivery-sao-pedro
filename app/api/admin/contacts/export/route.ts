@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
   let offset = 0;
   for (;;) {
-    const batch = await db().prepare("SELECT * FROM orders ORDER BY created_at DESC,id DESC LIMIT 500 OFFSET ?").bind(offset).all<Order>();
+    const batch = await db().prepare("SELECT * FROM orders WHERE contact_deleted_at IS NULL ORDER BY created_at DESC,id DESC LIMIT 500 OFFSET ?").bind(offset).all<Order>();
     for (const order of batch.results) {
       const row = [
         order.id.slice(0, 8).toUpperCase(), order.id, order.created_at,

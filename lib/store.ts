@@ -24,6 +24,7 @@ export type Order = {
   delivery_fee: number | null; total: number | null; status: string;
   payment_mode: string | null; checkout_url: string | null; invoice_slug: string | null;
   transaction_nsu: string | null; paid_at: string | null; payment_note: string | null; refund_note: string | null;
+  contact_deleted_at: string | null;
 };
 
 export function db() {
@@ -43,7 +44,8 @@ export async function ensureSchema() {
         neighborhood text, address text, notes text, items_json text NOT NULL,
         burger_count integer NOT NULL, subtotal integer NOT NULL, delivery_fee integer,
         total integer, status text NOT NULL, payment_mode text, checkout_url text,
-        invoice_slug text, transaction_nsu text, paid_at text, payment_note text, refund_note text
+        invoice_slug text, transaction_nsu text, paid_at text, payment_note text, refund_note text,
+        contact_deleted_at text
       )`).run();
       const columns = await database.prepare("PRAGMA table_info(orders)").all<{name:string}>();
       if (!columns.results?.some(column => column.name === "email")) {
@@ -51,6 +53,9 @@ export async function ensureSchema() {
       }
       if (!columns.results?.some(column => column.name === "payment_note")) {
         await database.prepare("ALTER TABLE orders ADD COLUMN payment_note text").run();
+      }
+      if (!columns.results?.some(column => column.name === "contact_deleted_at")) {
+        await database.prepare("ALTER TABLE orders ADD COLUMN contact_deleted_at text").run();
       }
       await database.prepare(`CREATE TABLE IF NOT EXISTS settings (
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,

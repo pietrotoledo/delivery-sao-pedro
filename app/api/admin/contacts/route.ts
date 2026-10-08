@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const search = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
   const requestedPage = Number(url.searchParams.get("page") ?? 0);
   const page = Number.isInteger(requestedPage) ? Math.max(0, Math.min(100000, requestedPage)) : 0;
-  const where = search ? "WHERE name LIKE ? OR phone LIKE ? OR email LIKE ? OR id LIKE ?" : "";
+  const where = search ? "WHERE contact_deleted_at IS NULL AND (name LIKE ? OR phone LIKE ? OR email LIKE ? OR id LIKE ?)" : "WHERE contact_deleted_at IS NULL";
   const pattern = `%${search}%`;
   const values = search ? [pattern, pattern, pattern, pattern] : [];
   const countQuery = db().prepare(`SELECT COUNT(*) AS count FROM orders ${where}`);

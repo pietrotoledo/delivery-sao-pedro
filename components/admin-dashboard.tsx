@@ -11,7 +11,7 @@ type Order = {
   neighborhood: string | null; address: string | null; notes: string | null;
   items_json: string; burger_count: number; subtotal: number;
   delivery_fee: number | null; total: number | null; status: string;
-  paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null;
+  paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null; checkout_url: string | null;
 };
 type AdminData = { orders: Order[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
 type Filter = "all" | "attention" | "payment" | "active" | "closed";
@@ -101,6 +101,23 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Falha ao atualizar."); }
   }
 
+  async function deleteOrder(order: Order) {
+    const code = order.id.slice(0, 8).toUpperCase();
+    const warning = order.paid_at
+      ? `Apagar o pedido #${code}? O registro do pagamento será removido do painel. Isso não estorna o valor na InfinitePay.`
+      : order.status === "refunded"
+        ? `Apagar o pedido #${code}? O registro da devolução será removido do painel.`
+        : `Apagar o pedido #${code}? Os produtos reservados voltarão ao estoque.${order.checkout_url ? " O link da InfinitePay já compartilhado pode continuar aceitando pagamento; confira-o antes de apagar." : ""}`;
+    if (!window.confirm(warning)) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}`, { method: "DELETE" });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Não foi possível apagar o pedido.");
+      await load();
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível apagar o pedido."); }
+  }
+
   function confirmManualPayment(order: Order) {
     const note = window.prompt(`Informe a referência do pagamento recebido para o pedido #${order.id.slice(0, 8).toUpperCase()} (total ${money(order.total ?? 0)}):`);
     if (!note?.trim()) return;
@@ -187,6 +204,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                   {order.refund_note && <small>Devolução: {order.refund_note}</small>}
                   {order.payment_mode === "manual" && order.payment_note && <small>Pagamento manual: {order.payment_note}</small>}
                   <a className="mini-button secondary" href={`/pedido/${order.id}`} target="_blank" rel="noreferrer">Ver pedido</a>
+                  <button className="mini-button danger" type="button" onClick={() => deleteOrder(order)}>Apagar pedido</button>
                 </div>
               </article>;
             })}

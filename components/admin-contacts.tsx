@@ -90,6 +90,20 @@ export default function AdminContacts({ demo }: { demo: boolean }) {
     finally { setBusyId(null); }
   }
 
+  async function deleteContact(order: ContactOrder) {
+    if (!window.confirm(`Apagar os dados de contato de ${order.name} (pedido #${code(order.id)})? O pedido continuará no painel sem nome, telefone, e-mail e endereço.`)) return;
+    setError(""); setNotice(""); setBusyId(order.id);
+    try {
+      const response = await fetch(`/api/admin/contacts/${order.id}`, { method: "DELETE" });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Não foi possível apagar o contato.");
+      if (page > 0 && orders.length === 1) setPage(current => current - 1);
+      else await load();
+      setNotice(`Contato do pedido #${code(order.id)} removido.`);
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível apagar o contato."); }
+    finally { setBusyId(null); }
+  }
+
   async function copy(value: string, label: string) {
     try { await navigator.clipboard.writeText(value); setNotice(`${label} copiado.`); setError(""); }
     catch { setError("Não foi possível copiar. Selecione e copie o texto manualmente."); }
@@ -108,7 +122,7 @@ export default function AdminContacts({ demo }: { demo: boolean }) {
       <div className="admin-contact-facts"><span><b>WhatsApp</b>{order.phone}</span><span><b>E-mail</b>{order.email || "Não informado"}</span><span><b>Total</b>{order.total === null ? "A definir" : money(order.total)}</span></div>
       {order.method === "delivery" && <p className="admin-contact-address">{order.address} · {order.neighborhood}</p>}
       <div className="admin-contact-payment">{order.status === "refunded" ? <span>Devolução registrada. Link Pix indisponível.</span> : order.paid_at ? <span>Pagamento confirmado.</span> : order.total === null ? <span>Defina a taxa de entrega na aba <Link href="/admin">Pedidos</Link> antes de gerar o Pix.</span> : order.checkout_url ? <><span>Link Pix pronto</span><a href={order.checkout_url} target="_blank" rel="noreferrer">Abrir link <ExternalLink size={14} /></a><button type="button" onClick={() => copy(order.checkout_url!, "Link Pix")}>Copiar link</button></> : demo ? <span>Link Pix indisponível no modo de demonstração.</span> : <button type="button" className="admin-primary" disabled={busyId === order.id} onClick={() => generateLink(order.id)}>{busyId === order.id ? "Gerando Pix..." : "Gerar link Pix"}</button>}</div>
-      <div className="admin-contact-actions"><button type="button" onClick={() => copy(code(order.id), "Código do pedido")}><Copy size={15} /> Copiar código</button><button type="button" onClick={() => copy(contactMessage(order), "Mensagem")}><Copy size={15} /> Copiar mensagem</button><a href={whatsappUrl(order)} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>{order.email && <a href={emailUrl(order)}><Mail size={16} /> E-mail</a>}<a href={`/pedido/${order.id}`} target="_blank" rel="noreferrer"><ExternalLink size={15} /> Ver pedido</a></div>
+      <div className="admin-contact-actions"><button type="button" onClick={() => copy(code(order.id), "Código do pedido")}><Copy size={15} /> Copiar código</button><button type="button" onClick={() => copy(contactMessage(order), "Mensagem")}><Copy size={15} /> Copiar mensagem</button><a href={whatsappUrl(order)} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>{order.email && <a href={emailUrl(order)}><Mail size={16} /> E-mail</a>}<a href={`/pedido/${order.id}`} target="_blank" rel="noreferrer"><ExternalLink size={15} /> Ver pedido</a><button className="danger" type="button" disabled={busyId === order.id} onClick={() => deleteContact(order)}>Apagar contato</button></div>
     </article>)}</div>
     {!loading && total > 100 && <div className="admin-contact-pages"><button type="button" disabled={page === 0} onClick={() => { setPage(current => current - 1); setLoading(true); }}><ArrowLeft size={16} /> Anterior</button><span>Página {page + 1} de {Math.ceil(total / 100)}</span><button type="button" disabled={(page + 1) * 100 >= total} onClick={() => { setPage(current => current + 1); setLoading(true); }}>Próxima <ArrowRight size={16} /></button></div>}
   </section>;

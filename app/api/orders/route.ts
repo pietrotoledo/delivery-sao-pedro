@@ -1,5 +1,6 @@
 import { allowedRemovals } from "@/lib/burger-customization";
-import { config, db, getProducts, json, sameOrigin, type OrderItem } from "@/lib/store";
+import { createCheckout } from "@/lib/payment";
+import { config, db, getOrder, getProducts, json, paymentHandle, sameOrigin, type OrderItem } from "@/lib/store";
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error:"Origem inválida." }, 403);
@@ -59,5 +60,16 @@ export async function POST(request: Request) {
   ];
   const results = await database.batch(statements);
   if (!results[0].meta.changes) return json({error:"Um produto ficou indisponível. Atualize o cardápio e tente novamente."},409);
+  if (method === "pickup" && paymentHandle()) {
+    try {
+      const order = await getOrder(id);
+      if (order) {
+        const checkout = await createCheckout(order, new URL(request.url).origin);
+        if (!checkout.demo) return json({id,status:"awaiting_payment",paymentUrl:checkout.url},201);
+      }
+    } catch {
+      // O pedido já existe; o comprador pode gerar o link na página do pedido.
+    }
+  }
   return json({id,status},201);
 }
