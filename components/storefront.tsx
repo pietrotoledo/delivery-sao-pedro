@@ -7,7 +7,7 @@ import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
 
-type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null };
+type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null; stock: number | null };
 type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean; demo: boolean };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const groups = [
@@ -30,7 +30,10 @@ export default function Storefront() {
         setData(result);
         try {
           const saved = window.sessionStorage.getItem("blueckyardigans-cart");
-          if (saved) setQuantities(JSON.parse(saved) as Record<string, number>);
+          if (saved) {
+            const parsed = JSON.parse(saved) as Record<string, number>;
+            setQuantities(Object.fromEntries(result.menu.map(product => [product.id, Math.max(0, Math.min(20, product.stock ?? 20, Number(parsed[product.id]) || 0))])));
+          }
         } catch { /* O cardápio continua disponível sem o carrinho salvo. */ }
       })
       .catch(() => setLoadError(true));
@@ -57,7 +60,9 @@ export default function Storefront() {
   const checkoutHref = `/checkout?items=${encodeURIComponent(items.map(item => `${item.id}:${item.quantity}`).join(","))}`;
 
   function change(id: string, delta: number) {
-    setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, (current[id] ?? 0) + delta)) }));
+    const product = data?.menu.find(item => item.id === id);
+    if (!product) return;
+    setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, product.stock ?? 20, (current[id] ?? 0) + delta)) }));
   }
 
   function scrollTo(event: React.MouseEvent<HTMLAnchorElement>, id: string) {
@@ -96,13 +101,13 @@ export default function Storefront() {
         {data && groups.map(group => <section className="menu-group" id={group.id} key={group.category}>
           <div className="menu-group-head"><h3>{group.title}</h3><p>{group.hint}</p></div>
           <div className="menu-grid">{data.menu.filter(product => product.category === group.category).map(product => <article className={`product-card ${quantities[product.id] ? "is-selected" : ""}`} key={product.id}>
-            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={`${product.name}, imagem ilustrativa`} /></div>
+            <div className={`product-art art-${product.id}`}><Image className="product-photo" src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} fill sizes={group.category === "drink" ? "(max-width: 700px) 50vw, 33vw" : "(max-width: 700px) 50vw, 50vw"} alt={product.name} /></div>
             <div className="product-info"><div className="product-title"><h4>{product.name}</h4><strong>{money(product.price)}</strong></div><p>{product.description}</p>
-              <div className="quantity">{quantities[product.id] ? <span>No pedido</span> : <button className="add-label" type="button" onClick={() => change(product.id, 1)} disabled={data.paused || (product.category === "burger" && burgerCount >= 20)} aria-label={`Adicionar ${product.name} ao carrinho`}>Adicionar</button>}<div className="stepper"><button type="button" aria-label={`Diminuir ${product.name}`} disabled={!quantities[product.id] || data.paused} onClick={() => change(product.id, -1)}><Minus size={17} /></button><b aria-live="polite">{quantities[product.id] ?? 0}</b><button type="button" aria-label={`Aumentar ${product.name}`} disabled={data.paused || (quantities[product.id] ?? 0) >= 20 || (product.category === "burger" && burgerCount >= 20)} onClick={() => change(product.id, 1)}><Plus size={17} /></button></div></div>
+              <div className="quantity">{product.stock === 0 ? <span>Esgotado</span> : quantities[product.id] ? <span>No pedido</span> : <button className="add-label" type="button" onClick={() => change(product.id, 1)} disabled={data.paused || (product.category === "burger" && burgerCount >= 20)} aria-label={`Adicionar ${product.name} ao carrinho`}>Adicionar</button>}<div className="stepper"><button type="button" aria-label={`Diminuir ${product.name}`} disabled={!quantities[product.id] || data.paused} onClick={() => change(product.id, -1)}><Minus size={17} /></button><b aria-live="polite">{quantities[product.id] ?? 0}</b><button type="button" aria-label={`Aumentar ${product.name}`} disabled={data.paused || (quantities[product.id] ?? 0) >= Math.min(20, product.stock ?? 20) || (product.category === "burger" && burgerCount >= 20)} onClick={() => change(product.id, 1)}><Plus size={17} /></button></div></div>
             </div>
           </article>)}</div>
         </section>)}
-        {data && <p className="photo-note">Fotos ilustrativas. Apresentação e porções podem variar no dia do evento.</p>}
+        {data && <p className="photo-note">A apresentação e as porções podem variar no dia do evento.</p>}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
         <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />29 de outubro, das 18h às 22h</span></div></div></div>

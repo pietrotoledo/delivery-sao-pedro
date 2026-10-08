@@ -6,5 +6,5 @@ export function productPhoto(product: { imageUrl?: string | null; category: stri
 }
 
 export function externalPhoto(src: string) {
-  return src.startsWith("https://");
+  return src.startsWith("https://") || src.startsWith("/api/products/images/");
 }

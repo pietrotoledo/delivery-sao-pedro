@@ -15,7 +15,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const otherBurgers = products.filter(product => product.id !== id && product.active && product.category === "burger");
     if (!otherBurgers.length) return json({ error: "Mantenha ao menos um hambúrguer ativo para aceitar pedidos." }, 409);
   }
-  await db().prepare("UPDATE products SET name=?,description=?,category=?,price=?,image_url=?,active=?,sort_order=?,updated_at=? WHERE id=?")
-    .bind(input.name,input.description,input.category,input.price,input.imageUrl,input.active ? 1 : 0,input.sortOrder,new Date().toISOString(),id).run();
+  await db().prepare("UPDATE products SET name=?,description=?,category=?,price=?,image_url=?,stock=?,active=?,sort_order=?,updated_at=? WHERE id=?")
+    .bind(input.name,input.description,input.category,input.price,input.imageUrl,input.stock,input.active ? 1 : 0,input.sortOrder,new Date().toISOString(),id).run();
   return json({ product: { id, ...input } });
 }

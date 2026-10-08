@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 export type ProductCategory = "burger" | "side" | "drink";
 export type Product = {
   id: string; name: string; description: string; category: ProductCategory;
-  price: number; imageUrl: string | null; active: boolean; sortOrder: number;
+  price: number; imageUrl: string | null; stock: number | null; active: boolean; sortOrder: number;
 };
 export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[] };
 
@@ -58,9 +58,16 @@ export async function ensureSchema() {
       )`).run();
       await database.prepare(`CREATE TABLE IF NOT EXISTS products (
         id text PRIMARY KEY NOT NULL, name text NOT NULL, description text NOT NULL,
-        category text NOT NULL, price integer NOT NULL, image_url text,
+        category text NOT NULL, price integer NOT NULL, image_url text, stock integer,
         active integer NOT NULL DEFAULT 1, sort_order integer NOT NULL DEFAULT 0,
         created_at text NOT NULL, updated_at text NOT NULL
+      )`).run();
+      const productColumns = await database.prepare("PRAGMA table_info(products)").all<{name:string}>();
+      if (!productColumns.results?.some(column => column.name === "stock")) {
+        await database.prepare("ALTER TABLE products ADD COLUMN stock integer").run();
+      }
+      await database.prepare(`CREATE TABLE IF NOT EXISTS product_images (
+        id text PRIMARY KEY NOT NULL, mime_type text NOT NULL, base64_data text NOT NULL
       )`).run();
       const existing = await database.prepare("SELECT COUNT(*) AS count FROM products").first<{count:number}>();
       if (!existing?.count) {
@@ -82,15 +89,15 @@ export function paymentHandle() { return env.INFINITEPAY_HANDLE?.trim() || ""; }
 
 type ProductRow = {
   id: string; name: string; description: string; category: ProductCategory;
-  price: number; image_url: string | null; active: number; sort_order: number;
+  price: number; image_url: string | null; stock: number | null; active: number; sort_order: number;
 };
 
 export async function getProducts(includeInactive = false): Promise<Product[]> {
   await ensureSchema();
-  const result = await db().prepare(`SELECT id,name,description,category,price,image_url,active,sort_order FROM products ${includeInactive ? "" : "WHERE active = 1"} ORDER BY sort_order, created_at, id`).all<ProductRow>();
+  const result = await db().prepare(`SELECT id,name,description,category,price,image_url,stock,active,sort_order FROM products ${includeInactive ? "" : "WHERE active = 1"} ORDER BY sort_order, created_at, id`).all<ProductRow>();
   return result.results.map(row => ({
     id: row.id, name: row.name, description: row.description, category: row.category,
-    price: row.price, imageUrl: row.image_url, active: Boolean(row.active), sortOrder: row.sort_order,
+    price: row.price, imageUrl: row.image_url, stock: row.stock, active: Boolean(row.active), sortOrder: row.sort_order,
   }));
 }
 

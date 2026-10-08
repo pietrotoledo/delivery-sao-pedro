@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (typeof input === "string") return json({ error: input }, 400);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  await db().prepare("INSERT INTO products (id,name,description,category,price,image_url,active,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
-    .bind(id,input.name,input.description,input.category,input.price,input.imageUrl,input.active ? 1 : 0,input.sortOrder,now,now).run();
+  await db().prepare("INSERT INTO products (id,name,description,category,price,image_url,stock,active,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+    .bind(id,input.name,input.description,input.category,input.price,input.imageUrl,input.stock,input.active ? 1 : 0,input.sortOrder,now,now).run();
   return json({ product: { id, ...input } }, 201);
 }

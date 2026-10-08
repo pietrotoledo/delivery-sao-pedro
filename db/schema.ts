@@ -39,8 +39,15 @@ export const products = sqliteTable("products", {
   category: text("category").notNull(),
   price: integer("price").notNull(),
   imageUrl: text("image_url"),
+  stock: integer("stock"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+});
+
+export const productImages = sqliteTable("product_images", {
+  id: text("id").primaryKey(),
+  mimeType: text("mime_type").notNull(),
+  base64Data: text("base64_data").notNull(),
 });

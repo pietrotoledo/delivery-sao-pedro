@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (method === "delivery" && (!["Manaíra","Bessa","Tambaú"].includes(neighborhood ?? "") || !address || address.length < 8)) {
     return json({error:"Informe um endereço válido em Manaíra, Bessa ou Tambaú."},400);
   }
-  if (!Array.isArray(body.items)) return json({error:"Escolha ao menos um hambúrguer."},400);
+  if (!Array.isArray(body.items) || body.items.length > 20) return json({error:"Escolha até 20 tipos de produto por pedido."},400);
   const menu = await getProducts();
   const productsById = new Map(menu.map(product => [product.id, product]));
   const items: OrderItem[] = [];
@@ -35,6 +35,11 @@ export async function POST(request: Request) {
     }
     if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,removedIngredients:removed as string[]});
   }
+  const unavailable = items.find(item => {
+    const stock = productsById.get(item.id)?.stock;
+    return stock !== null && stock !== undefined && item.quantity > stock;
+  });
+  if (unavailable) return json({error:`${unavailable.name} não tem a quantidade solicitada. Atualize o cardápio.`},409);
   const burgerCount = items.reduce((sum,item)=>sum+(productsById.get(item.id)?.category==="burger"?item.quantity:0),0);
   if (burgerCount < 1 || burgerCount > 20) return json({error:"Escolha de 1 a 20 hambúrgueres."},400);
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
@@ -42,7 +47,17 @@ export async function POST(request: Request) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const status = method === "delivery" ? "awaiting_quote" : "ready_for_payment";
-  await db().prepare("INSERT INTO orders (id,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-    .bind(id,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status).run();
+  const availability = items.map(() => "(id = ? AND active = 1 AND (stock IS NULL OR stock >= ?))").join(" OR ");
+  const availabilityArgs = items.flatMap(item => [item.id, item.quantity]);
+  const database = db();
+  const statements = [
+    database.prepare(`INSERT INTO orders (id,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
+      .bind(id,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status,...availabilityArgs,items.length),
+    ...items.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
+      .bind(item.quantity,now,item.id,id)),
+  ];
+  const results = await database.batch(statements);
+  if (!results[0].meta.changes) return json({error:"Um produto ficou indisponível. Atualize o cardápio e tente novamente."},409);
   return json({id,status},201);
 }

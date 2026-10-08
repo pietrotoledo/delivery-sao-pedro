@@ -9,7 +9,7 @@ import BrandAvatar from "@/components/brand-avatar";
 import { allowedRemovals } from "@/lib/burger-customization";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
 
-type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null };
+type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null; stock: number | null };
 type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export default function Checkout({ initialItems }: { initialItems: string }) {
@@ -39,7 +39,10 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
   useEffect(() => {
     fetch("/api/public")
       .then(response => { if (!response.ok) throw new Error("Cardápio indisponível"); return response.json() as Promise<PublicData>; })
-      .then(setData)
+      .then(result => {
+        setData(result);
+        setQuantities(current => Object.fromEntries(result.menu.map(product => [product.id, Math.max(0, Math.min(20, product.stock ?? 20, current[product.id] ?? 0))])));
+      })
       .catch(() => setLoadError(true));
   }, []);
 
@@ -58,7 +61,9 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
   }, [quantities, data]);
 
   function change(id: string, delta: number) {
-    setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, (current[id] ?? 0) + delta)) }));
+    const product = getProduct(id);
+    if (!product) return;
+    setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, product.stock ?? 20, (current[id] ?? 0) + delta)) }));
   }
 
   function toggleRemoval(id: string, ingredient: string) {
@@ -70,7 +75,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
   }
 
   function upgradeFries() {
-    setQuantities(current => ({ ...current, "fries-small": Math.max(0, (current["fries-small"] ?? 0) - 1), "fries-large": Math.min(20, (current["fries-large"] ?? 0) + 1) }));
+    setQuantities(current => ({ ...current, "fries-small": Math.max(0, (current["fries-small"] ?? 0) - 1), "fries-large": Math.min(20, getProduct("fries-large")?.stock ?? 20, (current["fries-large"] ?? 0) + 1) }));
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -94,10 +99,10 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
     }
   }
 
-  const burgerSuggestions = data?.menu.filter(product => product.category === "burger" && !quantities[product.id]) ?? [];
-  const sideSuggestions = data?.menu.filter(product => product.category === "side" && !quantities[product.id] && !(product.id === "fries-large" && quantities["fries-small"])).sort((a, b) => (a.id === (burgerCount > 1 ? "fries-large" : "fries-small") ? -1 : b.id === (burgerCount > 1 ? "fries-large" : "fries-small") ? 1 : 0)) ?? [];
-  const drinkSuggestions = data?.menu.filter(product => product.category === "drink" && !quantities[product.id]).sort((a, b) => (a.id === "coke" ? -1 : b.id === "coke" ? 1 : 0)) ?? [];
-  const canUpgradeFries = Boolean(quantities["fries-small"] && getProduct("fries-large"));
+  const burgerSuggestions = data?.menu.filter(product => product.category === "burger" && product.stock !== 0 && !quantities[product.id]) ?? [];
+  const sideSuggestions = data?.menu.filter(product => product.category === "side" && product.stock !== 0 && !quantities[product.id] && !(product.id === "fries-large" && quantities["fries-small"])).sort((a, b) => (a.id === (burgerCount > 1 ? "fries-large" : "fries-small") ? -1 : b.id === (burgerCount > 1 ? "fries-large" : "fries-small") ? 1 : 0)) ?? [];
+  const drinkSuggestions = data?.menu.filter(product => product.category === "drink" && product.stock !== 0 && !quantities[product.id]).sort((a, b) => (a.id === "coke" ? -1 : b.id === "coke" ? 1 : 0)) ?? [];
+  const canUpgradeFries = Boolean(quantities["fries-small"] && getProduct("fries-large") && (getProduct("fries-large")!.stock === null || (getProduct("fries-large")!.stock ?? 0) > (quantities["fries-large"] ?? 0)));
   const showSuggestions = burgerSuggestions.length > 0 || sideSuggestions.length > 0 || drinkSuggestions.length > 0 || canUpgradeFries;
 
   return <div className="checkout-page">
@@ -119,7 +124,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
             <section className="checkout-panel"><div className="checkout-panel-heading"><span className="checkout-panel-number">{showSuggestions ? "03" : "02"}</span><div><h2>Seus dados</h2><p>Usaremos estes dados para identificar seu pedido.</p></div></div><div className="fields"><label>Nome completo<input value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder="Seu nome" required minLength={2} maxLength={100} /></label><label>WhatsApp<input value={phone} onChange={event => setPhone(event.target.value)} autoComplete="tel" inputMode="tel" placeholder="(83) 99999-9999" required minLength={10} /></label><label>E-mail<input value={email} onChange={event => setEmail(event.target.value)} type="email" autoComplete="email" placeholder="voce@exemplo.com" required maxLength={254} /></label>{method === "delivery" && <><label>Bairro<select value={neighborhood} onChange={event => setNeighborhood(event.target.value)}><option>Manaíra</option><option>Bessa</option><option>Tambaú</option></select></label><label>Endereço completo<input value={address} onChange={event => setAddress(event.target.value)} autoComplete="street-address" placeholder="Rua, número, complemento e referência" required minLength={8} maxLength={220} /></label></>}</div><details className="notes-details"><summary>Adicionar observação <span>opcional</span></summary><label htmlFor="checkout-notes">Observações do pedido</label><textarea id="checkout-notes" value={notes} onChange={event => setNotes(event.target.value)} placeholder="Alguma informação para a equipe?" rows={2} maxLength={300} /></details></section>
           </form>
         </div>
-        <aside className="checkout-summary checkout-panel" aria-label="Resumo do pedido"><div className="checkout-panel-heading"><ShoppingBag size={23} /><div><h2>Seu pedido</h2><p>{itemCount} {itemCount === 1 ? "item" : "itens"}</p></div></div><div className="checkout-lines">{selected.length ? selected.map(product => <div className="checkout-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={60} height={60} alt="" /><div><strong>{product.name}</strong><span>{money(product.price)} cada</span><div className="checkout-stepper"><button type="button" onClick={() => change(product.id, -1)} aria-label={`Diminuir ${product.name}`} disabled={data.paused}><Minus size={15} /></button><b>{quantities[product.id]}</b><button type="button" onClick={() => change(product.id, 1)} aria-label={`Aumentar ${product.name}`} disabled={data.paused || quantities[product.id] >= 20 || (product.category === "burger" && burgerCount >= 20)}><Plus size={15} /></button></div></div><strong>{money(product.price * quantities[product.id])}</strong>{product.category === "burger" && <details className="burger-customization"><summary>Editar ingredientes{(removals[product.id]?.length ?? 0) > 0 ? ` (${removals[product.id].length})` : ""}</summary><p>Retire ingredientes (aplica-se a todas as unidades deste hambúrguer):</p>{allowedRemovals(product.id).length ? allowedRemovals(product.id).map(ingredient => <label key={ingredient}><input type="checkbox" checked={(removals[product.id] ?? []).includes(ingredient)} onChange={() => toggleRemoval(product.id, ingredient)} disabled={data.paused} /> Sem {ingredient.toLowerCase()}</label>) : <p>Sem opções de remoção cadastradas.</p>}</details>}{(removals[product.id]?.length ?? 0) > 0 && <span className="burger-removal-summary">Sem {removals[product.id].join(", ").toLowerCase()}</span>}</div>) : <p className="checkout-empty">Seu carrinho está vazio. <Link href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "hamburgueres")}>Escolha um hambúrguer</Link>.</p>}</div><Link className="checkout-edit" href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "cardapio")}>Adicionar mais itens do cardápio</Link><div className="checkout-total"><span>Subtotal</span><strong>{money(subtotal)}</strong></div>{method === "delivery" && <p className="checkout-fee">A taxa de entrega será informada antes do pagamento.</p>}{data.paid >= data.capacity && <div className="notice">A produção prevista foi atingida. Seu pedido depende de disponibilidade.</div>}{data.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-yellow checkout-submit" type="submit" form="checkout-form" disabled={busy || data.paused || burgerCount < 1}>{busy ? "Criando pedido..." : method === "delivery" ? "Solicitar taxa de entrega" : "Criar pedido e continuar para o Pix"}<ArrowRight size={18} /></button><p className="checkout-submit-note">O número do pedido aparece na próxima tela.</p></aside>
+        <aside className="checkout-summary checkout-panel" aria-label="Resumo do pedido"><div className="checkout-panel-heading"><ShoppingBag size={23} /><div><h2>Seu pedido</h2><p>{itemCount} {itemCount === 1 ? "item" : "itens"}</p></div></div><div className="checkout-lines">{selected.length ? selected.map(product => <div className="checkout-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={60} height={60} alt="" /><div><strong>{product.name}</strong><span>{money(product.price)} cada</span><div className="checkout-stepper"><button type="button" onClick={() => change(product.id, -1)} aria-label={`Diminuir ${product.name}`} disabled={data.paused}><Minus size={15} /></button><b>{quantities[product.id]}</b><button type="button" onClick={() => change(product.id, 1)} aria-label={`Aumentar ${product.name}`} disabled={data.paused || quantities[product.id] >= Math.min(20, product.stock ?? 20) || (product.category === "burger" && burgerCount >= 20)}><Plus size={15} /></button></div></div><strong>{money(product.price * quantities[product.id])}</strong>{product.category === "burger" && <details className="burger-customization"><summary>Editar ingredientes{(removals[product.id]?.length ?? 0) > 0 ? ` (${removals[product.id].length})` : ""}</summary><p>Retire ingredientes (aplica-se a todas as unidades deste hambúrguer):</p>{allowedRemovals(product.id).length ? allowedRemovals(product.id).map(ingredient => <label key={ingredient}><input type="checkbox" checked={(removals[product.id] ?? []).includes(ingredient)} onChange={() => toggleRemoval(product.id, ingredient)} disabled={data.paused} /> Sem {ingredient.toLowerCase()}</label>) : <p>Sem opções de remoção cadastradas.</p>}</details>}{(removals[product.id]?.length ?? 0) > 0 && <span className="burger-removal-summary">Sem {removals[product.id].join(", ").toLowerCase()}</span>}</div>) : <p className="checkout-empty">Seu carrinho está vazio. <Link href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "hamburgueres")}>Escolha um hambúrguer</Link>.</p>}</div><Link className="checkout-edit" href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "cardapio")}>Adicionar mais itens do cardápio</Link><div className="checkout-total"><span>Subtotal</span><strong>{money(subtotal)}</strong></div>{method === "delivery" && <p className="checkout-fee">A taxa de entrega será informada antes do pagamento.</p>}{data.paid >= data.capacity && <div className="notice">A produção prevista foi atingida. Seu pedido depende de disponibilidade.</div>}{data.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-yellow checkout-submit" type="submit" form="checkout-form" disabled={busy || data.paused || burgerCount < 1}>{busy ? "Criando pedido..." : method === "delivery" ? "Solicitar taxa de entrega" : "Criar pedido e continuar para o Pix"}<ArrowRight size={18} /></button><p className="checkout-submit-note">O número do pedido aparece na próxima tela.</p></aside>
       </div>}
     </main>
   </div>;

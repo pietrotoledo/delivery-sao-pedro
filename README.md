@@ -7,6 +7,7 @@ Pré-venda da Noite do Hambúrguer de 29 de outubro de 2026, das 18h às 22h.
 - Loja responsiva com dois hambúrgueres, batata frita em dois tamanhos, água, refrigerantes, retirada e entrega.
 - Taxa de entrega definida no painel antes de liberar o Pix ao cliente.
 - Painel de pedidos com aviso na capacidade, pausa manual, aumento de vagas, preparo e entrega.
+- Painel de produtos com quantidade opcional por item e envio de fotos já cortadas (JPG, PNG, WebP ou AVIF, até 900 KB). A quantidade é reservada ao criar o pedido; deixe o campo vazio para não limitar ou use zero para marcar esgotado. Pedidos abandonados ou reembolsados não devolvem a reserva automaticamente; ajuste a quantidade no painel quando necessário.
 - Continuação das vendas após 100 hambúrgueres, com aviso de disponibilidade ao comprador.
 - Integração preparada para Checkout InfinitePay com link por pedido, webhook e verificação de pagamento Pix.
 - No painel, o filtro "Aguardando pagamento" reúne pedidos pendentes. A equipe pode confirmar manualmente um valor já recebido, informando uma referência; essa ação não cobra o cliente.

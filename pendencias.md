@@ -42,3 +42,8 @@ Valores sugeridos para os itens cujo preço não foi informado:
 - [ ] Enviar a confirmação automaticamente apenas quando o pagamento for verificado.
 - [ ] Registrar o resultado de cada envio e impedir duplicações quando o webhook ou a verificação do pagamento forem repetidos.
 - [ ] Testar envio, falha e nova tentativa antes de ativar em produção.
+
+## Produtos no admin
+
+- [x] Na aba de admin, adicionar controle de quantidade/estoque dos produtos.
+- [x] Na aba de admin, permitir enviar uma foto já cortada e pronta para exibição no site.
