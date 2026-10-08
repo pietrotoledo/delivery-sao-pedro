@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, MapPin, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
 import BrandAvatar from "@/components/brand-avatar";
 import { allowedRemovals } from "@/lib/burger-customization";
@@ -13,7 +12,6 @@ type Product = { id: string; name: string; price: number; category: string; desc
 type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export default function Checkout({ initialItems }: { initialItems: string }) {
-  const router = useRouter();
   const [data, setData] = useState<PublicData | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
@@ -57,7 +55,8 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
     if (!data) return;
     const items = data.menu.filter(product => quantities[product.id] > 0).map(product => `${product.id}:${quantities[product.id]}`).join(",");
     window.history.replaceState(null, "", `/checkout?items=${encodeURIComponent(items)}`);
-    window.sessionStorage.setItem("blueckyardigans-cart", JSON.stringify(quantities));
+    try { window.sessionStorage.setItem("blueckyardigans-cart", JSON.stringify(quantities)); }
+    catch { /* Os itens continuam disponíveis pela URL do checkout. */ }
   }, [quantities, data]);
 
   function change(id: string, delta: number) {
@@ -91,8 +90,8 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
       });
       const result = await response.json() as { id?: string; error?: string };
       if (!response.ok || !result.id) throw new Error(result.error || "Não foi possível criar o pedido.");
-      window.sessionStorage.removeItem("blueckyardigans-cart");
-      router.push(`/pedido/${result.id}`);
+      try { window.sessionStorage.removeItem("blueckyardigans-cart"); } catch { /* O pedido já foi criado. */ }
+      window.location.assign(`/pedido/${result.id}`);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Não foi possível criar o pedido.");
       setBusy(false);

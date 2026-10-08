@@ -40,13 +40,18 @@ export default function Storefront() {
   }, []);
 
   useEffect(() => {
-    if (data) window.sessionStorage.setItem("blueckyardigans-cart", JSON.stringify(quantities));
+    if (!data) return;
+    try { window.sessionStorage.setItem("blueckyardigans-cart", JSON.stringify(quantities)); }
+    catch { /* O carrinho continua funcionando nesta página sem armazenamento. */ }
   }, [data, quantities]);
 
   useEffect(() => {
-    const target = window.sessionStorage.getItem("blueckyardigans-scroll-target");
+    let target: string | null = null;
+    try {
+      target = window.sessionStorage.getItem("blueckyardigans-scroll-target");
+      if (target) window.sessionStorage.removeItem("blueckyardigans-scroll-target");
+    } catch { return; }
     if (!target) return;
-    window.sessionStorage.removeItem("blueckyardigans-scroll-target");
     const frame = window.requestAnimationFrame(() => document.getElementById(target)?.scrollIntoView());
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -116,13 +121,13 @@ export default function Storefront() {
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
           <div className="order-totals"><div><span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span><strong>{money(subtotal)}</strong></div></div>
           {data?.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}
-          {burgerCount > 0 && !data?.paused ? <Link className="button button-yellow submit-button" href={checkoutHref}>Ir para o checkout <ArrowRight size={19} /></Link> : <Link className="button button-yellow submit-button" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher hambúrguer <ArrowRight size={19} /></Link>}
+          {burgerCount > 0 && !data?.paused ? <a className="button button-yellow submit-button" href={checkoutHref}>Ir para o checkout <ArrowRight size={19} /></a> : <Link className="button button-yellow submit-button" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher hambúrguer <ArrowRight size={19} /></Link>}
           <p className="form-foot">Você confere tudo antes de criar o pedido.</p>
         </div>
       </div></section>
     </main>
-    {itemCount > 0 && <div className="desktop-cart"><span className="desktop-cart-icon"><ShoppingBag size={22} /></span><span className="desktop-cart-total"><b>{itemCount} {itemCount === 1 ? "item" : "itens"} no pedido</b><strong>{money(subtotal)}</strong></span>{burgerCount > 0 ? <Link className="button button-yellow" href={checkoutHref} aria-label="Continuar para o checkout">Continuar <ArrowRight size={18} /></Link> : <Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Continuar escolhendo um hambúrguer">Continuar <ArrowRight size={18} /></Link>}</div>}
-    {itemCount > 0 && <Link className="mobile-cart" href={burgerCount > 0 ? checkoutHref : "/"} onClick={burgerCount > 0 ? undefined : event => scrollTo(event, "hamburgueres")} aria-label={burgerCount > 0 ? `Ver pedido com ${itemCount} itens, total ${money(subtotal)}` : "Escolha um hambúrguer para continuar"}><span>{burgerCount > 0 ? `${itemCount} ${itemCount === 1 ? "item" : "itens"} · ${money(subtotal)}` : "Escolha um hambúrguer"}</span><strong>{burgerCount > 0 ? "Continuar" : "Ver opções"} <ArrowRight size={18} /></strong></Link>}
+    {itemCount > 0 && <div className="desktop-cart"><span className="desktop-cart-icon"><ShoppingBag size={22} /></span><span className="desktop-cart-total"><b>{itemCount} {itemCount === 1 ? "item" : "itens"} no pedido</b><strong>{money(subtotal)}</strong></span>{burgerCount > 0 ? <a className="button button-yellow" href={checkoutHref} aria-label="Continuar para o checkout">Continuar <ArrowRight size={18} /></a> : <Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Continuar escolhendo um hambúrguer">Continuar <ArrowRight size={18} /></Link>}</div>}
+    {itemCount > 0 && (burgerCount > 0 ? <a className="mobile-cart" href={checkoutHref} aria-label={`Ver pedido com ${itemCount} itens, total ${money(subtotal)}`}><span>{itemCount} {itemCount === 1 ? "item" : "itens"} · {money(subtotal)}</span><strong>Continuar <ArrowRight size={18} /></strong></a> : <Link className="mobile-cart" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Escolha um hambúrguer para continuar"><span>Escolha um hambúrguer</span><strong>Ver opções <ArrowRight size={18} /></strong></Link>)}
     <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 29 de outubro de 2026</p><a href="/admin">Acesso da equipe</a></div></footer>
   </div>;
 }
