@@ -17,7 +17,7 @@ type Order = {
 };
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null };
 type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
-type Filter = "all" | "attention" | "payment" | "active" | "closed";
+type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
 const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão" };
 const noticeStates: Record<string, string> = { accepted: "aceito pela Evolution", failed: "falhou; nova tentativa programada", superseded: "substituído", pending: "pendente", sending: "enviando" };
 
@@ -65,8 +65,9 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const revenue = paidOrders.reduce((sum, order) => sum + (order.total ?? 0), 0);
   const pendingQuotes = data?.orders.filter(order => order.status === "awaiting_quote").length ?? 0;
   const pendingPayments = data?.orders.filter(order => !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status)).length ?? 0;
+  const waitingToStart = data?.orders.filter(order => order.status === "paid").length ?? 0;
   const openOrders = data?.orders.filter(order => !closedStatuses.has(order.status)).length ?? 0;
-  const activeOrders = data?.orders.filter(order => order.paid_at && !closedStatuses.has(order.status)).length ?? 0;
+  const activeOrders = data?.orders.filter(order => ["preparing", "ready", "out_for_delivery"].includes(order.status)).length ?? 0;
   const over = Math.max(0, (data?.paid ?? 0) - (data?.settings.capacity ?? 100));
   const paidPosition = new Map<string, { start: number; end: number }>();
   let running = 0;
@@ -78,7 +79,8 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const visibleOrders = data?.orders.filter(order => {
     if (filter === "attention") return order.status === "awaiting_quote";
     if (filter === "payment") return !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status);
-    if (filter === "active") return Boolean(order.paid_at) && !closedStatuses.has(order.status);
+    if (filter === "paid") return order.status === "paid";
+    if (filter === "active") return ["preparing", "ready", "out_for_delivery"].includes(order.status);
     if (filter === "closed") return closedStatuses.has(order.status);
     return true;
   }) ?? [];
@@ -178,7 +180,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       {data && view === "orders" && <>
         <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>
-          <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Pagamentos confirmados</small></div>
+          <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Em preparo, prontos ou em entrega</small></div>
           <div className="metric"><span>Total recebido</span><strong className="metric-money">{money(revenue)}</strong><small>Exclui devoluções registradas</small></div>
         </section>
         {data.paid >= data.settings.capacity && <div className="admin-alert">A capacidade de {data.settings.capacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
@@ -196,10 +198,12 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               ["all", "Todos", data.orders.length],
               ["attention", "Aguardando taxa", pendingQuotes],
               ["payment", "Aguardando pagamento", pendingPayments],
+              ["paid", "Pagos", waitingToStart],
               ["active", "Em andamento", activeOrders],
               ["closed", "Concluídos", data.orders.length - openOrders],
             ] as [Filter, string, number][]).map(([value, label, count]) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>)}
           </div>
+          {filter === "paid" && <p className="admin-filter-help">Pagamentos confirmados ficam aqui até a equipe clicar em “Iniciar preparo”.</p>}
           <div className="admin-orders">
             {visibleOrders.length === 0 && <p className="admin-empty">{filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {

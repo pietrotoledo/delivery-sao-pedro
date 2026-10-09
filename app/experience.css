@@ -601,6 +601,7 @@ button { -webkit-touch-callout: none; }
 .admin-main .admin-order-next .mini-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; white-space: nowrap; }
 .admin-status-correction { display: inline-flex; align-items: center; gap: 8px; color: #677b9b; font-size: 12px; font-weight: 700; }
 .admin-status-correction select { max-width: 170px; background: #fff; color: #274374; }
+.admin-main .admin-filter-help { margin: -2px 0 16px; color: #526987; font-size: 13px; line-height: 1.5; }
 .admin-main button:disabled { opacity: .55; cursor: wait; }
 .admin-main button:not(:disabled), .admin-side a { cursor: pointer; }
 .admin-main :is(button, input, select, a):focus-visible, .admin-side a:focus-visible { outline: 3px solid #f2bd20; outline-offset: 2px; }
