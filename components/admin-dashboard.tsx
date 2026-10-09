@@ -158,8 +158,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
 
   return <div className="admin-shell">
     <aside className="admin-side">
-      <Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
-      <nav className="side-nav" aria-label="Painel"><Link className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}><LayoutDashboard size={18} /> Pedidos</Link><Link className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}><ShoppingBag size={18} /> Produtos</Link><Link className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}><ContactRound size={18} /> Contatos</Link><Link href="/"><ArrowUpRight size={18} /> Ver loja</Link></nav>
+      {/* Full page navigation keeps the staff sections reliable across runtimes. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+      <a className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></a>
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+      <nav className="side-nav" aria-label="Painel"><a className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}><LayoutDashboard size={18} /> Pedidos</a><a className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}><ShoppingBag size={18} /> Produtos</a><a className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}><ContactRound size={18} /> Contatos</a><a href="/"><ArrowUpRight size={18} /> Ver loja</a></nav>
       <p className="side-foot">Equipe · 29 de outubro de 2026</p>
     </aside>
     <main className="admin-main">
