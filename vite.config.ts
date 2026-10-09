@@ -20,8 +20,9 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 
 const localBindingConfig = {
   ...(directCloudflare ? { name: cloudflareWorkerName } : {}),
-  main: directCloudflare ? "vinext/server/fetch-handler" : "./build/sites-worker.ts",
+  main: directCloudflare ? "./build/cloudflare-worker.ts" : "./build/sites-worker.ts",
   compatibility_flags: ["nodejs_compat"],
+  ...(directCloudflare ? { triggers: { crons: ["*/5 * * * *"] } } : {}),
   d1_databases: d1
     ? [
         {

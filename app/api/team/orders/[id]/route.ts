@@ -1,5 +1,5 @@
 import { db, getOrder, handoffOnly, json, orderItems, sameOrigin, type Order } from "@/lib/store";
-import { scheduleOrderNotice } from "@/lib/evolution-notifications";
+import { scheduleOrderNotifications } from "@/lib/order-notifications";
 
 function view(order: Order) {
   return {
@@ -56,6 +56,6 @@ export async function POST(request: Request, context: {params: Promise<{id: stri
   const result = await db().prepare("UPDATE orders SET status='completed',handoff_confirmed_at=?,handoff_note=?,handoff_attempts=0,handoff_locked_until=NULL,updated_at=? WHERE id=? AND status=? AND paid_at IS NOT NULL AND (handoff_locked_until IS NULL OR handoff_locked_until<=?)")
     .bind(timestamp, "Confirmado com os quatro últimos dígitos do telefone", timestamp, id, expectedStatus, timestamp).run();
   if (!result.meta.changes) return json({error: "O pedido mudou de situação. Atualize a página."}, 409);
-  scheduleOrderNotice(id, "completed", new URL(request.url).origin);
+  scheduleOrderNotifications(id, "completed", new URL(request.url).origin);
   return json({order: view((await getOrder(id))!)});
 }

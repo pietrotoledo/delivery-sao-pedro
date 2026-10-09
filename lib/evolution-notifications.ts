@@ -22,7 +22,7 @@ function settings() {
 
 export function evolutionEnabled() { return Boolean(settings()); }
 
-function message(order: Order, event: OrderNotice, origin: string) {
+export function orderNoticeMessage(order: Order, event: OrderNotice, origin: string) {
   const number = order.id.slice(0, 8).toUpperCase();
   const track = `${origin}/pedido/${order.id}`;
   const prefix = `BLUECKYARDIGANS \u00b7 Pedido #${number}\n`;
@@ -56,7 +56,7 @@ export function scheduleOrderNotice(orderId: string, event: OrderNotice, origin:
 async function enqueueOrderNotice(orderId: string, event: OrderNotice, origin: string) {
   const order = await getOrder(orderId);
   if (!order?.whatsapp_opt_in || order.contact_deleted_at || !phoneNumber(order)) return;
-  const text = message(order, event, new URL(origin).origin);
+  const text = orderNoticeMessage(order, event, new URL(origin).origin);
   if (!text) return;
   await ensureSchema();
   const now = new Date().toISOString();
@@ -103,14 +103,15 @@ async function sendNotice(id: string) {
 
 export function scheduleNotificationRetries() {
   if (!evolutionEnabled()) return;
-  waitUntil(retryNotifications().catch(error => console.error("Falha ao repetir avisos Evolution", error)));
+  waitUntil(retryEvolutionNotifications().catch(error => console.error("Falha ao repetir avisos Evolution", error)));
 }
 
-async function retryNotifications() {
+export async function retryEvolutionNotifications() {
+  if (!evolutionEnabled()) return;
   await ensureSchema();
   const now = new Date().toISOString();
   const stale = new Date(Date.now() - 60_000).toISOString();
-  const rows = await db().prepare("SELECT id FROM order_notifications WHERE (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?) ORDER BY updated_at LIMIT 10")
+  const rows = await db().prepare("SELECT id FROM order_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?) ORDER BY updated_at LIMIT 10")
     .bind(now, stale).all<{id: string}>();
   await Promise.all(rows.results.map(row => sendNotice(row.id)));
 }

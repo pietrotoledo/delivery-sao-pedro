@@ -373,6 +373,7 @@ button { -webkit-touch-callout: none; }
 .checkout-page .method-options button { min-width: 0; }
 .checkout-page .fields label:has(input[type="email"]) { grid-column: 1 / -1; }
 .checkout-whatsapp-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; color: var(--brand-deep); font-size: 13px; font-weight: 700; line-height: 1.45; cursor: pointer; }
+.checkout-contact-note { margin: 14px 0 0; color: #526987; font-size: 13px; line-height: 1.5; }
 .checkout-whatsapp-consent input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--brand-blue); }
 .checkout-help { margin: 15px 0 0; color: #64748f; font-size: 13px; line-height: 1.5; }
 .checkout-page .notes-details { margin-top: 18px; }

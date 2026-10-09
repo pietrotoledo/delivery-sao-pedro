@@ -1,5 +1,5 @@
 import { db, getOrder, orderItems, paymentHandle, type Order } from "./store";
-import { scheduleOrderNotice } from "./evolution-notifications";
+import { scheduleOrderNotifications } from "./order-notifications";
 
 type PaymentNotice = { order_nsu?: string; transaction_nsu?: string; invoice_slug?: string; slug?: string; capture_method?: string };
 
@@ -18,7 +18,7 @@ export async function verifyPayment(notice: PaymentNotice, origin?: string) {
   const now = new Date().toISOString();
   const updated = await db().prepare("UPDATE orders SET status = 'paid', payment_mode = 'infinitepay', paid_at = ?, updated_at = ?, transaction_nsu = ?, invoice_slug = ? WHERE id = ? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment')")
     .bind(now, now, notice.transaction_nsu, notice.invoice_slug || notice.slug, order.id).run();
-  if (updated.meta.changes && origin) scheduleOrderNotice(order.id, "paid", origin);
+  if (updated.meta.changes && origin) scheduleOrderNotifications(order.id, "paid", origin);
   return true;
 }
 
@@ -44,6 +44,6 @@ export async function createCheckout(order: Order, origin: string) {
   if (!response.ok || !result.url || !result.url.startsWith("https://")) throw new Error("Não foi possível gerar o link Pix. Tente novamente.");
   await db().prepare("UPDATE orders SET checkout_url = ?, payment_mode = 'infinitepay', status = 'awaiting_payment', updated_at = ? WHERE id = ?")
     .bind(result.url, new Date().toISOString(), order.id).run();
-  scheduleOrderNotice(order.id, "pix_available", origin);
+  scheduleOrderNotifications(order.id, "pix_available", origin);
   return { demo:false as const, url:result.url };
 }

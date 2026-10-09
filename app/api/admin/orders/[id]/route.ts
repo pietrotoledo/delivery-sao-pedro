@@ -1,6 +1,6 @@
 import { createCheckout } from "@/lib/payment";
 import { adminOnly, db, getOrder, json, orderItems, paymentHandle, sameOrigin } from "@/lib/store";
-import { scheduleOrderNotice, type OrderNotice } from "@/lib/evolution-notifications";
+import { scheduleOrderNotifications, type OrderNotice } from "@/lib/order-notifications";
 
 const statuses = ["paid","preparing","ready","out_for_delivery"];
 
@@ -27,7 +27,7 @@ export async function PATCH(request: Request, context: {params:Promise<{id:strin
     if (!order.paid_at || !statuses.includes(body.status ?? "") || ["refunded", "completed"].includes(order.status) || (order.method === "pickup" && body.status === "out_for_delivery")) return json({error:"Estado inválido."},400);
     const changed = await db().prepare("UPDATE orders SET status=?,updated_at=? WHERE id=? AND status<>?").bind(body.status,now,id,body.status).run();
     if (changed.meta.changes && ["preparing", "ready", "out_for_delivery"].includes(body.status!)) {
-      scheduleOrderNotice(id, body.status as OrderNotice, new URL(request.url).origin);
+      scheduleOrderNotifications(id, body.status as OrderNotice, new URL(request.url).origin);
     }
   } else if (body.action === "manual_handoff") {
     const note = String(body.note ?? "").trim().slice(0, 300);
@@ -36,7 +36,7 @@ export async function PATCH(request: Request, context: {params:Promise<{id:strin
     const result = await db().prepare("UPDATE orders SET status='completed',handoff_confirmed_at=?,handoff_note=?,updated_at=? WHERE id=? AND status=? AND paid_at IS NOT NULL")
       .bind(now,`Confirmação manual: ${note}`,now,id,expected).run();
     if (!result.meta.changes) return json({error:"Este pedido já foi atualizado. Recarregue o painel."},409);
-    scheduleOrderNotice(id, "completed", new URL(request.url).origin);
+    scheduleOrderNotifications(id, "completed", new URL(request.url).origin);
   } else if (body.action === "demo_paid") {
     if (paymentHandle() || order.total===null || order.paid_at) return json({error:"Simulação indisponível."},400);
     await db().prepare("UPDATE orders SET status='paid',payment_mode='demo',paid_at=?,updated_at=? WHERE id=?").bind(now,now,id).run();
@@ -48,7 +48,7 @@ export async function PATCH(request: Request, context: {params:Promise<{id:strin
     const result = await db().prepare("UPDATE orders SET status='paid',payment_mode='manual',payment_note=?,paid_at=?,updated_at=? WHERE id=? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment')")
       .bind(note,now,now,id).run();
     if (!result.meta.changes) return json({error:"Este pedido já foi atualizado. Recarregue o painel."},409);
-    scheduleOrderNotice(id, "paid", new URL(request.url).origin);
+    scheduleOrderNotifications(id, "paid", new URL(request.url).origin);
   } else if (body.action === "refund") {
     const note = String(body.note??"").trim().slice(0,300);
     if (!order.paid_at || order.status==="refunded" || !note) return json({error:"Registre o motivo e devolva o valor antes de marcar como reembolsado."},400);

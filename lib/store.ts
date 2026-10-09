@@ -79,6 +79,12 @@ export async function ensureSchema() {
         next_attempt_at text, last_error text, accepted_at text, updated_at text NOT NULL,
         UNIQUE(order_id, event)
       )`).run();
+      await database.prepare(`CREATE TABLE IF NOT EXISTS email_notifications (
+        id text PRIMARY KEY NOT NULL, order_id text NOT NULL, event text NOT NULL,
+        subject text NOT NULL, message text NOT NULL, state text NOT NULL DEFAULT 'pending',
+        attempts integer NOT NULL DEFAULT 0, next_attempt_at text, last_error text,
+        accepted_at text, updated_at text NOT NULL, UNIQUE(order_id, event)
+      )`).run();
       await database.prepare(`CREATE TABLE IF NOT EXISTS settings (
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
         paused integer DEFAULT false NOT NULL

@@ -15,11 +15,11 @@ type Order = {
   paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null; checkout_url: string | null;
   handoff_confirmed_at: string | null; handoff_note: string | null;
 };
-type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null };
+type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
 type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
 type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
 const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão" };
-const noticeStates: Record<string, string> = { accepted: "aceito pela Evolution", failed: "falhou; nova tentativa programada", superseded: "substituído", pending: "pendente", sending: "enviando" };
+const noticeStates: Record<string, string> = { failed: "falhou; nova tentativa programada", superseded: "substituído", pending: "pendente", sending: "enviando" };
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const labels: Record<string, string> = {
@@ -225,7 +225,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada na paróquia"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
-                {notices.length > 0 && <p className="admin-order-note">WhatsApp: {notices.map(notice => `${noticeEvents[notice.event] ?? notice.event} (${noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}
+                {notices.length > 0 && <p className="admin-order-note">Avisos: {notices.map(notice => `${notice.channel === "email" ? "E-mail" : "WhatsApp"} ${noticeEvents[notice.event] ?? notice.event} (${notice.state === "accepted" ? `aceito pelo ${notice.channel === "email" ? "Resend" : "Evolution"}` : noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}
                 {order.paid_at && order.status !== "refunded" && <div className="admin-order-flow" aria-label={`Andamento: ${labels[order.status] || order.status}`}>
                   {steps.map((step, index) => <span key={step} className={index < steps.indexOf(order.status) ? "done" : index === steps.indexOf(order.status) ? "current" : ""} aria-current={step === order.status ? "step" : undefined}>{labels[step]}</span>)}
                 </div>}
