@@ -571,3 +571,47 @@ button { -webkit-touch-callout: none; }
   .team-status, .team-notes { background: #fff !important; border: 1px solid #999; }
   .team-fact, .team-address { break-inside: avoid; }
 }
+
+/* Painel: navegação sempre ao alcance e andamento como ação principal. */
+.admin-shell { grid-template-columns: 248px minmax(0, 1fr); background: #f4f7fc; }
+.admin-side { position: sticky; top: 0; align-self: start; height: 100dvh; min-height: 520px; overflow-y: auto; padding: 30px 18px 24px; background: #102d68; border-right: 1px solid rgba(255,255,255,.13); }
+.admin-side .brand { padding: 4px 9px 20px; border-bottom: 1px solid rgba(255,255,255,.16); }
+.admin-side .brand span { line-height: 1.1; }
+.admin-side .side-nav { gap: 5px; }
+.admin-side .side-nav a { display: flex; align-items: center; gap: 11px; min-height: 46px; padding: 11px 13px; background: transparent; color: #c4d3f0; border: 1px solid transparent; font-weight: 700; transition: background-color .15s, color .15s; }
+.admin-side .side-nav a:hover { background: rgba(255,255,255,.09); color: #fff; }
+.admin-side .side-nav a.active { background: #ffda43; color: #142f65; border-color: #ffda43; }
+.admin-side .side-nav a:last-child { margin-top: 12px; border-top-color: rgba(255,255,255,.14); border-radius: 0; }
+.admin-side .side-foot { padding: 0 9px; }
+.admin-main { margin: 0 auto; }
+.admin-main .admin-order { border: 1px solid #dce5f2; border-radius: 14px; padding: 22px; box-shadow: 0 6px 22px rgba(13,46,110,.035); }
+.admin-main .admin-order-top h3 { font-size: 18px; }
+.admin-main .status-pill { border: 1px solid #d9e4fb; }
+.admin-main .status-preparing { background: #fff3ce; color: #74520b; border-color: #f8dfa0; }
+.admin-main .status-ready, .admin-main .status-out_for_delivery { background: #e7f5ec; color: #1b6a3c; border-color: #c8e9d3; }
+.admin-main .status-completed { background: #e9edf4; color: #445571; border-color: #d5deea; }
+.admin-order-flow { display: flex; gap: 5px; margin-top: 18px; }
+.admin-order-flow span { flex: 1; min-width: 0; border-top: 4px solid #e5eaf3; padding-top: 8px; color: #8a98ad; font-size: 11px; font-weight: 700; line-height: 1.25; }
+.admin-order-flow span.done { border-color: #76a9e9; color: #4a6389; }
+.admin-order-flow span.current { border-color: #173f92; color: #173f92; }
+.admin-order-next { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 17px; padding: 14px 16px; border: 1px solid #dce7f7; border-radius: 10px; background: #f3f7ff; }
+.admin-order-next > div { display: grid; gap: 2px; }
+.admin-order-next strong { color: #536987; font-size: 11px; }
+.admin-order-next span { color: #122e67; font-size: 15px; font-weight: 800; }
+.admin-main .admin-order-next .mini-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; white-space: nowrap; }
+.admin-status-correction { display: inline-flex; align-items: center; gap: 8px; color: #677b9b; font-size: 12px; font-weight: 700; }
+.admin-status-correction select { max-width: 170px; background: #fff; color: #274374; }
+.admin-main button:disabled { opacity: .55; cursor: wait; }
+.admin-main button:not(:disabled), .admin-side a { cursor: pointer; }
+.admin-main :is(button, input, select, a):focus-visible, .admin-side a:focus-visible { outline: 3px solid #f2bd20; outline-offset: 2px; }
+@media (max-width: 1000px) and (min-width: 701px) { .admin-shell { grid-template-columns: 198px minmax(0, 1fr); } .admin-side { min-height: 0; } }
+@media (max-width: 700px) {
+  .admin-shell { display: block; }
+  .admin-side { position: static; height: auto; min-height: 0; overflow: visible; padding: 15px 20px; }
+  .admin-side .brand { border: 0; padding: 0; }
+  .admin-tabs { position: sticky; top: 0; z-index: 10; margin-top: 20px; background: #f4f7fc; box-shadow: 0 5px 12px rgba(13,46,110,.06); }
+  .admin-order-flow span { font-size: 10px; }
+  .admin-order-next { align-items: stretch; flex-direction: column; }
+  .admin-main .admin-order-next .mini-button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .admin-side .side-nav a { transition: none; } }

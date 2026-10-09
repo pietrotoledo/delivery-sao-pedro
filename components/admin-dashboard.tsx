@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, CirclePause, Clock3, PackageCheck, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, PackageCheck, RefreshCw, ShoppingBag } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import AdminProducts from "./admin-products";
 import AdminContacts from "./admin-contacts";
@@ -42,6 +43,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [feeInputs, setFeeInputs] = useState<Record<string, string>>({});
+  const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/admin");
@@ -95,6 +97,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
 
   async function orderAction(id: string, body: Record<string, unknown>) {
     setError("");
+    setBusyOrderId(id);
     try {
       const response = await fetch(`/api/admin/orders/${id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -103,6 +106,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       if (!response.ok) throw new Error(result.error || "Falha ao atualizar.");
       await load();
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Falha ao atualizar."); }
+    finally { setBusyOrderId(null); }
   }
 
   async function deleteOrder(order: Order) {
@@ -152,16 +156,16 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
 
   return <div className="admin-shell">
     <aside className="admin-side">
-      <a className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></a>
-      <nav className="side-nav" aria-label="Painel"><a className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}>Produtos</a><a className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/">Ver loja</a></nav>
+      <Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link>
+      <nav className="side-nav" aria-label="Painel"><Link className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}><LayoutDashboard size={18} /> Pedidos</Link><Link className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}><ShoppingBag size={18} /> Produtos</Link><Link className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}><ContactRound size={18} /> Contatos</Link><Link href="/"><ArrowUpRight size={18} /> Ver loja</Link></nav>
       <p className="side-foot">Equipe · 29 de outubro de 2026</p>
     </aside>
     <main className="admin-main">
       <header className="admin-head">
         <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : "Pedidos e pagamentos atualizados a cada 10 segundos."}</p></div>
-        <a href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></a>
+        <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
-      <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/">Ver loja</a></nav>
+      <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><Link href="/">Ver loja</Link></nav>
       {error && <div className="admin-alert" role="alert">{error}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
@@ -202,19 +206,28 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[] }[];
               const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
               const position = paidPosition.get(order.id);
+              const steps = order.method === "delivery" ? ["paid", "preparing", "ready", "out_for_delivery", "completed"] : ["paid", "preparing", "ready", "completed"];
+              const nextStatus = order.paid_at && order.status !== "refunded" ? steps[steps.indexOf(order.status) + 1] : undefined;
+              const nextLabel: Record<string, string> = { preparing: "Iniciar preparo", ready: "Marcar pronto", out_for_delivery: "Saiu para entrega" };
+              const canAdvance = Boolean(nextStatus && nextStatus !== "completed");
+              const canComplete = nextStatus === "completed";
+              const busy = busyOrderId === order.id;
               return <article className="admin-order" key={order.id}>
-                <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className="status-pill">{labels[order.status] || order.status}</span></div>
+                <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
                 <p className="admin-order-items">{products.map(item => `${item.quantity}× ${item.name || names[item.id] || item.id}${item.removedIngredients?.length ? ` (SEM: ${item.removedIngredients.join(", ")})` : ""}`).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada na paróquia"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
                 {notices.length > 0 && <p className="admin-order-note">WhatsApp: {notices.map(notice => `${noticeEvents[notice.event] ?? notice.event} (${noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}
+                {order.paid_at && order.status !== "refunded" && <div className="admin-order-flow" aria-label={`Andamento: ${labels[order.status] || order.status}`}>
+                  {steps.map((step, index) => <span key={step} className={index < steps.indexOf(order.status) ? "done" : index === steps.indexOf(order.status) ? "current" : ""} aria-current={step === order.status ? "step" : undefined}>{labels[step]}</span>)}
+                </div>}
+                {(canAdvance || canComplete) && <div className="admin-order-next"><div><strong>Próxima etapa</strong><span>{labels[order.status]} → {canComplete ? "Concluído" : labels[nextStatus!]}</span></div>{canComplete ? <button type="button" className="mini-button" disabled={busy} onClick={() => confirmManualHandoff(order)}>Concluir manualmente <ArrowRight size={16} /></button> : <button type="button" className="mini-button" disabled={busy} onClick={() => orderAction(order.id, { action: "status", status: nextStatus })}>{busy ? "Salvando..." : nextLabel[nextStatus!]} <ArrowRight size={16} /></button>}</div>}
                 <div className="admin-order-actions">
                   {order.status === "awaiting_quote" && <><input aria-label="Taxa de entrega em reais" type="number" min="0" max="100" step=".01" placeholder="Taxa em R$" value={feeInputs[order.id] ?? ""} onChange={event => setFeeInputs(current => ({ ...current, [order.id]: event.target.value }))} /><button className="mini-button" onClick={() => orderAction(order.id, { action: "quote", fee: Math.round(Number(feeInputs[order.id]) * 100) })}>Definir taxa</button></>}
                   {data.demo && order.total !== null && !order.paid_at && <button className="mini-button" onClick={() => orderAction(order.id, { action: "demo_paid" })}>Simular pagamento</button>}
                   {!data.demo && order.total !== null && !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status) && <button className="mini-button" onClick={() => confirmManualPayment(order)}>Confirmar pagamento manual</button>}
-                  {order.paid_at && order.status !== "refunded" && <><select aria-label="Atualizar situação" value={order.status} disabled={order.status === "completed"} onChange={event => orderAction(order.id, { action: "status", status: event.target.value })}><option value="paid">Pago</option><option value="preparing">Em preparo</option><option value="ready">Pronto</option><option value="out_for_delivery">Saiu para entrega</option>{order.status === "completed" && <option value="completed">Concluído</option>}</select><button className="mini-button secondary" onClick={() => { const note = window.prompt("Depois de devolver o valor fora do sistema, registre aqui o motivo ou referência da devolução:"); if (note) orderAction(order.id, { action: "refund", note }); }}>Registrar devolução</button></>}
-                  {order.paid_at && order.status === (order.method === "delivery" ? "out_for_delivery" : "ready") && <button className="mini-button secondary" type="button" onClick={() => confirmManualHandoff(order)}>Concluir manualmente</button>}
+                  {order.paid_at && order.status !== "refunded" && <><label className="admin-status-correction">Corrigir etapa <select aria-label={`Corrigir etapa do pedido ${order.id.slice(0, 8).toUpperCase()}`} value={order.status} disabled={busy || order.status === "completed"} onChange={event => orderAction(order.id, { action: "status", status: event.target.value })}><option value="paid">Pago</option><option value="preparing">Em preparo</option><option value="ready">Pronto</option>{order.method === "delivery" && <option value="out_for_delivery">Saiu para entrega</option>}{order.status === "completed" && <option value="completed">Concluído</option>}</select></label><button className="mini-button secondary" onClick={() => { const note = window.prompt("Depois de devolver o valor fora do sistema, registre aqui o motivo ou referência da devolução:"); if (note) orderAction(order.id, { action: "refund", note }); }}>Registrar devolução</button></>}
                   {order.handoff_confirmed_at && <small>Recebimento confirmado: {new Date(order.handoff_confirmed_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}{order.handoff_note ? ` · ${order.handoff_note}` : ""}</small>}
                   {order.refund_note && <small>Devolução: {order.refund_note}</small>}
                   {order.payment_mode === "manual" && order.payment_note && <small>Pagamento manual: {order.payment_note}</small>}
