@@ -644,13 +644,21 @@ button { -webkit-touch-callout: none; }
 .delivery-filters span { border-radius: 20px; background: rgba(122,148,192,.18); padding: 2px 7px; }
 .delivery-logout { color: #697993; }
 .delivery-list { display: grid; gap: 14px; }
-.delivery-card { min-width: 0; padding: 22px; border: 1px solid var(--line-soft); border-radius: 14px; background: #fff; box-shadow: 0 5px 20px rgba(12,37,87,.04); }
+.delivery-card { min-width: 0; border: 1px solid var(--line-soft); border-radius: 14px; background: #fff; box-shadow: 0 5px 20px rgba(12,37,87,.04); }
+.delivery-card-summary { display: block; padding: 22px; cursor: pointer; list-style: none; }
+.delivery-card-summary::-webkit-details-marker { display: none; }
+.delivery-card-summary:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 5px; border-radius: 5px; }
 .delivery-card-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .delivery-card-head small { color: #627695; font-size: 11px; font-weight: 800; }
 .delivery-card-head h2 { margin: 4px 0 0; font-size: 22px; }
+.delivery-card-status { display: flex; align-items: center; gap: 8px; }
+.delivery-card-status > svg { flex: none; color: var(--brand-blue); transition: transform .2s ease; }
+.delivery-card[open] .delivery-card-status > svg { transform: rotate(180deg); }
 .delivery-card .team-status { flex: none; }
-.delivery-address { display: flex; gap: 9px; align-items: start; margin: 20px 0 15px; font-size: 16px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+.delivery-address { display: flex; gap: 9px; align-items: start; margin: 16px 0 8px; font-size: 16px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 .delivery-address svg { flex: none; margin-top: 2px; color: var(--brand-blue); }
+.delivery-card-hint { color: var(--brand-blue); font-size: 12px; font-weight: 800; }
+.delivery-card-body { margin: 0 22px; padding: 18px 0 22px; border-top: 1px solid var(--line-soft); }
 .delivery-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .delivery-actions a { min-height: 43px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 14px; border-radius: 9px; font-size: 13px; font-weight: 900; }
 .delivery-map { background: var(--brand-yellow); color: var(--brand-deep); }
@@ -673,7 +681,8 @@ button { -webkit-touch-callout: none; }
   .delivery-wrap { padding-top: 27px; }
   .delivery-toolbar { align-items: stretch; }
   .delivery-filters { width: 100%; }
-  .delivery-card { padding: 17px; }
+  .delivery-card-summary { padding: 17px; }
+  .delivery-card-body { margin: 0 17px; padding-bottom: 17px; }
   .delivery-card-head h2 { font-size: 19px; }
   .delivery-actions a { width: 100%; }
   .delivery-confirm form { flex-wrap: wrap; }

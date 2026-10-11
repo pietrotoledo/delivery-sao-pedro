@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowUpRight, KeyRound, MapPinned, Phone, RefreshCw, Truck } from "lucide-react";
+import { ArrowUpRight, ChevronDown, KeyRound, MapPinned, Phone, RefreshCw, Truck } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import { deliveryDirectionsUrl, deliveryPhoneHref } from "@/lib/delivery-links";
 
@@ -104,15 +104,20 @@ export default function DeliveryDashboard() {
         <div className="delivery-list">{orders.length ? orders.map(order => {
           const phoneHref = deliveryPhoneHref(order.phone);
           const mapHref = order.address ? deliveryDirectionsUrl(order.address, order.neighborhood) : null;
-          return <article className="delivery-card" key={order.id}>
-            <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
-            <p className="delivery-address"><MapPinned size={19} /><span>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</span></p>
-            <div className="delivery-actions">{mapHref && <a className="delivery-map" href={mapHref} target="_blank" rel="noreferrer" referrerPolicy="no-referrer"><MapPinned size={17} /> Abrir rota no Google Maps <ArrowUpRight size={15} /></a>}{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {order.phone}</a>}</div>
-            <p className="delivery-items">{order.items.map(item => `${item.quantity}× ${item.name}`).join(" · ")}</p>
-            {order.notes && <p className="delivery-note"><strong>Observação:</strong> {order.notes}</p>}
-            {order.status === "out_for_delivery" && <DeliveryConfirmation orderId={order.id} onConfirmed={load} />}
-            {order.status === "completed" && <p className="delivery-confirmed" role="status">✓ Entrega confirmada{order.confirmedAt ? ` em ${new Date(order.confirmedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : ""}.</p>}
-          </article>;
+          return <details className="delivery-card" key={order.id}>
+            <summary className="delivery-card-summary">
+              <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><div className="delivery-card-status"><span className="team-status">{statusLabels[order.status] ?? order.status}</span><ChevronDown size={19} aria-hidden="true" /></div></div>
+              <p className="delivery-address"><MapPinned size={19} /><span>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</span></p>
+              <span className="delivery-card-hint">{order.status === "out_for_delivery" ? "Abrir pedido para informar o código" : "Abrir detalhes do pedido"}</span>
+            </summary>
+            <div className="delivery-card-body">
+              <div className="delivery-actions">{mapHref && <a className="delivery-map" href={mapHref} target="_blank" rel="noreferrer" referrerPolicy="no-referrer"><MapPinned size={17} /> Abrir rota no Google Maps <ArrowUpRight size={15} /></a>}{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {order.phone}</a>}</div>
+              <p className="delivery-items">{order.items.map(item => `${item.quantity}× ${item.name}`).join(" · ")}</p>
+              {order.notes && <p className="delivery-note"><strong>Observação:</strong> {order.notes}</p>}
+              {order.status === "out_for_delivery" && <DeliveryConfirmation orderId={order.id} onConfirmed={load} />}
+              {order.status === "completed" && <p className="delivery-confirmed" role="status">✓ Entrega confirmada{order.confirmedAt ? ` em ${new Date(order.confirmedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : ""}.</p>}
+            </div>
+          </details>;
         }) : <div className="delivery-empty">{showCompleted ? "Nenhuma entrega concluída." : "Nenhuma entrega em andamento."}</div>}</div>
       </>}
     </main>
