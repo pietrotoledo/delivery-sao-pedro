@@ -91,11 +91,11 @@ export default function Storefront() {
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
           <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador</span><span>18h às 22h · retirada ou entrega</span></div>
         </div>
-        <div className="hero-media">
+        <Link className="hero-media" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver cardápio de hambúrgueres">
           <Image src={featured ? productPhoto(featured) : "/products/classic.webp"} unoptimized={featured ? externalPhoto(productPhoto(featured)) : false} fill priority sizes="(max-width: 800px) 100vw, 50vw" alt={featured ? featured.name : "Hambúrguer"} />
           {featured && <div className="hero-media-caption"><span>{featured.name}</span><strong>{money(featured.price)}</strong></div>}
           <div className="hero-mascot"><Image src="/mascote.png" width={112} height={112} alt="Mascote Blueckyardigans" /></div>
-        </div>
+        </Link>
       </div></section>
       <div className="service-strip"><div className="wrap service-strip-inner"><span>Escolha sem complicação</span><span>Retire na paróquia ou receba em casa</span><span>Pagamento por Pix</span></div></div>
       <section className="menu-section wrap" id="cardapio">

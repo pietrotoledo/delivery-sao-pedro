@@ -13,9 +13,10 @@ export async function POST(request: Request) {
   const products = await getProducts(true);
   const input = parseProductInput({ ...body, sortOrder: body.sortOrder ?? (Math.max(0, ...products.map(product => product.sortOrder)) + 10) });
   if (typeof input === "string") return json({ error: input }, 400);
+  if (input.category === "burger" && input.active && products.some(product => product.category === "burger" && product.active)) return json({ error: "O cardápio permite apenas um hambúrguer ativo." }, 409);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  await db().prepare("INSERT INTO products (id,name,description,category,price,image_url,stock,active,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-    .bind(id,input.name,input.description,input.category,input.price,input.imageUrl,input.stock,input.active ? 1 : 0,input.sortOrder,now,now).run();
+  await db().prepare("INSERT INTO products (id,name,description,category,price,image_url,stock,active,sort_order,ingredients_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+    .bind(id,input.name,input.description,input.category,input.price,input.imageUrl,input.stock,input.active ? 1 : 0,input.sortOrder,JSON.stringify(input.ingredients),now,now).run();
   return json({ product: { id, ...input } }, 201);
 }

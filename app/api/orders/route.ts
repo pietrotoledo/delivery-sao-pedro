@@ -1,4 +1,3 @@
-import { allowedRemovals } from "@/lib/burger-customization";
 import { createCheckout } from "@/lib/payment";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, getOrder, getProducts, json, paymentHandle, sameOrigin, type OrderItem } from "@/lib/store";
@@ -32,11 +31,11 @@ export async function POST(request: Request) {
     if (!product || !Number.isInteger(quantity) || quantity < 0 || quantity > 20 || items.some((i)=>i.id===product.id)) {
       return json({error:"Quantidade ou produto inválido."},400);
     }
-    const removed = raw.removedIngredients ?? [];
-    if (!Array.isArray(removed) || removed.some(value => typeof value !== "string" || !allowedRemovals(product.id).includes(value)) || new Set(removed).size !== removed.length) {
+    const unitRemovals = raw.unitRemovals ?? (product.category === "burger" ? Array.from({ length: quantity }, () => raw.removedIngredients ?? []) : []);
+    if (!Array.isArray(unitRemovals) || unitRemovals.length !== (product.category === "burger" ? quantity : 0) || unitRemovals.some(unit => !Array.isArray(unit) || unit.some(value => typeof value !== "string" || !product.ingredients.includes(value)) || new Set(unit).size !== unit.length)) {
       return json({error:"Personalização inválida para este produto."},400);
     }
-    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,removedIngredients:removed as string[]});
+    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,unitRemovals:unitRemovals as string[][]});
   }
   const unavailable = items.find(item => {
     const stock = productsById.get(item.id)?.stock;

@@ -1,4 +1,5 @@
 import { adminOnly, db, ensureSchema, orderItems, type Order } from "@/lib/store";
+import { orderItemLabels } from "@/lib/order-item-labels";
 
 function csvCell(value: unknown) {
   let cell = String(value ?? "").replace(/[\r\n]+/g, " ");
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
         order.id.slice(0, 8).toUpperCase(), order.id, order.created_at,
         order.name, order.phone, order.email, order.method === "delivery" ? "Entrega" : "Retirada",
         order.neighborhood, order.address,
-        orderItems(order).map(item => `${item.quantity}x ${item.name}${item.removedIngredients?.length ? ` (sem ${item.removedIngredients.join(", ")})` : ""}`).join(" | "),
+        orderItems(order).flatMap(orderItemLabels).join(" | "),
         order.status, (order.subtotal / 100).toFixed(2).replace(".", ","),
         order.delivery_fee === null ? "" : (order.delivery_fee / 100).toFixed(2).replace(".", ","),
         order.total === null ? "" : (order.total / 100).toFixed(2).replace(".", ","),

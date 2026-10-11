@@ -4,12 +4,12 @@ export type ProductCategory = "burger" | "side" | "drink";
 export type Product = {
   id: string; name: string; description: string; category: ProductCategory;
   price: number; imageUrl: string | null; stock: number | null; active: boolean; sortOrder: number;
+  ingredients: string[];
 };
-export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[] };
+export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[]; unitRemovals?: string[][] };
 
 export const menu = [
   { id: "classic", name: "Clássico", price: 2200, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa.", imageUrl: "/products/classic.webp" },
-  { id: "bacon", name: "Bacon", price: 2700, category: "burger", description: "Carne, queijo, bacon crocante e molho da casa.", imageUrl: "/products/bacon.webp" },
   { id: "fries-small", name: "Batata pequena", price: 800, category: "side", description: "Batata frita crocante · porção pequena.", imageUrl: "/products/fries-small.webp" },
   { id: "fries-large", name: "Batata grande", price: 1200, category: "side", description: "Batata frita crocante · porção grande.", imageUrl: "/products/fries-large.webp" },
   { id: "water", name: "Água mineral", price: 350, category: "drink", description: "Água mineral · unidade.", imageUrl: "/products/water.webp" },
@@ -93,11 +93,18 @@ export async function ensureSchema() {
         id text PRIMARY KEY NOT NULL, name text NOT NULL, description text NOT NULL,
         category text NOT NULL, price integer NOT NULL, image_url text, stock integer,
         active integer NOT NULL DEFAULT 1, sort_order integer NOT NULL DEFAULT 0,
+        ingredients_json text NOT NULL DEFAULT '[]',
         created_at text NOT NULL, updated_at text NOT NULL
       )`).run();
       const productColumns = await database.prepare("PRAGMA table_info(products)").all<{name:string}>();
       if (!productColumns.results?.some(column => column.name === "stock")) {
         await database.prepare("ALTER TABLE products ADD COLUMN stock integer").run();
+      }
+      if (!productColumns.results?.some(column => column.name === "ingredients_json")) {
+        await database.prepare("ALTER TABLE products ADD COLUMN ingredients_json text NOT NULL DEFAULT '[]'").run();
+        await database.prepare("UPDATE products SET ingredients_json = ? WHERE id = 'classic'").bind(JSON.stringify(["Carne", "Queijo", "Alface", "Tomate", "Molho da casa"])).run();
+        await database.prepare("DELETE FROM products WHERE id = 'bacon' AND name = 'Bacon' AND price = 2700 AND description = 'Carne, queijo, bacon crocante e molho da casa.' AND image_url = '/products/bacon.webp' AND stock IS NULL AND updated_at = created_at AND EXISTS (SELECT 1 FROM products WHERE id = 'classic' AND active = 1)").run();
+        await database.prepare("UPDATE products SET active = 0 WHERE category = 'burger' AND active = 1 AND id NOT IN (SELECT id FROM products WHERE category = 'burger' AND active = 1 ORDER BY sort_order, created_at, id LIMIT 1)").run();
       }
       await database.prepare(`CREATE TABLE IF NOT EXISTS product_images (
         id text PRIMARY KEY NOT NULL, mime_type text NOT NULL, base64_data text NOT NULL
@@ -106,10 +113,11 @@ export async function ensureSchema() {
       if (!existing?.count) {
         const now = new Date().toISOString();
         for (const [index, product] of menu.entries()) {
-          await database.prepare("INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
-            .bind(product.id,product.name,product.description,product.category,product.price,product.imageUrl,1,(index+1)*10,now,now).run();
+          await database.prepare("INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+            .bind(product.id,product.name,product.description,product.category,product.price,product.imageUrl,1,(index+1)*10,JSON.stringify(product.id === "classic" ? ["Carne", "Queijo", "Alface", "Tomate", "Molho da casa"] : []),now,now).run();
         }
       }
+      await database.prepare("CREATE UNIQUE INDEX IF NOT EXISTS one_active_burger ON products(category) WHERE category = 'burger' AND active = 1").run();
     })().catch((error) => {
       schemaPromise = undefined;
       throw error;
@@ -122,23 +130,23 @@ export function paymentHandle() { return env.INFINITEPAY_HANDLE?.trim() || ""; }
 
 type ProductRow = {
   id: string; name: string; description: string; category: ProductCategory;
-  price: number; image_url: string | null; stock: number | null; active: number; sort_order: number;
+  price: number; image_url: string | null; stock: number | null; active: number; sort_order: number; ingredients_json: string;
 };
 
 export async function getProducts(includeInactive = false): Promise<Product[]> {
   await ensureSchema();
-  const result = await db().prepare(`SELECT id,name,description,category,price,image_url,stock,active,sort_order FROM products ${includeInactive ? "" : "WHERE active = 1"} ORDER BY sort_order, created_at, id`).all<ProductRow>();
+  const result = await db().prepare(`SELECT id,name,description,category,price,image_url,stock,active,sort_order,ingredients_json FROM products ${includeInactive ? "" : "WHERE active = 1"} ORDER BY sort_order, created_at, id`).all<ProductRow>();
   return result.results.map(row => ({
     id: row.id, name: row.name, description: row.description, category: row.category,
-    price: row.price, imageUrl: row.image_url, stock: row.stock, active: Boolean(row.active), sortOrder: row.sort_order,
+    price: row.price, imageUrl: row.image_url, stock: row.stock, active: Boolean(row.active), sortOrder: row.sort_order, ingredients: JSON.parse(row.ingredients_json) as string[],
   }));
 }
 
 export function orderItems(order: Order): OrderItem[] {
-  const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number;removedIngredients?:string[]}[];
+  const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number;removedIngredients?:string[];unitRemovals?:string[][]}[];
   return saved.map(item => {
     const original = menu.find(product => product.id === item.id);
-    return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0, removedIngredients: item.removedIngredients ?? [] };
+    return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0, removedIngredients: item.removedIngredients ?? [], unitRemovals: item.unitRemovals };
   });
 }
 

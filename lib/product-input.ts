@@ -10,6 +10,7 @@ export function parseProductInput(body: Record<string, unknown>, existing?: Prod
   const sortOrder = Number(body.sortOrder ?? existing?.sortOrder ?? 0);
   const stockValue = body.stock === "" || body.stock === null ? null : body.stock ?? existing?.stock ?? null;
   const stock = stockValue === null ? null : Number(stockValue);
+  const ingredients = body.ingredients ?? existing?.ingredients ?? [];
 
   if (name.length < 2 || name.length > 80) return "O nome deve ter entre 2 e 80 caracteres.";
   if (description.length > 300) return "A descrição pode ter até 300 caracteres.";
@@ -18,6 +19,9 @@ export function parseProductInput(body: Record<string, unknown>, existing?: Prod
   if (typeof active !== "boolean") return "Informe se o produto está ativo.";
   if (!Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 9999) return "A ordem deve estar entre 0 e 9999.";
   if (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) return "A quantidade deve estar entre 0 e 1.000.000, ou vazia para não limitar.";
+  if (!Array.isArray(ingredients) || ingredients.length > 30 || ingredients.some(value => typeof value !== "string" || value.trim().length < 2 || value.trim().length > 60)) return "Informe até 30 ingredientes, com 2 a 60 caracteres cada.";
+  const normalizedIngredients = (ingredients as string[]).map(value => value.trim());
+  if (new Set(normalizedIngredients.map(value => value.toLocaleLowerCase("pt-BR"))).size !== normalizedIngredients.length) return "Não repita ingredientes.";
   if (imageText.length > 500) return "A URL da imagem é muito longa.";
   if (imageText) {
     if (!/^\/(products|fotos)\/[a-zA-Z0-9/_-]+\.(webp|png|jpg|jpeg|avif)$/.test(imageText) && !/^\/api\/products\/images\/[a-f0-9-]{36}$/.test(imageText)) {
@@ -27,5 +31,5 @@ export function parseProductInput(body: Record<string, unknown>, existing?: Prod
       } catch { return "Use uma URL HTTPS ou uma imagem em /products ou /fotos."; }
     }
   }
-  return { name, description, category: category as ProductCategory, price, imageUrl: imageText || null, stock, active, sortOrder };
+  return { name, description, category: category as ProductCategory, price, imageUrl: imageText || null, stock, active, sortOrder, ingredients: category === "burger" ? normalizedIngredients : [] };
 }

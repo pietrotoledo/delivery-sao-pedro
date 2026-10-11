@@ -427,6 +427,7 @@ button { -webkit-touch-callout: none; }
 .checkout-line { min-width: 0; }
 .checkout-line > div { min-width: 0; }
 .checkout-line > strong { justify-self: end; }
+.checkout-line .burger-units { grid-column: 1 / -1; display: grid; gap: 8px; }
 .checkout-line .burger-customization {
   grid-column: 1 / -1;
   min-width: 0;

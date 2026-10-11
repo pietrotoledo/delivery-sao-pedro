@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link";
 import BrandAvatar from "@/components/brand-avatar";
 
-type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]};
+type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]; unitRemovals?: string[][]};
 type TeamOrder = {
   id: string; createdAt: string; name: string; method: "delivery" | "pickup";
   neighborhood: string | null; address: string | null; notes: string | null;
@@ -31,9 +31,12 @@ export default function TeamOrderPage() {
   const printed = useRef(false);
 
   useEffect(() => {
-    const sharedToken = new URLSearchParams(window.location.search).get("token") ?? "";
-    setToken(sharedToken);
-    if (!sharedToken) { setLoading(false); setError("Link da equipe inválido. Abra o pedido pelo painel admin."); }
+    const timer = window.setTimeout(() => {
+      const sharedToken = new URLSearchParams(window.location.search).get("token") ?? "";
+      setToken(sharedToken);
+      if (!sharedToken) { setLoading(false); setError("Link da equipe inválido. Abra o pedido pelo painel admin."); }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
   const load = useCallback(async () => {
     if (!token) { setLoading(false); setError("Link da equipe inválido. Abra o pedido pelo painel admin."); return; }
@@ -97,7 +100,7 @@ export default function TeamOrderPage() {
           <div className="team-fact"><span>Cliente</span><strong>{order.name}</strong></div>
           <div className="team-fact"><span>Recebimento</span><strong>{pickup ? "Retirada presencial" : "Delivery"}</strong></div>
           {order.method === "delivery" && <div className="team-address"><span>Endereço de entrega</span><strong>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</strong>{mapUrl && <a href={mapUrl} target="_blank" rel="noreferrer" referrerPolicy="no-referrer">Abrir rota no Google Maps ↗</a>}</div>}
-          <div className="team-items"><h3>Itens</h3>{order.items.map((item, index) => <div className="team-item" key={`${item.id}-${index}`}><strong>{item.quantity}× {item.name}</strong><span>{money(item.quantity * item.price)}</span>{item.removedIngredients?.length ? <small>Sem: {item.removedIngredients.join(", ")}</small> : null}</div>)}</div>
+          <div className="team-items"><h3>Itens</h3>{order.items.map((item, index) => <div className="team-item" key={`${item.id}-${index}`}><strong>{item.quantity}× {item.name}</strong><span>{money(item.quantity * item.price)}</span>{item.unitRemovals?.length ? item.unitRemovals.map((removed, unitIndex) => <small key={unitIndex}>Hambúrguer {unitIndex + 1}: {removed.length ? `sem ${removed.join(", ")}` : "completo"}</small>) : item.removedIngredients?.length ? <small>Sem: {item.removedIngredients.join(", ")}</small> : null}</div>)}</div>
           {order.notes && <div className="team-notes"><strong>Observação</strong><p>{order.notes}</p></div>}
           <div className="team-fact"><span>Produtos</span><strong>{money(order.subtotal)}</strong></div>
           {order.method === "delivery" && <div className="team-fact"><span>Entrega</span><strong>{order.deliveryFee === null ? "A definir" : money(order.deliveryFee)}</strong></div>}

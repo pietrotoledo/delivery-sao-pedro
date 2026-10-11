@@ -11,7 +11,6 @@
 Valores sugeridos para os itens cujo preço não foi informado:
 
 - [x] Hambúrguer Clássico — R$ 22,00.
-- [x] Hambúrguer Bacon — R$ 27,00.
 - [x] Coca-Cola lata 350 ml — R$ 6,00.
 - [x] Coca-Cola Zero lata 350 ml — R$ 6,00.
 
@@ -27,7 +26,7 @@ Valores sugeridos para os itens cujo preço não foi informado:
 - [ ] Conferir disponibilidade e tamanho das porções e bebidas.
 - [ ] Substituir as fotos ilustrativas por fotos dos produtos reais quando estiverem disponíveis.
 
-> Personalização disponível para ingredientes cadastrados de cada hambúrguer. A escolha se aplica a todas as unidades do mesmo tipo no pedido; não altera o preço.
+> Personalização disponível para ingredientes cadastrados no painel. Cada unidade pode ter suas próprias remoções; isso não altera o preço.
 
 ## Contatos e pagamentos
 

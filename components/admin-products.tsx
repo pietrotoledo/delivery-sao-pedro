@@ -2,18 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import { Check, Pencil, Plus, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
 
 type Product = {
   id: string; name: string; description: string; category: "burger" | "side" | "drink";
-  price: number; imageUrl: string | null; stock: number | null; active: boolean; sortOrder: number;
+  price: number; imageUrl: string | null; stock: number | null; active: boolean; sortOrder: number; ingredients: string[];
 };
-type Form = Omit<Product, "id" | "price" | "imageUrl" | "stock"> & { price: string; imageUrl: string; stock: string };
-const empty: Form = { name: "", description: "", category: "burger", price: "", imageUrl: "", stock: "", active: true, sortOrder: 0 };
+type Form = Omit<Product, "id" | "price" | "imageUrl" | "stock" | "ingredients"> & { price: string; imageUrl: string; stock: string; ingredientsText: string };
+const empty: Form = { name: "", description: "", category: "side", price: "", imageUrl: "", stock: "", active: true, sortOrder: 0, ingredientsText: "" };
 const categoryNames = { burger: "Hambúrguer", side: "Acompanhamento", drink: "Bebida" };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const toForm = (product: Product): Form => ({ ...product, price: (product.price / 100).toFixed(2).replace(".", ","), imageUrl: product.imageUrl ?? "", stock: product.stock === null ? "" : String(product.stock) });
+const toForm = (product: Product): Form => ({ ...product, price: (product.price / 100).toFixed(2).replace(".", ","), imageUrl: product.imageUrl ?? "", stock: product.stock === null ? "" : String(product.stock), ingredientsText: product.ingredients.join("\n") });
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -78,7 +78,7 @@ export default function AdminProducts() {
       const isNew = editing === "new";
       const response = await fetch(isNew ? "/api/admin/products" : `/api/admin/products/${editing}`, {
         method: isNew ? "POST" : "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, price, stock }),
+        body: JSON.stringify({ ...form, price, stock, ingredients: form.ingredientsText.split(/\r?\n/).map(value => value.trim()).filter(Boolean) }),
       });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Não foi possível salvar o produto.");
@@ -103,6 +103,19 @@ export default function AdminProducts() {
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível alterar a disponibilidade."); }
   }
 
+  async function remove(product: Product) {
+    if (!window.confirm(`Excluir ${product.name} do cardápio? Os pedidos já feitos serão preservados.`)) return;
+    setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, { method: "DELETE" });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Não foi possível excluir o produto.");
+      if (editing === product.id) setEditing(null);
+      await load();
+      setNotice("Produto excluído do cardápio.");
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível excluir o produto."); }
+  }
+
   const previewUrl = form.imageUrl.trim();
   const validPreview = previewUrl.startsWith("/products/") || previewUrl.startsWith("/fotos/") || previewUrl.startsWith("/api/products/images/") || previewUrl.startsWith("https://");
 
@@ -119,6 +132,7 @@ export default function AdminProducts() {
         <label>Quantidade disponível<input type="number" min={0} max={1000000} step={1} value={form.stock} onChange={event => setForm(current => ({ ...current, stock: event.target.value }))} placeholder="Sem limite" /><small>Deixe vazio para não limitar. Use 0 para esgotado.</small></label>
         <label>Ordem no cardápio<input required type="number" min={0} max={9999} value={form.sortOrder} onChange={event => setForm(current => ({ ...current, sortOrder: Number(event.target.value) }))} /></label>
         <label className="product-wide">Descrição<textarea maxLength={300} rows={3} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} placeholder="Ingredientes, tamanho ou detalhes importantes" /></label>
+        {form.category === "burger" && <label className="product-wide">Ingredientes do hambúrguer<textarea rows={5} value={form.ingredientsText} onChange={event => setForm(current => ({ ...current, ingredientsText: event.target.value }))} placeholder={"Carne\nQueijo\nAlface\nTomate"} /><small>Um ingrediente por linha. O cliente poderá retirar ingredientes de cada hambúrguer separadamente.</small></label>}
         <label className="product-wide">Enviar foto já cortada<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} onChange={event => { void uploadPhoto(event.target.files?.[0]); event.target.value = ""; }} /><small>JPG, PNG, WebP ou AVIF, até 900 KB. Prepare o corte antes de enviar. {uploading ? "Enviando..." : ""}</small></label>
         <label className="product-wide">URL da foto<input value={form.imageUrl} onChange={event => setForm(current => ({ ...current, imageUrl: event.target.value }))} placeholder="https://... ou /products/foto.webp" /><small>Você também pode usar uma URL HTTPS ou uma foto em /products ou /fotos. Deixe vazio para a foto padrão.</small></label>
       </div>
@@ -130,7 +144,7 @@ export default function AdminProducts() {
       <div className="product-row-image"><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={84} height={84} alt="" /></div>
       <div className="product-row-copy"><div><span className="product-category">{categoryNames[product.category]}</span><span className={`product-status ${product.active ? "" : "is-inactive"}`}>{product.active ? product.stock === 0 ? "Esgotado" : "Disponível" : "Oculto"}</span><span className="product-category">{product.stock === null ? "Sem limite" : `${product.stock} em estoque`}</span></div><h3>{product.name}</h3><p>{product.description || "Sem descrição"}</p></div>
       <strong className="product-row-price">{money(product.price)}</strong>
-      <div className="product-row-actions"><button type="button" onClick={() => start(product)}><Pencil size={15} /> Editar</button><button type="button" onClick={() => toggle(product)}>{product.active ? "Ocultar" : "Ativar"}</button></div>
+      <div className="product-row-actions"><button type="button" onClick={() => start(product)}><Pencil size={15} /> Editar</button><button type="button" onClick={() => toggle(product)}>{product.active ? "Ocultar" : "Ativar"}</button><button type="button" onClick={() => void remove(product)}><Trash2 size={15} /> Excluir</button></div>
     </article>)}{products.length === 0 && <p className="admin-empty">Nenhum produto cadastrado.</p>}</div>}
   </section>;
 }

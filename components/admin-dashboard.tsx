@@ -210,7 +210,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
           <div className="admin-orders">
             {visibleOrders.length === 0 && <p className="admin-empty">{filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
-              const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[] }[];
+              const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[]; unitRemovals?: string[][] }[];
               const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
               const position = paidPosition.get(order.id);
               const steps = order.method === "delivery" ? ["paid", "preparing", "ready", "out_for_delivery", "completed"] : ["paid", "preparing", "ready", "completed"];
@@ -221,7 +221,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               const busy = busyOrderId === order.id;
               return <article className="admin-order" key={order.id}>
                 <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
-                <p className="admin-order-items">{products.map(item => `${item.quantity}× ${item.name || names[item.id] || item.id}${item.removedIngredients?.length ? ` (SEM: ${item.removedIngredients.join(", ")})` : ""}`).join(" · ")}</p>
+                <p className="admin-order-items">{products.flatMap(item => item.unitRemovals?.length ? item.unitRemovals.map((removed, index) => `${item.name || names[item.id] || item.id} ${index + 1}${removed.length ? ` (SEM: ${removed.join(", ")})` : ""}`) : [`${item.quantity}× ${item.name || names[item.id] || item.id}${item.removedIngredients?.length ? ` (SEM: ${item.removedIngredients.join(", ")})` : ""}`]).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada na paróquia"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
