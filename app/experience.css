@@ -657,6 +657,17 @@ button { -webkit-touch-callout: none; }
 .delivery-phone { background: #e9f0ff; color: var(--brand-blue); }
 .delivery-items { margin: 17px 0 0; color: #5f708c; font-size: 13px; }
 .delivery-note { margin: 11px 0 0; padding: 11px 13px; border-radius: 8px; background: #fff7dc; color: #59491c; font-size: 13px; overflow-wrap: anywhere; }
+.delivery-confirm { margin-top: 19px; padding: 16px; border: 1px solid #d7e1ee; border-radius: 10px; background: #f8fbff; }
+.delivery-confirm-heading { display: flex; align-items: start; gap: 10px; }
+.delivery-confirm-heading svg { flex: none; color: var(--brand-blue); }
+.delivery-confirm-heading strong { font-size: 15px; }
+.delivery-confirm-heading p { margin: 4px 0 0; color: #61728e; font-size: 13px; line-height: 1.5; }
+.delivery-confirm form { display: flex; gap: 9px; margin-top: 13px; }
+.delivery-confirm input { width: 100px; min-height: 44px; padding: 8px 12px; border: 1px solid #cdd9e9; border-radius: 9px; background: #fff; font-size: 18px; letter-spacing: .15em; text-align: center; }
+.delivery-confirm button { min-height: 44px; padding: 9px 16px; border: 0; border-radius: 9px; background: var(--brand-yellow); color: var(--brand-deep); font-size: 13px; font-weight: 900; }
+.delivery-confirm button:disabled { cursor: not-allowed; opacity: .55; }
+.delivery-confirm-error { margin: 10px 0 0; color: #a52323; font-size: 13px; }
+.delivery-confirmed { margin: 17px 0 0; color: #176142; font-size: 13px; font-weight: 800; }
 @media (max-width: 600px) {
   .delivery-topbar > span { display: none; }
   .delivery-wrap { padding-top: 27px; }
@@ -665,4 +676,6 @@ button { -webkit-touch-callout: none; }
   .delivery-card { padding: 17px; }
   .delivery-card-head h2 { font-size: 19px; }
   .delivery-actions a { width: 100%; }
+  .delivery-confirm form { flex-wrap: wrap; }
+  .delivery-confirm button { flex: 1; }
 }

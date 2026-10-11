@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowUpRight, MapPinned, Phone, RefreshCw, Truck } from "lucide-react";
+import { ArrowUpRight, KeyRound, MapPinned, Phone, RefreshCw, Truck } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import { deliveryDirectionsUrl, deliveryPhoneHref } from "@/lib/delivery-links";
 
@@ -10,6 +10,7 @@ type DeliveryOrder = {
   id: string; createdAt: string; name: string; phone: string;
   neighborhood: string | null; address: string | null; notes: string | null;
   items: { name: string; quantity: number }[]; status: string;
+  confirmedAt: string | null;
 };
 type DeliveryData = { orders: DeliveryOrder[]; error?: string };
 
@@ -17,6 +18,34 @@ const statusLabels: Record<string, string> = {
   paid: "Pago", preparing: "Em preparo", ready: "Pronto para sair",
   out_for_delivery: "Saiu para entrega", completed: "Entregue",
 };
+
+function DeliveryConfirmation({ orderId, onConfirmed }: { orderId: string; onConfirmed: () => Promise<void> }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function confirm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!/^\d{4}$/.test(code)) { setError("Digite os quatro dígitos do código."); return; }
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(`/api/delivery/orders/${encodeURIComponent(orderId)}/confirm`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }),
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Não foi possível confirmar a entrega.");
+      setCode("");
+      await onConfirmed();
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível confirmar a entrega."); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="delivery-confirm">
+    <div className="delivery-confirm-heading"><KeyRound size={19} /><div><strong>Código de verificação</strong><p>Peça ao cliente os quatro últimos dígitos do telefone informado no pedido.</p></div></div>
+    <form onSubmit={confirm}><label className="sr-only" htmlFor={`delivery-code-${orderId}`}>Código de verificação do pedido</label><input id={`delivery-code-${orderId}`} type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4}" maxLength={4} placeholder="0000" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 4))} required /><button type="submit" disabled={busy || code.length !== 4}>{busy ? "Confirmando..." : "Confirmar entrega"}</button></form>
+    {error && <p className="delivery-confirm-error" role="alert">{error}</p>}
+  </div>;
+}
 
 export default function DeliveryDashboard() {
   const [data, setData] = useState<DeliveryData | null>(null);
@@ -81,6 +110,8 @@ export default function DeliveryDashboard() {
             <div className="delivery-actions">{mapHref && <a className="delivery-map" href={mapHref} target="_blank" rel="noreferrer" referrerPolicy="no-referrer"><MapPinned size={17} /> Abrir rota no Google Maps <ArrowUpRight size={15} /></a>}{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {order.phone}</a>}</div>
             <p className="delivery-items">{order.items.map(item => `${item.quantity}× ${item.name}`).join(" · ")}</p>
             {order.notes && <p className="delivery-note"><strong>Observação:</strong> {order.notes}</p>}
+            {order.status === "out_for_delivery" && <DeliveryConfirmation orderId={order.id} onConfirmed={load} />}
+            {order.status === "completed" && <p className="delivery-confirmed" role="status">✓ Entrega confirmada{order.confirmedAt ? ` em ${new Date(order.confirmedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : ""}.</p>}
           </article>;
         }) : <div className="delivery-empty">{showCompleted ? "Nenhuma entrega concluída." : "Nenhuma entrega em andamento."}</div>}</div>
       </>}
