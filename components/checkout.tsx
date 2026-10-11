@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, MapPin, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
 import BrandAvatar from "@/components/brand-avatar";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
@@ -12,7 +11,8 @@ type Product = { id: string; name: string; price: number; category: string; desc
 type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean; whatsappNotifications?: boolean; emailNotifications?: boolean };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export default function Checkout({ initialItems }: { initialItems: string }) {
-  const router = useRouter();
+  const submitting = useRef(false);
+  const pendingAttempt = useRef<{payload:string;key:string} | null>(null);
   const [data, setData] = useState<PublicData | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
@@ -96,22 +96,35 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
     setError("");
     if (!data || burgerCount < 1) { setError("Adicione pelo menos um hambúrguer antes de continuar."); return; }
+    submitting.current = true;
     setBusy(true);
     try {
       const items = selected.map(product => ({ id: product.id, quantity: quantities[product.id], unitRemovals: product.category === "burger" ? Array.from({ length: quantities[product.id] }, (_, index) => removals[product.id]?.[index] ?? []) : [] }));
+      const payload = JSON.stringify({ name, phone, email, method, neighborhood, address, notes, whatsappOptIn, items, expectedSubtotal: subtotal });
+      let attempt = pendingAttempt.current;
+      try {
+        const saved = window.sessionStorage.getItem("blueckyardigans-order-attempt");
+        if (saved) attempt = JSON.parse(saved) as {payload:string;key:string};
+      } catch { /* A tentativa continua disponível nesta página. */ }
+      if (!attempt || attempt.payload !== payload) attempt = { payload, key: crypto.randomUUID() };
+      pendingAttempt.current = attempt;
+      try { window.sessionStorage.setItem("blueckyardigans-order-attempt", JSON.stringify(attempt)); }
+      catch { /* A chave permanece disponível enquanto a página estiver aberta. */ }
       const response = await fetch("/api/orders", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, method, neighborhood, address, notes, whatsappOptIn, items, expectedSubtotal: subtotal }),
+        body: JSON.stringify({ ...JSON.parse(payload), requestKey: attempt.key }),
       });
       const result = await response.json() as { id?: string; error?: string; paymentUrl?: string };
       if (!response.ok || !result.id) throw new Error(result.error || "Não foi possível criar o pedido.");
-      try { window.sessionStorage.removeItem("blueckyardigans-cart"); window.sessionStorage.removeItem("blueckyardigans-removals"); } catch { /* O pedido já foi criado. */ }
-      router.push(`/pedido/${result.id}${result.paymentUrl ? "?abrir-pix=1" : ""}`);
+      try { window.sessionStorage.removeItem("blueckyardigans-cart"); window.sessionStorage.removeItem("blueckyardigans-removals"); window.sessionStorage.removeItem("blueckyardigans-order-attempt"); } catch { /* O pedido já foi criado. */ }
+      window.location.assign(`/pedido/${result.id}${result.paymentUrl ? "?abrir-pix=1" : ""}`);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Não foi possível criar o pedido.");
       setBusy(false);
+      submitting.current = false;
     }
   }
 

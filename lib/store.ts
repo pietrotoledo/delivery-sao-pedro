@@ -18,7 +18,7 @@ export const menu = [
 ] as const;
 
 export type Order = {
-  id: string; created_at: string; updated_at: string; name: string; phone: string; email: string | null;
+  id: string; request_key: string | null; request_hash: string | null; created_at: string; updated_at: string; name: string; phone: string; email: string | null;
   method: "pickup" | "delivery"; neighborhood: string | null; address: string | null;
   notes: string | null; items_json: string; burger_count: number; subtotal: number;
   delivery_fee: number | null; total: number | null; status: string;
@@ -41,7 +41,7 @@ export async function ensureSchema() {
     schemaPromise = (async () => {
       const database = db();
       await database.prepare(`CREATE TABLE IF NOT EXISTS orders (
-        id text PRIMARY KEY NOT NULL, created_at text NOT NULL, updated_at text NOT NULL,
+        id text PRIMARY KEY NOT NULL, request_key text, request_hash text, created_at text NOT NULL, updated_at text NOT NULL,
         name text NOT NULL, phone text NOT NULL, email text, method text NOT NULL,
         neighborhood text, address text, notes text, items_json text NOT NULL,
         burger_count integer NOT NULL, subtotal integer NOT NULL, delivery_fee integer,
@@ -51,6 +51,13 @@ export async function ensureSchema() {
         handoff_attempts integer NOT NULL DEFAULT 0, handoff_locked_until text, handoff_note text
       )`).run();
       const columns = await database.prepare("PRAGMA table_info(orders)").all<{name:string}>();
+      if (!columns.results?.some(column => column.name === "request_key")) {
+        await database.prepare("ALTER TABLE orders ADD COLUMN request_key text").run();
+      }
+      if (!columns.results?.some(column => column.name === "request_hash")) {
+        await database.prepare("ALTER TABLE orders ADD COLUMN request_hash text").run();
+      }
+      await database.prepare("CREATE UNIQUE INDEX IF NOT EXISTS orders_request_key ON orders(request_key)").run();
       if (!columns.results?.some(column => column.name === "email")) {
         await database.prepare("ALTER TABLE orders ADD COLUMN email text").run();
       }

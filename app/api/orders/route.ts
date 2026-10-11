@@ -1,13 +1,32 @@
 import { createCheckout } from "@/lib/payment";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
-import { config, db, getOrder, getProducts, json, paymentHandle, sameOrigin, type OrderItem } from "@/lib/store";
+import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
+
+async function requestHash(body: Record<string,unknown>) {
+  const payload = { ...body };
+  delete payload.requestKey;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(payload)));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function existingResponse(order: Order) {
+  return json({ id: order.id, status: order.status, ...(order.checkout_url ? { paymentUrl: order.checkout_url } : {}) });
+}
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error:"Origem inválida." }, 403);
-  const settings = await config();
-  if (settings.paused) return json({ error:"Os pedidos estão pausados no momento." }, 409);
   let body: Record<string,unknown>;
   try { body = await request.json() as Record<string,unknown>; } catch { return json({error:"Dados inválidos."},400); }
+  const requestKey = body.requestKey;
+  if (typeof requestKey !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestKey)) {
+    return json({error:"Atualize a página e tente novamente."},400);
+  }
+  const hash = await requestHash(body);
+  await ensureSchema();
+  const previous = await db().prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
+  if (previous) return previous.request_hash === hash ? existingResponse(previous) : json({error:"Esta tentativa já foi usada para outro pedido. Atualize a página."},409);
+  const settings = await config();
+  if (settings.paused) return json({error:"Os pedidos estão pausados no momento."},409);
   const name = String(body.name ?? "").trim().slice(0,100);
   const phone = String(body.phone ?? "").replace(/\D/g,"").slice(0,13);
   const email = String(body.email ?? "").trim().toLowerCase().slice(0,254);
@@ -53,14 +72,18 @@ export async function POST(request: Request) {
   const availabilityArgs = items.flatMap(item => [item.id, item.quantity]);
   const database = db();
   const statements = [
-    database.prepare(`INSERT INTO orders (id,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
-      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
-      .bind(id,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status,whatsappOptIn,...availabilityArgs,items.length),
+    database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
+      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status,whatsappOptIn,...availabilityArgs,items.length),
     ...items.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),
   ];
   const results = await database.batch(statements);
-  if (!results[0].meta.changes) return json({error:"Um produto ficou indisponível. Atualize o cardápio e tente novamente."},409);
+  if (!results[0].meta.changes) {
+    const existing = await database.prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
+    if (existing) return existing.request_hash === hash ? existingResponse(existing) : json({error:"Esta tentativa já foi usada para outro pedido. Atualize a página."},409);
+    return json({error:"Um produto ficou indisponível. Atualize o cardápio e tente novamente."},409);
+  }
   if (method === "pickup" && paymentHandle()) {
     try {
       const order = await getOrder(id);

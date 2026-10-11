@@ -2,6 +2,8 @@ import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core
 
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),
+  requestKey: text("request_key"),
+  requestHash: text("request_hash"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   name: text("name").notNull(),
@@ -30,7 +32,7 @@ export const orders = sqliteTable("orders", {
   handoffAttempts: integer("handoff_attempts").notNull().default(0),
   handoffLockedUntil: text("handoff_locked_until"),
   handoffNote: text("handoff_note"),
-});
+}, table => [uniqueIndex("orders_request_key").on(table.requestKey)]);
 
 export const orderNotifications = sqliteTable("order_notifications", {
   id: text("id").primaryKey(),
