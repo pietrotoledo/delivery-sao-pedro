@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, MapPinned, RefreshCw, Truck } from "lucide-react";
+import { ArrowRight, Heart, MapPinned, RefreshCw, Truck } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 
 type DeliveryOrder = {
@@ -63,12 +63,17 @@ export default function DeliveryDashboard() {
   return <div className="delivery-page">
     <header className="delivery-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><span><Truck size={17} /> Área dos entregadores</span></header>
     <main className="delivery-wrap">
-      <div className="delivery-heading"><p className="section-kicker">30 de outubro · entregas a partir das 18h</p><h1>Entregas</h1><p>Toque em um pedido para ver os detalhes e informar o código de verificação. A lista atualiza a cada 10 segundos.</p></div>
+      <section className="delivery-heading delivery-dashboard-heading" aria-labelledby="delivery-title">
+        <p className="delivery-date"><span>30 de outubro</span><span>Entregas a partir das 18h</span></p>
+        <h1 id="delivery-title">Entregas</h1>
+        <div className="delivery-gratitude"><Heart size={18} fill="currentColor" aria-hidden="true" /><p>Seu caminho faz esta noite chegar mais longe. Obrigado por entregar cada pedido com cuidado e levar junto um pouco do nosso carinho.</p></div>
+      </section>
       {error && <div className="team-error" role="alert">{error}</div>}
       {loading && <div className="delivery-empty" role="status">Carregando entregas...</div>}
       {!loading && !data && <form className="delivery-login" onSubmit={login}><h2>Acesso dos entregadores</h2><p>Use a senha da equipe de delivery.</p><label htmlFor="delivery-password">Senha dos entregadores</label><input id="delivery-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required /><button type="submit" disabled={busy}>{busy ? "Entrando..." : "Entrar"}</button></form>}
       {data && <>
-        <div className="delivery-toolbar"><div className="delivery-filters" role="group" aria-label="Filtrar entregas"><button type="button" className={!showCompleted ? "active" : ""} aria-pressed={!showCompleted} onClick={() => setShowCompleted(false)}>Em andamento <span>{activeCount}</span></button><button type="button" className={showCompleted ? "active" : ""} aria-pressed={showCompleted} onClick={() => setShowCompleted(true)}>Entregues <span>{completedCount}</span></button></div><button type="button" className="delivery-refresh" onClick={() => void load()}><RefreshCw size={16} /> Atualizar</button><button type="button" className="delivery-logout" onClick={() => void logout()}>Sair</button></div>
+        <div className="delivery-toolbar"><div className="delivery-filters" role="group" aria-label="Filtrar entregas"><button type="button" className={!showCompleted ? "active" : ""} aria-pressed={!showCompleted} onClick={() => setShowCompleted(false)}>Em andamento <span>{activeCount}</span></button><button type="button" className={showCompleted ? "active" : ""} aria-pressed={showCompleted} onClick={() => setShowCompleted(true)}>Entregues <span>{completedCount}</span></button></div><div className="delivery-tools"><button type="button" className="delivery-refresh" onClick={() => void load()}><RefreshCw size={16} /> Atualizar</button><button type="button" className="delivery-logout" onClick={() => void logout()}>Sair</button></div></div>
+        <p className="delivery-list-intro">Toque em um pedido para ver os detalhes e informar o código. A lista atualiza a cada 10 segundos.</p>
         <div className="delivery-list">{orders.length ? orders.map(order => <a className="delivery-card" href={`/entregas/pedido/${encodeURIComponent(order.id)}`} key={order.id}>
           <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
           <p className="delivery-address"><MapPinned size={19} /><span>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</span></p>

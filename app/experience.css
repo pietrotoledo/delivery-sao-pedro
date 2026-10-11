@@ -655,6 +655,26 @@ button { -webkit-touch-callout: none; }
 .delivery-address { display: flex; gap: 9px; align-items: start; margin: 16px 0 8px; font-size: 16px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 .delivery-address svg { flex: none; margin-top: 2px; color: var(--brand-blue); }
 .delivery-card-hint { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-blue); font-size: 12px; font-weight: 800; }
+.delivery-dashboard-heading { position: relative; overflow: hidden; padding: 30px 34px 28px; border-radius: 18px; background: var(--brand-deep); color: #fff; }
+.delivery-dashboard-heading::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--brand-yellow); }
+.delivery-date { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin: 0; color: #d9e5ff; font-size: 12px; font-weight: 800; letter-spacing: .035em; }
+.delivery-date span:first-child { color: var(--brand-yellow); }
+.delivery-dashboard-heading h1 { margin: 15px 0 17px; font-size: clamp(50px, 7vw, 76px); }
+.delivery-gratitude { display: flex; align-items: flex-start; gap: 12px; max-width: 650px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.18); }
+.delivery-gratitude svg { flex: none; margin-top: 3px; color: var(--brand-yellow); }
+.delivery-gratitude p { margin: 0; color: #f1f5ff; font-size: 15px; font-weight: 600; line-height: 1.55; }
+.delivery-tools { display: flex; gap: 8px; }
+.delivery-list-intro { margin: 0 0 14px; color: #526785; font-size: 13px; line-height: 1.45; }
+.delivery-list { gap: 12px; }
+.delivery-card { position: relative; overflow: hidden; padding: 22px 24px; border-radius: 12px; box-shadow: 0 3px 14px rgba(12,37,87,.035); }
+.delivery-card::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 4px; background: var(--brand-yellow); }
+.delivery-card-head h2 { max-width: 20ch; color: var(--brand-deep); font-size: 21px; line-height: 1.15; overflow-wrap: anywhere; }
+.delivery-card .team-status { max-width: 42%; text-align: center; }
+.delivery-card .delivery-address { margin: 16px 0 14px; color: #233c68; font-size: 14px; line-height: 1.45; }
+.delivery-card-hint { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); font-size: 13px; }
+.delivery-card-hint svg { flex: none; }
+.delivery-filters button, .delivery-refresh, .delivery-logout { justify-content: center; }
+.delivery-filters button:focus-visible, .delivery-refresh:focus-visible, .delivery-logout:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 2px; }
 .delivery-detail-wrap { max-width: 760px; }
 .delivery-back { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 27px; color: var(--brand-blue); font-size: 13px; font-weight: 800; }
 .delivery-detail-card { margin-top: 26px; }
@@ -680,11 +700,22 @@ button { -webkit-touch-callout: none; }
 .delivery-confirmed { margin: 17px 0 0; color: #176142; font-size: 13px; font-weight: 800; }
 @media (max-width: 600px) {
   .delivery-topbar > span { display: none; }
-  .delivery-wrap { padding-top: 27px; }
-  .delivery-toolbar { align-items: stretch; }
-  .delivery-filters { width: 100%; }
+  .delivery-wrap { width: min(100% - 28px, 1000px); padding-top: 16px; }
+  .delivery-dashboard-heading { padding: 23px 20px 22px; border-radius: 13px; }
+  .delivery-dashboard-heading h1 { margin: 13px 0 14px; font-size: clamp(46px, 14vw, 62px); }
+  .delivery-date { gap: 2px 10px; font-size: 11px; }
+  .delivery-gratitude { gap: 9px; padding-top: 13px; }
+  .delivery-gratitude p { font-size: 13px; line-height: 1.45; }
+  .delivery-toolbar { align-items: stretch; margin: 16px 0 12px; }
+  .delivery-filters { width: 100%; flex-wrap: nowrap; }
+  .delivery-filters button { min-width: 0; flex: 1; padding-inline: 8px; white-space: nowrap; font-size: 12px; }
+  .delivery-tools { width: 100%; justify-content: flex-end; }
+  .delivery-tools button { min-height: 36px; padding: 7px 11px; font-size: 12px; }
+  .delivery-list-intro { margin-bottom: 11px; font-size: 12px; }
   .delivery-card, .delivery-detail-card { padding: 17px; }
-  .delivery-card-head h2 { font-size: 19px; }
+  .delivery-card-head h2 { font-size: 18px; }
+  .delivery-card .team-status { padding: 7px 8px; font-size: 10px; }
+  .delivery-card .delivery-address { margin: 13px 0; font-size: 13px; }
   .delivery-actions a { width: 100%; }
   .delivery-confirm form { flex-wrap: wrap; }
   .delivery-confirm button { flex: 1; }
