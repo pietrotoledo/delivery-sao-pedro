@@ -35,6 +35,8 @@
 }
 .site-shell .hero h1 em { color: var(--brand-yellow); }
 .site-shell .hero-copy > p { max-width: 480px; color: #e2e9f8; font-size: 17px; line-height: 1.55; }
+.event-schedule { display: flex; flex-wrap: wrap; gap: 5px 13px; align-items: baseline; margin-top: 22px; padding: 7px 0 7px 14px; border-left: 4px solid var(--brand-yellow); font-size: 15px; font-weight: 700; color: #fff; }
+.event-schedule strong { color: var(--brand-yellow); font-size: 18px; font-weight: 900; }
 .site-shell .hero-actions { margin-top: 30px; }
 .site-shell .hero-actions .button { min-height: 54px; }
 .site-shell .hero-facts { margin-top: 31px; gap: 14px 25px; color: #dce7ff; }
@@ -265,6 +267,8 @@ button { -webkit-touch-callout: none; }
   .site-shell .hero-copy { padding: 0; width: 100%; }
   .site-shell .hero h1 { font-size: clamp(54px, 12vw, 74px); margin: 20px 0 15px; }
   .site-shell .hero-copy > p { font-size: 14px; line-height: 1.55; }
+  .event-schedule { margin-top: 16px; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
+  .event-schedule strong { font-size: 16px; }
   .site-shell .hero-actions { margin-top: 21px; }
   .site-shell .hero-actions .button { width: 100%; }
   .site-shell .hero-facts { margin-top: 19px; display: flex; gap: 6px 14px; font-size: 11px; }
@@ -618,3 +622,47 @@ button { -webkit-touch-callout: none; }
   .admin-main .admin-order-next .mini-button { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-side .side-nav a { transition: none; } }
+
+/* Área separada para quem realiza as entregas. */
+.delivery-page { min-height: 100vh; background: #f3f6fc; color: var(--brand-deep); }
+.delivery-topbar { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 17px max(20px, calc((100vw - 1040px) / 2)); background: #fff; border-bottom: 1px solid var(--line-soft); }
+.delivery-topbar > span { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-blue); font-size: 13px; font-weight: 800; }
+.delivery-wrap { width: min(100% - 36px, 1000px); margin: 0 auto; padding: 38px 0 80px; }
+.delivery-heading h1 { margin: 7px 0 8px; font-family: "Barlow Condensed", Impact, sans-serif; font-size: clamp(54px, 9vw, 82px); line-height: .95; text-transform: uppercase; }
+.delivery-heading > p:last-child { color: #61728e; font-size: 14px; line-height: 1.5; }
+.delivery-login, .delivery-empty { max-width: 480px; margin: 28px 0; padding: 26px; background: #fff; border: 1px solid var(--line-soft); border-radius: 15px; }
+.delivery-login { display: grid; gap: 11px; }
+.delivery-login h2 { margin: 0; font-size: 24px; }
+.delivery-login p { margin: 0 0 9px; color: #61728e; font-size: 14px; }
+.delivery-login label { font-size: 13px; font-weight: 800; }
+.delivery-login input { width: 100%; min-height: 46px; padding: 10px 13px; border: 1px solid #cdd9e9; border-radius: 9px; font-size: 16px; }
+.delivery-login button { min-height: 46px; border: 0; border-radius: 9px; background: var(--brand-yellow); color: var(--brand-deep); font-weight: 900; }
+.delivery-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 30px 0 16px; }
+.delivery-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-right: auto; }
+.delivery-filters button, .delivery-refresh, .delivery-logout { min-height: 40px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d7e1ee; border-radius: 9px; background: #fff; color: var(--brand-blue); padding: 9px 13px; font-size: 13px; font-weight: 800; }
+.delivery-filters button.active { border-color: var(--brand-blue); background: var(--brand-blue); color: #fff; }
+.delivery-filters span { border-radius: 20px; background: rgba(122,148,192,.18); padding: 2px 7px; }
+.delivery-logout { color: #697993; }
+.delivery-list { display: grid; gap: 14px; }
+.delivery-card { min-width: 0; padding: 22px; border: 1px solid var(--line-soft); border-radius: 14px; background: #fff; box-shadow: 0 5px 20px rgba(12,37,87,.04); }
+.delivery-card-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.delivery-card-head small { color: #627695; font-size: 11px; font-weight: 800; }
+.delivery-card-head h2 { margin: 4px 0 0; font-size: 22px; }
+.delivery-card .team-status { flex: none; }
+.delivery-address { display: flex; gap: 9px; align-items: start; margin: 20px 0 15px; font-size: 16px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+.delivery-address svg { flex: none; margin-top: 2px; color: var(--brand-blue); }
+.delivery-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.delivery-actions a { min-height: 43px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 14px; border-radius: 9px; font-size: 13px; font-weight: 900; }
+.delivery-map { background: var(--brand-yellow); color: var(--brand-deep); }
+.delivery-phone { background: #e9f0ff; color: var(--brand-blue); }
+.delivery-items { margin: 17px 0 0; color: #5f708c; font-size: 13px; }
+.delivery-note { margin: 11px 0 0; padding: 11px 13px; border-radius: 8px; background: #fff7dc; color: #59491c; font-size: 13px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .delivery-topbar > span { display: none; }
+  .delivery-wrap { padding-top: 27px; }
+  .delivery-toolbar { align-items: stretch; }
+  .delivery-filters { width: 100%; }
+  .delivery-card { padding: 17px; }
+  .delivery-card-head h2 { font-size: 19px; }
+  .delivery-actions a { width: 100%; }
+}

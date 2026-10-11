@@ -2,7 +2,7 @@
 
 Plano futuro de avisos de Pix e atualizações: [notificações dos pedidos](docs/notificacoes-pedidos.md).
 
-Pré-venda da Noite do Hambúrguer de 29 de outubro de 2026, das 18h às 22h.
+Pré-venda da Noite do Hambúrguer de 30 de outubro de 2026. As entregas começam às 18h; a retirada na paróquia ocorre das 18h às 22h.
 
 ## O que está pronto
 
@@ -20,7 +20,7 @@ Pré-venda da Noite do Hambúrguer de 29 de outubro de 2026, das 18h às 22h.
 1. Confirme os preços sugeridos dos hambúrgueres e refrigerantes e o tamanho das porções e bebidas antes da venda real.
 2. Ative o Checkout Integrado da InfinitePay na conta que receberá os valores.
 3. Configure a conta para aceitar somente Pix. A seleção das formas de pagamento é feita na InfinitePay.
-4. Defina `INFINITEPAY_HANDLE` e `ADMIN_PASSWORD` nas variáveis de ambiente do Site, nunca no código.
+4. Defina `INFINITEPAY_HANDLE`, `ADMIN_PASSWORD` e `DELIVERY_PASSWORD` nas variáveis de ambiente do Site, nunca no código. Use uma senha de entregadores diferente da senha admin, com pelo menos 12 caracteres.
 5. Publique o Site para compradores e teste uma compra real de baixo valor, webhook, painel e devolução.
 6. A hospedagem privada serve para demonstração. O webhook externo e os compradores precisam de acesso público na versão de vendas; antes de abrir o acesso, mantenha `ADMIN_PASSWORD` configurada.
 
@@ -53,7 +53,9 @@ Crie um **Worker** (não Pages) ligado a este repositório e um banco D1 chamado
 O comando de deploy aplica as migrações D1 pendentes antes de publicar o Worker. A Cloudflare deve fornecer acesso para o Wrangler executar o deploy.
 Mesmo que o painel ainda use o comando padrão `npm run build`, o ambiente Workers Builds gera a configuração do Worker com o D1 real. Para criar as tabelas automaticamente, use `npm run deploy:cloudflare` como comando de deploy.
 
-Para uma versão pública com vendas reais, configure também os segredos de runtime `ADMIN_PASSWORD` e `INFINITEPAY_HANDLE` e habilite apenas Pix na InfinitePay. Não compartilhe a senha nem credenciais por GitHub. Enquanto `INFINITEPAY_HANDLE` não estiver configurada, o site fica em modo de demonstração.
+Para uma versão pública com vendas reais, configure também os segredos de runtime `ADMIN_PASSWORD`, `DELIVERY_PASSWORD` e `INFINITEPAY_HANDLE` e habilite apenas Pix na InfinitePay. Não compartilhe senhas nem credenciais por GitHub. Enquanto `INFINITEPAY_HANDLE` não estiver configurada, o site fica em modo de demonstração.
+
+A área `/entregas` usa `DELIVERY_PASSWORD` e mostra somente pedidos de entrega pagos, com endereço, rota no Google Maps e telefone para ligação. A senha local foi gerada em `.env`, que é ignorado pelo Git. Configure o mesmo segredo no ambiente publicado antes de entregar o acesso à equipe.
 
 ## Regras de operação
 

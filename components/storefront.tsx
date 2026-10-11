@@ -85,11 +85,12 @@ export default function Storefront() {
     <main>
       <section className="hero"><div className="hero-inner wrap">
         <div className="hero-copy">
-          <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 29 de outubro</div>
+          <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 30 de outubro</div>
           <h1>O sabor da<br />nossa <em>gincana.</em></h1>
           <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
+          <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
-          <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador</span><span>18h às 22h · retirada ou entrega</span></div>
+          <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador</span><span>Retirada das 18h às 22h</span></div>
         </div>
         <Link className="hero-media" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver cardápio de hambúrgueres">
           <Image src={featured ? productPhoto(featured) : "/products/classic.webp"} unoptimized={featured ? externalPhoto(productPhoto(featured)) : false} fill priority sizes="(max-width: 800px) 100vw, 50vw" alt={featured ? featured.name : "Hambúrguer"} />
@@ -97,7 +98,7 @@ export default function Storefront() {
           <div className="hero-mascot"><Image src="/mascote.png" width={112} height={112} alt="Mascote Blueckyardigans" /></div>
         </Link>
       </div></section>
-      <div className="service-strip"><div className="wrap service-strip-inner"><span>Escolha sem complicação</span><span>Retire na paróquia ou receba em casa</span><span>Pagamento por Pix</span></div></div>
+      <div className="service-strip"><div className="wrap service-strip-inner"><span>30 de outubro</span><span>Entregas a partir das 18h</span><span>Retirada na paróquia das 18h às 22h</span></div></div>
       <section className="menu-section wrap" id="cardapio">
         <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>O que vai no seu pedido?</h2></div><p>Escolha os itens e veja o total na hora. É rápido.</p></div>
         {!data && !loadError && <p className="menu-feedback" role="status">Carregando cardápio...</p>}
@@ -115,7 +116,7 @@ export default function Storefront() {
         {data && <p className="photo-note">A apresentação e as porções podem variar no dia do evento.</p>}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
-        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />29 de outubro, das 18h às 22h</span></div></div></div>
+        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 18h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />30 de outubro, das 18h às 22h</span></div></div></div>
         <div className="order-card">
           <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
@@ -128,6 +129,6 @@ export default function Storefront() {
     </main>
     {itemCount > 0 && <div className="desktop-cart"><span className="desktop-cart-icon"><ShoppingBag size={22} /></span><span className="desktop-cart-total"><b>{itemCount} {itemCount === 1 ? "item" : "itens"} no pedido</b><strong>{money(subtotal)}</strong></span>{burgerCount > 0 ? <a className="button button-yellow" href={checkoutHref} aria-label="Continuar para o checkout">Continuar <ArrowRight size={18} /></a> : <Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Continuar escolhendo um hambúrguer">Continuar <ArrowRight size={18} /></Link>}</div>}
     {itemCount > 0 && (burgerCount > 0 ? <a className="mobile-cart" href={checkoutHref} aria-label={`Ver pedido com ${itemCount} itens, total ${money(subtotal)}`}><span>{itemCount} {itemCount === 1 ? "item" : "itens"} · {money(subtotal)}</span><strong>Continuar <ArrowRight size={18} /></strong></a> : <Link className="mobile-cart" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Escolha um hambúrguer para continuar"><span>Escolha um hambúrguer</span><strong>Ver opções <ArrowRight size={18} /></strong></Link>)}
-    <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 29 de outubro de 2026</p><a href="/admin">Acesso da equipe</a></div></footer>
+    <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 30 de outubro de 2026</p><a href="/admin">Acesso da equipe</a></div></footer>
   </div>;
 }

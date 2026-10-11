@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import BrandAvatar from "@/components/brand-avatar";
+import { deliveryDirectionsUrl } from "@/lib/delivery-links";
 
 type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]; unitRemovals?: string[][]};
 type TeamOrder = {
@@ -84,7 +85,7 @@ export default function TeamOrderPage() {
   }
 
   const mapUrl = order?.method === "delivery" && order.address
-    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([order.address, order.neighborhood, "João Pessoa, PB"].filter(Boolean).join(", "))}`
+    ? deliveryDirectionsUrl(order.address, order.neighborhood)
     : null;
   const pickup = order?.method === "pickup";
 
