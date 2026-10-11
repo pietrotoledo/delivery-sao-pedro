@@ -1,6 +1,5 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, KeyRound, MapPinned, Phone, Truck } from "lucide-react";
@@ -18,8 +17,7 @@ const statusLabels: Record<string, string> = {
   out_for_delivery: "Saiu para entrega", completed: "Entregue",
 };
 
-export default function DeliveryOrderDetail() {
-  const id = String(useParams().id);
+export default function DeliveryOrderDetail({id}: {id: string}) {
   const [order, setOrder] = useState<DeliveryOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [restricted, setRestricted] = useState(false);

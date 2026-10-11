@@ -69,11 +69,11 @@ export default function DeliveryDashboard() {
       {!loading && !data && <form className="delivery-login" onSubmit={login}><h2>Acesso dos entregadores</h2><p>Use a senha da equipe de delivery.</p><label htmlFor="delivery-password">Senha dos entregadores</label><input id="delivery-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required /><button type="submit" disabled={busy}>{busy ? "Entrando..." : "Entrar"}</button></form>}
       {data && <>
         <div className="delivery-toolbar"><div className="delivery-filters" role="group" aria-label="Filtrar entregas"><button type="button" className={!showCompleted ? "active" : ""} aria-pressed={!showCompleted} onClick={() => setShowCompleted(false)}>Em andamento <span>{activeCount}</span></button><button type="button" className={showCompleted ? "active" : ""} aria-pressed={showCompleted} onClick={() => setShowCompleted(true)}>Entregues <span>{completedCount}</span></button></div><button type="button" className="delivery-refresh" onClick={() => void load()}><RefreshCw size={16} /> Atualizar</button><button type="button" className="delivery-logout" onClick={() => void logout()}>Sair</button></div>
-        <div className="delivery-list">{orders.length ? orders.map(order => <Link className="delivery-card" href={`/entregas/pedido/${encodeURIComponent(order.id)}`} key={order.id}>
+        <div className="delivery-list">{orders.length ? orders.map(order => <a className="delivery-card" href={`/entregas/pedido/${encodeURIComponent(order.id)}`} key={order.id}>
           <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
           <p className="delivery-address"><MapPinned size={19} /><span>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</span></p>
           <span className="delivery-card-hint">{order.status === "out_for_delivery" ? "Abrir pedido e informar código" : "Ver pedido"} <ArrowRight size={16} aria-hidden="true" /></span>
-        </Link>) : <div className="delivery-empty">{showCompleted ? "Nenhuma entrega concluída." : "Nenhuma entrega em andamento."}</div>}</div>
+        </a>) : <div className="delivery-empty">{showCompleted ? "Nenhuma entrega concluída." : "Nenhuma entrega em andamento."}</div>}</div>
       </>}
     </main>
   </div>;
