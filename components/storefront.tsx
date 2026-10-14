@@ -6,8 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
 import DeliveryAreas from "./delivery-areas";
+import NavigationLinks from "./navigation-links";
 import { deliveryAreas } from "@/lib/delivery-areas";
-import { eventLocation, eventLocationMapUrl } from "@/lib/event-location";
+import { eventLocation } from "@/lib/event-location";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
 
 type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null; stock: number | null };
@@ -100,7 +101,7 @@ export default function Storefront() {
           </section>
           <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
-          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><span className="event-location-label">Novo local do evento e da retirada</span><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><a href={eventLocationMapUrl} target="_blank" rel="noopener noreferrer">Ver localização no Google Maps <ArrowRight size={16} aria-hidden="true" /></a></div></div>
+          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><span className="event-location-label">Novo local do evento e da retirada</span><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
         </div>
         <Link className="hero-media" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver cardápio de hambúrgueres">
           <Image src={featured ? productPhoto(featured) : "/products/classic.webp"} unoptimized={featured ? externalPhoto(productPhoto(featured)) : false} fill priority sizes="(max-width: 800px) 100vw, 50vw" alt={featured ? featured.name : "Hambúrguer"} />
@@ -127,7 +128,7 @@ export default function Storefront() {
         {data && <p className="photo-note">A apresentação e as porções podem variar no dia do evento.</p>}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
-        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 18h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada no {eventLocation.name}</b><span>{eventLocation.address}<br />30 de outubro, das 18h às 22h</span><a className="pickup-map-link" href={eventLocationMapUrl} target="_blank" rel="noopener noreferrer">Ver localização no Google Maps</a></div></div></div>
+        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 18h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada no {eventLocation.name}</b><span>{eventLocation.address}<br />30 de outubro, das 18h às 22h</span><NavigationLinks destination={eventLocation.address} /></div></div></div>
         <div className="order-card">
           <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>

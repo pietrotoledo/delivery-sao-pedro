@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import BrandAvatar from "@/components/brand-avatar";
-import { deliveryDirectionsUrl } from "@/lib/delivery-links";
+import NavigationLinks from "@/components/navigation-links";
+import { deliveryDestination } from "@/lib/delivery-links";
 
 type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]; unitRemovals?: string[][]};
 type TeamOrder = {
@@ -84,8 +85,8 @@ export default function TeamOrderPage() {
     finally { setBusy(false); }
   }
 
-  const mapUrl = order?.method === "delivery" && order.address
-    ? deliveryDirectionsUrl(order.address, order.neighborhood)
+  const destination = order?.method === "delivery" && order.address
+    ? deliveryDestination(order.address, order.neighborhood)
     : null;
   const pickup = order?.method === "pickup";
 
@@ -100,7 +101,7 @@ export default function TeamOrderPage() {
           <div className="team-card-head"><div><small>PEDIDO</small><h2>#{order.id.slice(0, 8).toUpperCase()}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
           <div className="team-fact"><span>Cliente</span><strong>{order.name}</strong></div>
           <div className="team-fact"><span>Recebimento</span><strong>{pickup ? "Retirada presencial" : "Delivery"}</strong></div>
-          {order.method === "delivery" && <div className="team-address"><span>Endereço de entrega</span><strong>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</strong>{mapUrl && <a href={mapUrl} target="_blank" rel="noreferrer" referrerPolicy="no-referrer">Abrir rota no Google Maps ↗</a>}</div>}
+          {order.method === "delivery" && <div className="team-address"><span>Endereço de entrega</span><strong>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</strong>{destination && <NavigationLinks destination={destination} label="Rota para o cliente" />}</div>}
           <div className="team-items"><h3>Itens</h3>{order.items.map((item, index) => <div className="team-item" key={`${item.id}-${index}`}><strong>{item.quantity}× {item.name}</strong><span>{money(item.quantity * item.price)}</span>{item.unitRemovals?.length ? item.unitRemovals.map((removed, unitIndex) => <small key={unitIndex}>Hambúrguer {unitIndex + 1}: {removed.length ? `sem ${removed.join(", ")}` : "completo"}</small>) : item.removedIngredients?.length ? <small>Sem: {item.removedIngredients.join(", ")}</small> : null}</div>)}</div>
           {order.notes && <div className="team-notes"><strong>Observação</strong><p>{order.notes}</p></div>}
           <div className="team-fact"><span>Produtos</span><strong>{money(order.subtotal)}</strong></div>
