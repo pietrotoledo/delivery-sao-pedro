@@ -101,7 +101,7 @@ export default function Storefront() {
           </section>
           <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
-          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><span className="event-location-label">Novo local do evento e da retirada</span><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
+          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
         </div>
         <Link className="hero-media" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver cardápio de hambúrgueres">
           <Image src={featured ? productPhoto(featured) : "/products/classic.webp"} unoptimized={featured ? externalPhoto(productPhoto(featured)) : false} fill priority sizes="(max-width: 800px) 100vw, 50vw" alt={featured ? featured.name : "Hambúrguer"} />
