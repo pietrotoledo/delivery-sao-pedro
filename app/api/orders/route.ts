@@ -1,3 +1,4 @@
+import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { createCheckout } from "@/lib/payment";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
@@ -36,8 +37,9 @@ export async function POST(request: Request) {
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
   const whatsappOptIn = body.whatsappOptIn === true && evolutionEnabled() ? 1 : 0;
   if (name.length < 2 || phone.length < 10 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
-  if (method === "delivery" && (!["Manaíra","Bessa","Tambaú"].includes(neighborhood ?? "") || !address || address.length < 8)) {
-    return json({error:"Informe um endereço válido em Manaíra, Bessa ou Tambaú."},400);
+  const deliveryFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
+  if (deliveryFee === null || (method === "delivery" && (!address || address.length < 8))) {
+    return json({error:"Selecione um dos bairros atendidos e informe um endereço completo válido."},400);
   }
   if (!Array.isArray(body.items) || body.items.length > 20) return json({error:"Escolha até 20 tipos de produto por pedido."},400);
   const menu = await getProducts();
@@ -65,16 +67,17 @@ export async function POST(request: Request) {
   if (burgerCount < 1 || burgerCount > 20) return json({error:"Escolha de 1 a 20 hambúrgueres."},400);
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
   if (Number(body.expectedSubtotal) !== subtotal) return json({error:"O cardápio mudou. Atualize a página e confira o novo total antes de pedir."},409);
+  if (Number(body.expectedDeliveryFee) !== deliveryFee) return json({error:"A taxa de entrega mudou. Atualize a página e confira o total antes de pedir."},409);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const status = method === "delivery" ? "awaiting_quote" : "ready_for_payment";
+  const status = "ready_for_payment";
   const availability = items.map(() => "(id = ? AND active = 1 AND (stock IS NULL OR stock >= ?))").join(" OR ");
   const availabilityArgs = items.flatMap(item => [item.id, item.quantity]);
   const database = db();
   const statements = [
     database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
       SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
-      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,method==="pickup"?0:null,method==="pickup"?subtotal:null,status,whatsappOptIn,...availabilityArgs,items.length),
+      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+deliveryFee,status,whatsappOptIn,...availabilityArgs,items.length),
     ...items.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),
   ];
@@ -84,7 +87,7 @@ export async function POST(request: Request) {
     if (existing) return existing.request_hash === hash ? existingResponse(existing) : json({error:"Esta tentativa já foi usada para outro pedido. Atualize a página."},409);
     return json({error:"Um produto ficou indisponível. Atualize o cardápio e tente novamente."},409);
   }
-  if (method === "pickup" && paymentHandle()) {
+  if (paymentHandle()) {
     try {
       const order = await getOrder(id);
       if (order) {
