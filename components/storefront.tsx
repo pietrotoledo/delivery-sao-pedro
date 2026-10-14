@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, MapPin, Minus, Plus, ShoppingBag } from "lucide-react";
+import { ArrowRight, MapPin, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
 import DeliveryAreas from "./delivery-areas";
+import { deliveryAreas } from "@/lib/delivery-areas";
 import { eventLocation, eventLocationMapUrl } from "@/lib/event-location";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
 
@@ -90,7 +91,14 @@ export default function Storefront() {
           <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 30 de outubro</div>
           <h1>O sabor da<br />nossa <em>gincana.</em></h1>
           <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
-          <p className="hero-delivery">Temos delivery! Entrega grátis em 5 bairros e taxa de R$ 5,00 em Altiplano, Cabo Branco, Bessa e Tambaú.</p><div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
+          <section className="hero-delivery" aria-label="Delivery e taxas por bairro">
+            <div className="hero-delivery-heading"><Truck size={22} aria-hidden="true" /><h2>Seu hambúrguer vai até você.</h2></div>
+            <dl className="hero-delivery-rates">
+              <div><dt>Frete grátis</dt><dd>{deliveryAreas.filter(area => area.fee === 0).map(area => area.name).join(", ")}.</dd></div>
+              <div><dt>Taxa fixa de <strong>R$ 5,00</strong></dt><dd>{deliveryAreas.filter(area => area.fee === 500).map(area => area.name).join(", ")}.</dd></div>
+            </dl>
+          </section>
+          <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
           <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><span className="event-location-label">Novo local do evento e da retirada</span><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><a href={eventLocationMapUrl} target="_blank" rel="noopener noreferrer">Ver localização no Google Maps <ArrowRight size={16} aria-hidden="true" /></a></div></div>
         </div>
