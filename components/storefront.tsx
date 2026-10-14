@@ -5,6 +5,7 @@ import { ArrowRight, MapPin, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
+import { eventLocation, eventLocationMapUrl } from "@/lib/event-location";
 import { externalPhoto, productPhoto } from "@/lib/product-images";
 
 type Product = { id: string; name: string; price: number; category: string; description: string; imageUrl: string | null; stock: number | null };
@@ -90,7 +91,7 @@ export default function Storefront() {
           <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
           <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
-          <div className="hero-facts"><span><MapPin size={17} /> Paróquia São Pedro Pescador</span><span>Retirada das 18h às 22h</span></div>
+          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><span className="event-location-label">Novo local do evento e da retirada</span><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><a href={eventLocationMapUrl} target="_blank" rel="noopener noreferrer">Ver localização no Google Maps <ArrowRight size={16} aria-hidden="true" /></a></div></div>
         </div>
         <Link className="hero-media" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver cardápio de hambúrgueres">
           <Image src={featured ? productPhoto(featured) : "/products/classic.webp"} unoptimized={featured ? externalPhoto(productPhoto(featured)) : false} fill priority sizes="(max-width: 800px) 100vw, 50vw" alt={featured ? featured.name : "Hambúrguer"} />
@@ -98,7 +99,7 @@ export default function Storefront() {
           <div className="hero-mascot"><Image src="/mascote.png" width={112} height={112} alt="Mascote Blueckyardigans" /></div>
         </Link>
       </div></section>
-      <div className="service-strip"><div className="wrap service-strip-inner"><span>30 de outubro</span><span>Entregas a partir das 18h</span><span>Retirada na paróquia das 18h às 22h</span></div></div>
+      <div className="service-strip"><div className="wrap service-strip-inner"><span>30 de outubro</span><span>Entregas a partir das 18h</span><span>Retirada no {eventLocation.name} · 18h às 22h</span></div></div>
       <section className="menu-section wrap" id="cardapio">
         <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>O que vai no seu pedido?</h2></div><p>Escolha os itens e veja o total na hora. É rápido.</p></div>
         {!data && !loadError && <p className="menu-feedback" role="status">Carregando cardápio...</p>}
@@ -116,7 +117,7 @@ export default function Storefront() {
         {data && <p className="photo-note">A apresentação e as porções podem variar no dia do evento.</p>}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
-        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 18h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na paróquia</b><span>Av. Maria Rosa, 1124 · Manaíra, João Pessoa<br />30 de outubro, das 18h às 22h</span></div></div></div>
+        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 18h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada no {eventLocation.name}</b><span>{eventLocation.address}<br />30 de outubro, das 18h às 22h</span><a className="pickup-map-link" href={eventLocationMapUrl} target="_blank" rel="noopener noreferrer">Ver localização no Google Maps</a></div></div></div>
         <div className="order-card">
           <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={48} height={48} alt="" /><span>{quantities[product.id]}× {product.name}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>

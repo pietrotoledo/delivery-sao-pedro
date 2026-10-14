@@ -40,6 +40,16 @@
 .site-shell .hero-actions { margin-top: 30px; }
 .site-shell .hero-actions .button { min-height: 54px; }
 .site-shell .hero-facts { margin-top: 31px; gap: 14px 25px; color: #dce7ff; }
+.event-location { display: flex; gap: 14px; max-width: 480px; margin-top: 28px; padding: 20px; border: 1px solid rgba(255,255,255,.25); border-left: 4px solid var(--brand-yellow); border-radius: 12px; background: rgba(255,255,255,.08); }
+.event-location > svg { flex: none; margin-top: 3px; color: var(--brand-yellow); }
+.event-location > div { display: grid; gap: 7px; min-width: 0; }
+.event-location-label { color: var(--brand-yellow); font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.event-location strong { color: #fff; font-size: 22px; line-height: 1.2; }
+.event-location address { color: #e2e9f8; font-size: 14px; font-style: normal; line-height: 1.5; overflow-wrap: anywhere; }
+.event-location div > span:last-of-type { color: #e2e9f8; font-size: 12px; }
+.event-location a { display: inline-flex; align-items: center; gap: 8px; width: fit-content; min-height: 44px; color: var(--brand-yellow); font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.event-location a:focus-visible, .pickup-map-link:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; border-radius: 3px; }
+.pickup-map-link { display: inline-block; padding: 8px 0; color: var(--brand-blue); font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .site-shell .hero-facts span:last-child { border-left: 1px solid rgba(255,255,255,.3); padding-left: 24px; }
 .hero-media { position: relative; min-height: 525px; overflow: hidden; border-radius: 20px; background: #123678; isolation: isolate; }
 .hero-media > img { object-fit: cover; object-position: center; }
