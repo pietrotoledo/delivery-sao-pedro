@@ -1,5 +1,6 @@
 import { comboDrinkOptions, includesBurger } from "@/lib/menu-options";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
+import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
@@ -33,8 +34,13 @@ export async function POST(request: Request) {
   const phone = String(body.phone ?? "").replace(/\D/g,"").slice(0,13);
   const email = String(body.email ?? "").trim().toLowerCase().slice(0,254);
   const method = body.method === "delivery" ? "delivery" : body.method === "pickup" ? "pickup" : null;
-  const neighborhood = method === "delivery" ? String(body.neighborhood ?? "").trim() : null;
-  const address = method === "delivery" ? String(body.address ?? "").trim().slice(0,220) : null;
+  const structuredAddress = method === "delivery" && body.deliveryAddress !== undefined ? parseDeliveryAddress(body.deliveryAddress) : null;
+  if (method === "delivery" && body.deliveryAddress !== undefined) {
+    const error = structuredAddress ? deliveryAddressError(structuredAddress) : "Informe um endereço de entrega válido.";
+    if (error) return json({ error }, 400);
+  }
+  const neighborhood = method === "delivery" ? structuredAddress?.neighborhood ?? String(body.neighborhood ?? "").trim() : null;
+  const address = method === "delivery" ? structuredAddress ? formatDeliveryAddress(structuredAddress) : String(body.address ?? "").trim().slice(0,220) : null;
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
   const whatsappOptIn = body.whatsappOptIn === true && evolutionEnabled() ? 1 : 0;
   if (name.length < 2 || phone.length < 10 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);

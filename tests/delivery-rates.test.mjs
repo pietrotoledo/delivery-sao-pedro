@@ -9,6 +9,10 @@ import { deliveryAreas, deliveryFeeFor } from "../lib/delivery-areas.ts";
 import { includesBurger, hamburgerIngredients, comboDrinkOptions } from "../lib/menu-options.ts";
 
 const require = createRequire(import.meta.url);
+const addressContext = { exports: {}, fetch, require: () => ({ deliveryAreas }) };
+vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../lib/delivery-address.ts", import.meta.url), "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, addressContext);
 const route = ts.transpileModule(readFileSync(new URL("../app/api/orders/route.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -39,6 +43,7 @@ function orderApi() {
     require(name) {
       if (name === "@/lib/store") return store;
       if (name === "@/lib/delivery-areas") return { deliveryFeeFor };
+      if (name === "@/lib/delivery-address") return addressContext.exports;
       if (name === "@/lib/menu-options") return { includesBurger, comboDrinkOptions };
       if (name === "@/lib/evolution-notifications") return { evolutionEnabled: () => false };
       if (name === "@/lib/payment") return { createCheckout: async () => { paymentAttempts++; return { demo: true }; } };
@@ -85,6 +90,27 @@ test("Retirada permanece sem taxa e pronta para Pix", async () => {
   assert.equal(response.status, 201);
   assert.equal(api.inserted()[15], 0);
   assert.equal(api.inserted()[16], 1000);
+});
+
+test("Salva endereço estruturado completo e calcula a taxa pelo bairro estruturado", async () => {
+  const api = orderApi();
+  const deliveryAddress = { ...addressContext.exports.emptyDeliveryAddress, cep: "58037-000", street: "Rua Teste", number: "159", complement: "Apto. 10", reference: "Portaria azul", neighborhood: "Bessa" };
+  const response = await api.post(request({ ...payload("Manaíra", 500), address: "Ignorar texto adulterado", deliveryAddress }));
+  assert.equal(response.status, 201);
+  assert.equal(api.inserted()[9], "Bessa");
+  assert.equal(api.inserted()[10], addressContext.exports.formatDeliveryAddress(deliveryAddress));
+  assert.equal(api.inserted()[15], 500);
+});
+
+test("Rejeita endereço estruturado incompleto e fora de João Pessoa antes de cobrar", async () => {
+  const valid = { ...addressContext.exports.emptyDeliveryAddress, street: "Rua Teste", number: "159", neighborhood: "Bessa" };
+  for (const deliveryAddress of [null, {}, { ...valid, city: "Cabedelo" }, { ...valid, state: "PE" }, { ...valid, neighborhood: "Centro" }, { ...valid, number: "" }, { ...valid, cep: "123" }]) {
+    const api = orderApi();
+    const response = await api.post(request({ ...payload("Bessa", 500), deliveryAddress }));
+    assert.equal(response.status, 400);
+    assert.equal(api.inserted(), undefined);
+    assert.equal(api.paymentAttempts(), 0);
+  }
 });
 
 test("Combo conta um hambúrguer e salva a personalização", async () => {

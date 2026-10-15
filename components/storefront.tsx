@@ -2,14 +2,13 @@
 import { addMenuCombo, changeMenuQuantity, emptyMenuCart, restoreMenuCart, upgradeMenuBurger, type MenuProduct } from "@/lib/menu-cart";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, MapPin, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, MapPin, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import BrandAvatar from "./brand-avatar";
 import StorefrontMenu from "./storefront-menu";
 import DeliveryAreas from "./delivery-areas";
 import NavigationLinks from "./navigation-links";
-import { deliveryAreas } from "@/lib/delivery-areas";
 import { eventLocation } from "@/lib/event-location";
 import { externalPhoto } from "@/lib/product-images";
 
@@ -106,13 +105,6 @@ export default function Storefront() {
           <div className="hero-combo-caption"><span><strong>Combo da noite</strong><small>Hambúrguer + batata + refrigerante</small></span><span className="hero-combo-action">Ver cardápio <ArrowRight size={18} aria-hidden="true" /></span></div>
         </Link>
 
-          <section className="hero-delivery" aria-label="Delivery e taxas por bairro">
-            <div className="hero-delivery-heading"><Truck size={22} aria-hidden="true" /><h2>Seu hambúrguer vai até você.</h2></div>
-            <dl className="hero-delivery-rates">
-              <div><dt>Frete grátis</dt><dd>{deliveryAreas.filter(area => area.fee === 0).map(area => area.name).join(", ")}.</dd></div>
-              <div><dt>Taxa fixa de <strong>R$ 5,00</strong></dt><dd>{deliveryAreas.filter(area => area.fee === 500).map(area => area.name).join(", ")}.</dd></div>
-            </dl>
-          </section>
           <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
           <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
