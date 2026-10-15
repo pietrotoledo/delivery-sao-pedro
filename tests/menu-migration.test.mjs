@@ -58,7 +58,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     for (const product of products.filter(menuOptions.includesBurger)) assert.deepEqual(JSON.parse(product.ingredients_json), menuOptions.hamburgerIngredients);
     assert.equal(products.find(product => product.id === "combo").image_url, "/products/combo-azul-v2.webp");
     assert.deepEqual(products.map(product => [product.id, product.image_url]), [
-      ["classic", null], ["combo", "/products/combo-azul-v2.webp"], ["fries-small", "/products/batata-azul.webp"],
+      ["classic", "/products/hamburguer-solo-azul.webp"], ["combo", "/products/combo-azul-v2.webp"], ["fries-small", "/products/batata-azul.webp"],
       ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["water", null],
     ]);
     assert.equal(products[0].stock, 7);
@@ -67,9 +67,10 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     assert.equal(oldItem.price, 2200);
     assert.equal(oldItem.name, "Pedido antigo");
     sqlite.exec("UPDATE products SET price=2600 WHERE id='classic'");
-    sqlite.exec("UPDATE products SET image_url=NULL WHERE id IN ('combo','fries-small','coke','coke-zero','guarana'); DELETE FROM menu_revisions WHERE id IN ('combo-photo-2026-10-v1','product-photos-2026-10-v1')");
+    sqlite.exec("UPDATE products SET image_url=NULL WHERE id IN ('classic','combo','fries-small','coke','coke-zero','guarana'); DELETE FROM menu_revisions WHERE id IN ('burger-photo-2026-10-v1','combo-photo-2026-10-v1','product-photos-2026-10-v1')");
     await loadStore().ensureSchema();
     assert.equal(sqlite.prepare("SELECT price FROM products WHERE id='classic'").get().price, 2600);
+    assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='classic'").get().image_url, "/products/hamburguer-solo-azul.webp");
     assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='combo'").get().image_url, "/products/combo-azul-v2.webp");
     assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='fries-small'").get().image_url, "/products/batata-azul.webp");
     assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='coke'").get().image_url, "/products/coca-original-azul.webp");

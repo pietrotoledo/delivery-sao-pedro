@@ -70,8 +70,13 @@ export default function StorefrontMenu({products, cart, paused, onChange, onAddC
         </div>
       </article>}
       {burger && <article className="menu-solo-card">
+        <div className={`menu-solo-product ${burger.imageUrl ? "has-photo" : ""}`}>
+          {burger.imageUrl && <div className="menu-solo-photo"><Image src={burger.imageUrl} unoptimized={externalPhoto(burger.imageUrl)} fill sizes="(max-width: 700px) 112px, 180px" alt="Hambúrguer artesanal com queijo e cebola caramelizada" /></div>}
+          <div className="menu-solo-content">
         <div className="menu-solo-heading"><div><h3>Só o hambúrguer</h3><p>{burger.description}</p></div><strong>{money(burger.price)}</strong></div>
         <div className="menu-solo-actions"><small>{burger.stock === 0 ? "Hambúrguer esgotado" : burgerQuantity ? "No seu pedido" : "Para quem quer só o artesanal."}</small>{burgerQuantity ? stepper(burger) : <button className="menu-secondary-action" type="button" disabled={paused || burger.stock === 0 || burgerCount >= 20} onClick={() => onChange(burger.id, 1)}>Adicionar hambúrguer<Plus size={17} aria-hidden="true" /></button>}</div>
+          </div>
+        </div>
         {combo && burgerQuantity > 0 && comboHasRoom && upgradePrice >= 0 && <div className="menu-upgrade-offer"><p><strong>Complete seu pedido por mais {money(upgradePrice)}.</strong><span>Troque 1 hambúrguer pelo combo com batata e refrigerante.</span></p>{upgradeOpen ? <DrinkChoice id="menu-upgrade-drink" options={drinks} disabled={paused} action="Trocar 1 hambúrguer pelo combo" onConfirm={drink => { onUpgrade(burger.id, combo.id, drink); setUpgradeOpen(false); setFeedback(`Hambúrguer substituído por um combo com ${drink}.`); }} /> : <button className="menu-upgrade-action" type="button" disabled={paused} onClick={() => setUpgradeOpen(true)}>Trocar pelo combo<ArrowRight size={17} aria-hidden="true" /></button>}</div>}
       </article>}
     </section>

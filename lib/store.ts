@@ -10,7 +10,7 @@ export type Product = {
 export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] };
 
 export const menu = [
-  { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: null },
+  { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: "/products/hamburguer-solo-azul.webp" },
   { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + refrigerante à escolha: Coca-Cola normal, Coca-Cola Zero ou Guaraná.", imageUrl: "/products/combo-azul-v2.webp" },
   { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: "/products/batata-azul.webp" },
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
@@ -159,6 +159,12 @@ export async function ensureSchema() {
           database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
             .bind(product.imageUrl, new Date().toISOString(), product.id, productPhotosRevision)),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(productPhotosRevision, new Date().toISOString()),
+      ]);
+      const burgerPhotoRevision = "burger-photo-2026-10-v1";
+      await database.batch([
+        database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'classic' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+          .bind("/products/hamburguer-solo-azul.webp", new Date().toISOString(), burgerPhotoRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(burgerPhotoRevision, new Date().toISOString()),
       ]);
     })().catch((error) => {
       schemaPromise = undefined;
