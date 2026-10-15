@@ -105,12 +105,12 @@ export default function Storefront() {
           <div className="hero-combo-caption"><span><strong>Combo da noite</strong><small>Hambúrguer + batata + bebida</small></span><span className="hero-combo-action">Ver cardápio <ArrowRight size={18} aria-hidden="true" /></span></div>
         </Link>
 
-          <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 18h</span></div>
+          <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 19h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
           <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
         </div>
       </div></section>
-      <div className="service-strip"><div className="wrap service-strip-inner"><span>30 de outubro</span><span>Entregas a partir das 18h</span><span>Retirada no {eventLocation.name} · 18h às 22h</span></div></div>
+      <div className="service-strip"><div className="wrap service-strip-inner"><span>30 de outubro</span><span>Entregas a partir das 19h</span><span>Retirada no {eventLocation.name} · 18h às 22h</span></div></div>
       <div className="wrap storefront-delivery" id="delivery"><DeliveryAreas /></div>
       <section className="menu-section wrap" id="cardapio">
         <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>Escolha seu pedido.</h2></div><p>Combo completo ou só o hambúrguer. Depois, acrescente o que quiser.</p></div>
@@ -120,7 +120,7 @@ export default function Storefront() {
         {data && <StorefrontMenu products={data.menu} cart={cart} paused={data.paused} onChange={change} onAddCombo={addCombo} onUpgrade={upgrade} />}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
-        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar batata e bebida, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 18h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada no {eventLocation.name}</b><span>{eventLocation.address}<br />30 de outubro, das 18h às 22h</span><NavigationLinks destination={eventLocation.address} /></div></div></div>
+        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar acompanhamentos, bebidas e docinhos, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 19h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada no {eventLocation.name}</b><span>{eventLocation.address}<br />30 de outubro, das 18h às 22h</span><NavigationLinks destination={eventLocation.address} /></div></div></div>
         <div className="order-card">
           <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}>{product.imageUrl && <Image src={product.imageUrl} unoptimized={externalPhoto(product.imageUrl)} width={48} height={48} alt="" />}<span>{quantities[product.id]}× {product.name}{product.category === "combo" && <small className="cart-combo-drinks">{cart.comboDrinks[product.id]?.filter(Boolean).join(", ")}</small>}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>

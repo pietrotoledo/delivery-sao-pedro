@@ -10,7 +10,7 @@ export type Product = {
 export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] };
 
 export const menu = [
-  { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: "/products/hamburguer-solo-azul.webp" },
+  { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese artesanal.", imageUrl: "/products/hamburguer-solo-azul.webp" },
   { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + bebida à escolha: Coca-Cola normal, Coca-Cola Zero, Guaraná ou água com gás.", imageUrl: "/products/combo-azul-v2.webp" },
   { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: "/products/batata-azul.webp" },
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
@@ -18,6 +18,7 @@ export const menu = [
   { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: "/products/guarana-azul.webp" },
   { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: "/products/water.webp" },
   { id: "sparkling-water", name: "Água com gás", price: 400, category: "drink", description: "Água mineral com gás.", imageUrl: "/products/sparkling-water.png" },
+  { id: "sweets-kit", name: "Kit com 4 docinhos", price: 700, category: "side", description: "Quatro docinhos por kit.", imageUrl: null },
 ] as const;
 
 export type Order = {
@@ -185,6 +186,18 @@ export async function ensureSchema() {
         database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'water' AND image_url IS NULL AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
           .bind("/products/water.webp", waterPhotoNow, waterPhotoRevision),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(waterPhotoRevision, waterPhotoNow),
+      ]);
+      const sweetsRevision = "sweets-kit-artisan-mayo-2026-10-v1";
+      const sweetsNow = new Date().toISOString();
+      const sweetsKit = menu.find(product => product.id === "sweets-kit")!;
+      const classicBurger = menu.find(product => product.id === "classic")!;
+      await database.batch([
+        database.prepare(`INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at)
+          SELECT ?,?,?,'side',?,NULL,1,90,'[]',?,? WHERE NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)`)
+          .bind(sweetsKit.id, sweetsKit.name, sweetsKit.description, sweetsKit.price, sweetsNow, sweetsNow, sweetsRevision),
+        database.prepare("UPDATE products SET description = ?, updated_at = ? WHERE id = 'classic' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+          .bind(classicBurger.description, sweetsNow, sweetsRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(sweetsRevision, sweetsNow),
       ]);
     })().catch((error) => {
       schemaPromise = undefined;

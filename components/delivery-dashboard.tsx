@@ -64,7 +64,7 @@ export default function DeliveryDashboard() {
     <header className="delivery-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><span><Truck size={17} /> Área dos entregadores</span></header>
     <main className="delivery-wrap">
       <section className="delivery-heading delivery-dashboard-heading" aria-labelledby="delivery-title">
-        <p className="delivery-date"><span>30 de outubro</span><span>Entregas a partir das 18h</span></p>
+        <p className="delivery-date"><span>30 de outubro</span><span>Entregas a partir das 19h</span></p>
         <h1 id="delivery-title">Entregas</h1>
         <div className="delivery-gratitude"><Heart size={18} fill="currentColor" aria-hidden="true" /><p>Seu caminho faz esta noite chegar mais longe. Obrigado por entregar cada pedido com cuidado e levar junto um pouco do nosso carinho.</p></div>
       </section>

@@ -7,6 +7,7 @@ import test from "node:test";
 import ts from "typescript";
 import { deliveryAreas, deliveryFeeFor } from "../lib/delivery-areas.ts";
 import { includesBurger, hamburgerIngredients, comboDrinkOptions } from "../lib/menu-options.ts";
+import * as phoneHelpers from "../lib/phone.ts";
 
 const require = createRequire(import.meta.url);
 const addressContext = { exports: {}, fetch, require: () => ({ deliveryAreas }) };
@@ -33,6 +34,7 @@ function orderApi() {
       { id: "classic", name: "Classic", category: "burger", price: 1000, stock: null, ingredients: hamburgerIngredients },
       { id: "combo", name: "Combo", category: "combo", price: 1500, stock: null, ingredients: hamburgerIngredients },
       { id: "fries-small", name: "Batata frita individual", category: "side", price: 500, stock: null, ingredients: [] },
+      { id: "sweets-kit", name: "Kit com 4 docinhos", category: "side", price: 700, stock: null, ingredients: [] },
     ],
     getOrder: async () => ({ total: inserted[16], delivery_fee: inserted[15] }),
     paymentHandle: () => "test",
@@ -45,6 +47,7 @@ function orderApi() {
       if (name === "@/lib/delivery-areas") return { deliveryFeeFor };
       if (name === "@/lib/delivery-address") return addressContext.exports;
       if (name === "@/lib/menu-options") return { includesBurger, comboDrinkOptions };
+      if (name === "@/lib/phone") return phoneHelpers;
       if (name === "@/lib/evolution-notifications") return { evolutionEnabled: () => false };
       if (name === "@/lib/payment") return { createCheckout: async () => { paymentAttempts++; return { demo: true }; } };
       return require(name);
@@ -55,7 +58,7 @@ function orderApi() {
 }
 
 const payload = (neighborhood, expectedDeliveryFee) => ({
-  requestKey: webcrypto.randomUUID(), name: "Cliente Teste", phone: "83999999999", email: "teste@example.com",
+  requestKey: webcrypto.randomUUID(), name: "Cliente Teste", phone: "83999123456", email: "teste@example.com",
   method: "delivery", neighborhood, address: "Rua Teste, 159", items: [{ id: "classic", quantity: 1 }],
   expectedSubtotal: 1000, expectedDeliveryFee,
 });
@@ -76,7 +79,7 @@ for (const area of deliveryAreas) {
 }
 
 test("Rejeita bairro não atendido e taxa adulterada antes de criar o pedido", async () => {
-  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Bessa", 0, 409]]) {
+  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Bessa", 0, 409], ["Aeroclube", 0, 409]]) {
     const api = orderApi();
     assert.equal((await api.post(request(payload(neighborhood, fee)))).status, status);
     assert.equal(api.inserted(), undefined);
@@ -151,4 +154,17 @@ test("Rejeita combo sem refrigerante ou com bebida fora das opcoes", async () =>
     assert.equal(response.status, 400);
     assert.equal(api.inserted(), undefined);
   }
+});
+
+test("Kit de 4 docinhos pode ser comprado sem hamburguer e Aeroclube cobra R$ 5", async () => {
+  const api = orderApi();
+  const response = await api.post(request({ ...payload("Aeroclube", 500), items: [{ id: "sweets-kit", quantity: 2 }], expectedSubtotal: 1400 }));
+  assert.equal(response.status, 201);
+  assert.equal(api.inserted()[13], 0);
+  assert.equal(api.inserted()[15], 500);
+  assert.equal(api.inserted()[16], 1900);
+  const [item] = JSON.parse(api.inserted()[12]);
+  assert.equal(item.name, "Kit com 4 docinhos");
+  assert.equal(item.quantity, 2);
+  assert.equal(item.price, 700);
 });
