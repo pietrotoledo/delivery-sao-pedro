@@ -73,3 +73,12 @@ test("Restaura o mesmo carrinho e refrigerantes que o checkout lê", () => {
   assert.equal(unsafe.quantities.unknown, undefined);
   assert.equal(JSON.stringify(unsafe.removals.classic[0]), JSON.stringify(["Maionese"]));
 });
+
+test("Combo aceita agua com gas e preserva a bebida ao restaurar o carrinho", () => {
+  const drink = "\u00c1gua com g\u00e1s";
+  const cart = addMenuCombo(emptyMenuCart(), products, "combo", drink);
+  assert.equal(cart.quantities.combo, 1);
+  assert.equal(cart.comboDrinks.combo[0], drink);
+  const restored = restoreMenuCart(products, cart.quantities, cart.comboDrinks, cart.removals);
+  assert.equal(restored.comboDrinks.combo[0], drink);
+});

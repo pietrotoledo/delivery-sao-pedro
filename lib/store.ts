@@ -11,12 +11,13 @@ export type OrderItem = { id: string; quantity: number; name: string; price: num
 
 export const menu = [
   { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: "/products/hamburguer-solo-azul.webp" },
-  { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + refrigerante à escolha: Coca-Cola normal, Coca-Cola Zero ou Guaraná.", imageUrl: "/products/combo-azul-v2.webp" },
+  { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + bebida à escolha: Coca-Cola normal, Coca-Cola Zero, Guaraná ou água com gás.", imageUrl: "/products/combo-azul-v2.webp" },
   { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: "/products/batata-azul.webp" },
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
   { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: "/products/coca-zero-azul.webp" },
   { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: "/products/guarana-azul.webp" },
   { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: null },
+  { id: "sparkling-water", name: "Água com gás", price: 400, category: "drink", description: "Água mineral com gás.", imageUrl: "/products/sparkling-water.png" },
 ] as const;
 
 export type Order = {
@@ -165,6 +166,18 @@ export async function ensureSchema() {
         database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'classic' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
           .bind("/products/hamburguer-solo-azul.webp", new Date().toISOString(), burgerPhotoRevision),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(burgerPhotoRevision, new Date().toISOString()),
+      ]);
+      const sparklingRevision = "sparkling-water-2026-10-v1";
+      const sparklingWater = menu.find(product => product.id === "sparkling-water")!;
+      const combo = menu.find(product => product.id === "combo")!;
+      const sparklingNow = new Date().toISOString();
+      await database.batch([
+        database.prepare(`INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at)
+          SELECT ?,?,?,'drink',?,?,1,80,'[]',?,? WHERE NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)`)
+          .bind(sparklingWater.id, sparklingWater.name, sparklingWater.description, sparklingWater.price, sparklingWater.imageUrl, sparklingNow, sparklingNow, sparklingRevision),
+        database.prepare("UPDATE products SET description = ?, updated_at = ? WHERE id = 'combo' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+          .bind(combo.description, sparklingNow, sparklingRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(sparklingRevision, sparklingNow),
       ]);
     })().catch((error) => {
       schemaPromise = undefined;

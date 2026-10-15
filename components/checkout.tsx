@@ -58,7 +58,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
         try {
           const savedDrinks = JSON.parse(window.sessionStorage.getItem("blueckyardigans-combo-drinks") ?? "{}");
           setComboDrinks(Object.fromEntries(result.menu.filter(product => product.category === "combo").map(product => [product.id, Array.isArray(savedDrinks[product.id]) ? savedDrinks[product.id].slice(0, 20).map((drink: unknown) => typeof drink === "string" && comboDrinkOptions.includes(drink) ? drink : "") : []])));
-        } catch { /* O cliente pode escolher novamente os refrigerantes. */ }
+        } catch { /* O cliente pode escolher novamente as bebidas. */ }
         setData(result);
         setQuantities(current => Object.fromEntries(result.menu.map(product => [product.id, Math.max(0, Math.min(20, product.stock ?? 20, current[product.id] ?? 0))])));
       })
@@ -115,7 +115,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
     setError("");
     if (!data || itemCount < 1) { setError("Adicione pelo menos um item antes de continuar."); return; }
     if (selected.some(product => product.category === "combo" && Array.from({length: quantities[product.id]}, (_, index) => comboDrinks[product.id]?.[index]).some(drink => !drink || !comboDrinkOptions.includes(drink)))) {
-      setError("Escolha o refrigerante de cada combo antes de continuar."); return;
+      setError("Escolha a bebida de cada combo antes de continuar."); return;
     }
     if (method === "delivery") {
       const addressError = deliveryAddressError(deliveryAddress);
@@ -180,7 +180,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
             {product.imageUrl && <Image src={product.imageUrl} unoptimized={externalPhoto(product.imageUrl)} width={60} height={60} alt="" />}
             <div><strong>{product.name}</strong><span>{money(product.price)} cada</span><div className="checkout-stepper"><button type="button" onClick={() => change(product.id, -1)} aria-label={`Diminuir ${product.name}`} disabled={data.paused}><Minus size={15} /></button><b>{quantities[product.id]}</b><button type="button" onClick={() => change(product.id, 1)} aria-label={`Aumentar ${product.name}`} disabled={data.paused || quantities[product.id] >= Math.min(20, product.stock ?? 20) || (includesBurger(product) && burgerCount >= 20)}><Plus size={15} /></button></div></div>
             <strong>{money(product.price * quantities[product.id])}</strong>
-            {product.category === "combo" && <div className="combo-drink-choices">{Array.from({length: quantities[product.id]}, (_, index) => <label key={index}>Refrigerante do combo {index + 1}<select form="checkout-form" required value={comboDrinks[product.id]?.[index] ?? ""} disabled={data.paused} onChange={event => { const drink = event.target.value; setComboDrinks(current => { const drinks = [...(current[product.id] ?? [])]; drinks[index] = drink; return {...current, [product.id]: drinks}; }); }}><option value="" disabled>Escolha seu refrigerante</option>{comboDrinkOptions.map(drink => <option key={drink} value={drink}>{drink}</option>)}</select><small>Incluído no valor do combo.</small></label>)}</div>}
+            {product.category === "combo" && <div className="combo-drink-choices">{Array.from({length: quantities[product.id]}, (_, index) => <label key={index}>Bebida do combo {index + 1}<select form="checkout-form" required value={comboDrinks[product.id]?.[index] ?? ""} disabled={data.paused} onChange={event => { const drink = event.target.value; setComboDrinks(current => { const drinks = [...(current[product.id] ?? [])]; drinks[index] = drink; return {...current, [product.id]: drinks}; }); }}><option value="" disabled>Escolha sua bebida</option>{comboDrinkOptions.map(drink => <option key={drink} value={drink}>{drink}</option>)}</select><small>Incluído no valor do combo.</small></label>)}</div>}
             {includesBurger(product) && <div className="burger-units">{Array.from({ length: quantities[product.id] }, (_, index) => <details className="burger-customization" key={index}>
               <summary>Hambúrguer {index + 1}{removals[product.id]?.[index]?.length ? ` · sem ${removals[product.id][index].join(", ").toLowerCase()}` : " · completo"}</summary>
               {product.ingredients.length ? <><p>Retire ingredientes desta unidade:</p>{product.ingredients.map(ingredient => <label key={ingredient}><input type="checkbox" checked={removals[product.id]?.[index]?.includes(ingredient) ?? false} onChange={() => toggleRemoval(product.id, index, ingredient)} disabled={data.paused} /> Sem {ingredient.toLowerCase()}</label>)}</> : <p>Sem ingredientes cadastrados para edição.</p>}

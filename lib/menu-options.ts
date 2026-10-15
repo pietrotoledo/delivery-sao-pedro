@@ -3,4 +3,4 @@ export function includesBurger(product: { category: string }) {
 }
 
 export const hamburgerIngredients = ["Carne de 140 g", "Queijo", "Cebola caramelizada", "Maionese"];
-export const comboDrinkOptions = ["Coca-Cola normal", "Coca-Cola Zero", "Guaraná"];
+export const comboDrinkOptions = ["Coca-Cola normal", "Coca-Cola Zero", "Guaraná", "Água com gás"];

@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     }
     const unitDrinks = raw.unitDrinks ?? [];
     if (!Array.isArray(unitDrinks) || unitDrinks.length !== (product.category === "combo" ? quantity : 0) || unitDrinks.some(drink => typeof drink !== "string" || !comboDrinkOptions.includes(drink))) {
-      return json({error:"Escolha um refrigerante válido para cada combo."},400);
+      return json({error:"Escolha uma bebida válida para cada combo."},400);
     }
     if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,unitRemovals:unitRemovals as string[][], ...(product.category === "combo" ? {unitDrinks: unitDrinks as string[]} : {})});
   }
