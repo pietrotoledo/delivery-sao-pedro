@@ -849,8 +849,13 @@ button { -webkit-touch-callout: none; }
 .menu-drink-choice label { color: var(--brand-deep); font-size: 13px; font-weight: 800; }
 .menu-drink-choice select { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #bfcee5; border-radius: 8px; background: #fff; color: var(--brand-deep); font: inherit; font-size: 14px; }
 .menu-drink-choice small { color: #62728d; font-size: 12px; }
-.menu-combo-in-cart { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; color: var(--brand-blue); font-size: 13px; font-weight: 800; }
-.menu-combo-in-cart button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 10px; border: 1px solid #dce5f2; border-radius: 7px; background: #fff; color: var(--brand-blue); font: inherit; font-size: 12px; }
+.menu-combo-in-cart { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #dce5f2; color: var(--brand-blue); font-size: 13px; font-weight: 800; }
+.menu-combo-in-cart > span { text-align: center; white-space: nowrap; }
+.menu-combo-in-cart button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 8px 10px; border: 1px solid #dce5f2; border-radius: 8px; background: #fff; color: var(--brand-blue); font: inherit; font-size: 12px; cursor: pointer; }
+.menu-combo-in-cart .menu-combo-add { border-color: var(--brand-blue); background: var(--brand-blue); color: #fff; }
+.menu-combo-in-cart button:disabled { cursor: default; opacity: .45; }
+.menu-combo-cancel { min-height: 44px; margin-top: 4px; padding: 8px 0; border: 0; background: transparent; color: var(--brand-blue); font: inherit; font-size: 13px; cursor: pointer; }
+@media (max-width: 380px) { .menu-combo-in-cart { grid-template-columns: 1fr 1fr; } .menu-combo-in-cart > span { grid-column: 1 / -1; grid-row: 1; } }
 .menu-featured-copy > .menu-selection-feedback { margin: 10px 0 0; color: var(--brand-blue); font-size: 12px; }
 .menu-selection-feedback:empty { display: none; }
 .menu-solo-card { padding: 28px; border: 1px solid var(--line-soft); border-radius: 14px; background: #fff; }
