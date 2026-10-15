@@ -59,7 +59,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     assert.equal(products.find(product => product.id === "combo").image_url, "/products/combo-azul-v2.webp");
     assert.deepEqual(products.map(product => [product.id, product.image_url]), [
       ["classic", "/products/hamburguer-solo-azul.webp"], ["combo", "/products/combo-azul-v2.webp"], ["fries-small", "/products/batata-azul.webp"],
-      ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["water", null], ["sparkling-water", "/products/sparkling-water.png"],
+      ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["water", "/products/water.webp"], ["sparkling-water", "/products/sparkling-water.png"],
     ]);
     assert.equal(products[0].stock, 7);
     assert.equal(sqlite.prepare("SELECT active FROM products WHERE id='fries-large'").get().active, 0);

@@ -16,7 +16,7 @@ export const menu = [
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
   { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: "/products/coca-zero-azul.webp" },
   { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: "/products/guarana-azul.webp" },
-  { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: null },
+  { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: "/products/water.webp" },
   { id: "sparkling-water", name: "Água com gás", price: 400, category: "drink", description: "Água mineral com gás.", imageUrl: "/products/sparkling-water.png" },
 ] as const;
 
@@ -178,6 +178,13 @@ export async function ensureSchema() {
         database.prepare("UPDATE products SET description = ?, updated_at = ? WHERE id = 'combo' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
           .bind(combo.description, sparklingNow, sparklingRevision),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(sparklingRevision, sparklingNow),
+      ]);
+      const waterPhotoRevision = "mineral-water-photo-2026-10-v1";
+      const waterPhotoNow = new Date().toISOString();
+      await database.batch([
+        database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'water' AND image_url IS NULL AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+          .bind("/products/water.webp", waterPhotoNow, waterPhotoRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(waterPhotoRevision, waterPhotoNow),
       ]);
     })().catch((error) => {
       schemaPromise = undefined;
