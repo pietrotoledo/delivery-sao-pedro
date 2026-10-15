@@ -1,3 +1,4 @@
+import { comboDrinkOptions, includesBurger } from "@/lib/menu-options";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { createCheckout } from "@/lib/payment";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
@@ -52,19 +53,23 @@ export async function POST(request: Request) {
     if (!product || !Number.isInteger(quantity) || quantity < 0 || quantity > 20 || items.some((i)=>i.id===product.id)) {
       return json({error:"Quantidade ou produto inválido."},400);
     }
-    const unitRemovals = raw.unitRemovals ?? (product.category === "burger" ? Array.from({ length: quantity }, () => raw.removedIngredients ?? []) : []);
-    if (!Array.isArray(unitRemovals) || unitRemovals.length !== (product.category === "burger" ? quantity : 0) || unitRemovals.some(unit => !Array.isArray(unit) || unit.some(value => typeof value !== "string" || !product.ingredients.includes(value)) || new Set(unit).size !== unit.length)) {
+    const unitRemovals = raw.unitRemovals ?? (includesBurger(product) ? Array.from({ length: quantity }, () => raw.removedIngredients ?? []) : []);
+    if (!Array.isArray(unitRemovals) || unitRemovals.length !== (includesBurger(product) ? quantity : 0) || unitRemovals.some(unit => !Array.isArray(unit) || unit.some(value => typeof value !== "string" || !product.ingredients.includes(value)) || new Set(unit).size !== unit.length)) {
       return json({error:"Personalização inválida para este produto."},400);
     }
-    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,unitRemovals:unitRemovals as string[][]});
+    const unitDrinks = raw.unitDrinks ?? [];
+    if (!Array.isArray(unitDrinks) || unitDrinks.length !== (product.category === "combo" ? quantity : 0) || unitDrinks.some(drink => typeof drink !== "string" || !comboDrinkOptions.includes(drink))) {
+      return json({error:"Escolha um refrigerante válido para cada combo."},400);
+    }
+    if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,unitRemovals:unitRemovals as string[][], ...(product.category === "combo" ? {unitDrinks: unitDrinks as string[]} : {})});
   }
   const unavailable = items.find(item => {
     const stock = productsById.get(item.id)?.stock;
     return stock !== null && stock !== undefined && item.quantity > stock;
   });
   if (unavailable) return json({error:`${unavailable.name} não tem a quantidade solicitada. Atualize o cardápio.`},409);
-  const burgerCount = items.reduce((sum,item)=>sum+(productsById.get(item.id)?.category==="burger"?item.quantity:0),0);
-  if (burgerCount < 1 || burgerCount > 20) return json({error:"Escolha de 1 a 20 hambúrgueres."},400);
+  const burgerCount = items.reduce((sum,item)=>sum+(includesBurger(productsById.get(item.id) ?? { category: "" })?item.quantity:0),0);
+  if (!items.length || burgerCount > 20) return json({error:"Escolha pelo menos um item e até 20 hambúrgueres por pedido."},400);
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
   if (Number(body.expectedSubtotal) !== subtotal) return json({error:"O cardápio mudou. Atualize a página e confira o novo total antes de pedir."},409);
   if (Number(body.expectedDeliveryFee) !== deliveryFee) return json({error:"A taxa de entrega mudou. Atualize a página e confira o total antes de pedir."},409);

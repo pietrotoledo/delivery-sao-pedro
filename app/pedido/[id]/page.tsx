@@ -7,7 +7,7 @@ import BrandAvatar from "@/components/brand-avatar";
 import { eventLocation, eventLocationMapUrl } from "@/lib/event-location";
 import { orderItemLabels } from "@/lib/order-item-labels";
 const money=(c:number)=>(c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-type Order = {id:string;name:string;method:string;address:string|null;neighborhood:string|null;items:{id:string;quantity:number;name:string;price:number;removedIngredients?:string[];unitRemovals?:string[][]}[];burgerCount:number;subtotal:number;deliveryFee:number|null;total:number|null;status:string;checkoutUrl:string|null;paidAt:string|null};
+type Order = {id:string;name:string;method:string;address:string|null;neighborhood:string|null;items:{id:string;quantity:number;name:string;price:number;removedIngredients?:string[];unitRemovals?:string[][];unitDrinks?:string[]}[];burgerCount:number;subtotal:number;deliveryFee:number|null;total:number|null;status:string;checkoutUrl:string|null;paidAt:string|null};
 const names:Record<string,string>={classic:"Hambúrguer Clássico",bacon:"Hambúrguer Bacon","fries-small":"Batata frita pequena","fries-large":"Batata frita grande",water:"Água mineral",coke:"Coca-Cola 350 ml","coke-zero":"Coca-Cola Zero 350 ml"};
 const labels:Record<string,string>={awaiting_quote:"Aguardando taxa de entrega",ready_for_payment:"Pronto para pagar",awaiting_payment:"Aguardando Pix",paid:"Pagamento confirmado",preparing:"Em preparo",ready:"Pronto para retirada",out_for_delivery:"Saiu para entrega",completed:"Pedido concluído",refunded:"Devolução registrada"};
 export default function OrderPage() {

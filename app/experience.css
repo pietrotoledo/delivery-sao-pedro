@@ -772,3 +772,25 @@ button { -webkit-touch-callout: none; }
 @media (hover: hover) { .route-picker .route-option:hover { border-color: var(--brand-blue); background: #edf2fc; } .route-picker .route-option-waze:hover { border-color: #419eb7; background: #d5f0f8; } }
 @media (max-width: 380px) { .route-picker .route-picker-options { grid-template-columns: 1fr; } }
 @media print { .route-picker { display: none !important; } }
+
+/* The event menu is presented without placeholder product photos. */
+.hero-media.hero-menu-card { display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 44px; background: #123678; color: #fff; }
+.hero-media.hero-menu-card::after { display: none; }
+.hero-menu-icon { color: var(--brand-yellow); }
+.site-shell .hero-menu-card h2 { margin: 0; color: #fff; font-family: 'Barlow Condensed', Impact, sans-serif; font-size: clamp(40px, 5vw, 76px); line-height: .98; }
+.hero-menu-card > p { max-width: 340px; margin: 0; font-size: 17px; line-height: 1.6; color: #e2e9f8; }
+.hero-menu-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.hero-menu-choices span { padding: 8px 12px; border: 1px solid rgba(255,255,255,.3); border-radius: 8px; font-size: 13px; font-weight: 700; }
+.hero-menu-link { display: inline-flex; align-items: center; gap: 10px; color: var(--brand-yellow); font-size: 14px; font-weight: 800; }
+.product-card-text .product-info { padding: 26px; }
+.menu-recipe-note { max-width: 700px; margin-top: 26px; color: #62728d; font-size: 14px; line-height: 1.6; }
+.suggestion.suggestion-text { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 16px; }
+.checkout-summary .checkout-line.checkout-line-text { grid-template-columns: minmax(0, 1fr) auto; }
+.product-row-image > span { display: grid; width: 84px; height: 84px; place-items: center; border-radius: 10px; background: #eaf0ff; color: var(--brand-blue); font-size: 28px; font-weight: 800; }
+@media (max-width: 700px) { .hero-media.hero-menu-card { min-height: 0; padding: 28px; gap: 18px; } .product-card-text .product-info { padding: 18px; } .site-shell .menu-group .menu-grid { grid-template-columns: 1fr; } }
+.combo-drink-choices { grid-column: 1 / -1; display: grid; gap: 12px; }
+.combo-drink-choices label { display: grid; gap: 7px; padding: 14px; border: 1px solid #dce5f2; border-radius: 10px; background: #f3f6fc; color: var(--brand-deep); font-size: 13px; font-weight: 800; }
+.combo-drink-choices select { width: 100%; min-height: 44px; padding: 10px; border: 1px solid #cad6e8; border-radius: 7px; background: #fff; color: var(--brand-deep); font: inherit; }
+.combo-drink-choices select:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 2px; }
+.combo-drink-choices small { font-size: 12px; font-weight: 400; color: #62728d; }
+@media (max-width: 700px) { .combo-drink-choices select { font-size: 16px; } }

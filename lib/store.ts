@@ -1,20 +1,22 @@
 import { env } from "cloudflare:workers";
+import { hamburgerIngredients, includesBurger } from "./menu-options";
 
-export type ProductCategory = "burger" | "side" | "drink";
+export type ProductCategory = "burger" | "combo" | "side" | "drink";
 export type Product = {
   id: string; name: string; description: string; category: ProductCategory;
   price: number; imageUrl: string | null; stock: number | null; active: boolean; sortOrder: number;
   ingredients: string[];
 };
-export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[]; unitRemovals?: string[][] };
+export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] };
 
 export const menu = [
-  { id: "classic", name: "Clássico", price: 2200, category: "burger", description: "Carne, queijo, alface, tomate e molho da casa.", imageUrl: "/products/classic.webp" },
-  { id: "fries-small", name: "Batata pequena", price: 800, category: "side", description: "Batata frita crocante · porção pequena.", imageUrl: "/products/fries-small.webp" },
-  { id: "fries-large", name: "Batata grande", price: 1200, category: "side", description: "Batata frita crocante · porção grande.", imageUrl: "/products/fries-large.webp" },
-  { id: "water", name: "Água mineral", price: 350, category: "drink", description: "Água mineral · unidade.", imageUrl: "/products/water.webp" },
-  { id: "coke", name: "Coca-Cola", price: 600, category: "drink", description: "Lata 350 ml.", imageUrl: "/products/cola-lata.webp" },
-  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Lata 350 ml.", imageUrl: "/products/cola-zero.webp" },
+  { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: null },
+  { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + refrigerante à escolha: Coca-Cola normal, Coca-Cola Zero ou Guaraná.", imageUrl: null },
+  { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: null },
+  { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: null },
+  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: null },
+  { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: null },
+  { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: null },
 ] as const;
 
 export type Order = {
@@ -121,10 +123,30 @@ export async function ensureSchema() {
         const now = new Date().toISOString();
         for (const [index, product] of menu.entries()) {
           await database.prepare("INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-            .bind(product.id,product.name,product.description,product.category,product.price,product.imageUrl,1,(index+1)*10,JSON.stringify(product.id === "classic" ? ["Carne", "Queijo", "Alface", "Tomate", "Molho da casa"] : []),now,now).run();
+            .bind(product.id,product.name,product.description,product.category,product.price,product.imageUrl,1,(index+1)*10,JSON.stringify(includesBurger(product) ? hamburgerIngredients : []),now,now).run();
         }
       }
       await database.prepare("CREATE UNIQUE INDEX IF NOT EXISTS one_active_burger ON products(category) WHERE category = 'burger' AND active = 1").run();
+      await database.prepare("CREATE TABLE IF NOT EXISTS menu_revisions (id text PRIMARY KEY NOT NULL, applied_at text NOT NULL)").run();
+      const revision = "event-menu-2026-10-v1";
+      const applied = await database.prepare("SELECT id FROM menu_revisions WHERE id = ?").bind(revision).first();
+      if (!applied) {
+        const now = new Date().toISOString();
+        const availableIds = menu.map(product => product.id);
+        const pending = "NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)";
+        await database.batch([
+          database.prepare(`UPDATE products SET active = 0, updated_at = ? WHERE id NOT IN (${availableIds.map(() => "?").join(",")}) AND ${pending}`)
+            .bind(now, ...availableIds, revision),
+          ...menu.map((product, index) => database.prepare(`INSERT INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at)
+            SELECT ?,?,?,?,?,?,1,?,?,?,? WHERE ${pending}
+            ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,category=excluded.category,
+              price=excluded.price,image_url=excluded.image_url,active=1,sort_order=excluded.sort_order,
+              ingredients_json=excluded.ingredients_json,updated_at=excluded.updated_at`)
+            .bind(product.id, product.name, product.description, product.category, product.price, product.imageUrl,
+              (index + 1) * 10, JSON.stringify(includesBurger(product) ? hamburgerIngredients : []), now, now, revision)),
+          database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(revision, now),
+        ]);
+      }
     })().catch((error) => {
       schemaPromise = undefined;
       throw error;
@@ -150,10 +172,10 @@ export async function getProducts(includeInactive = false): Promise<Product[]> {
 }
 
 export function orderItems(order: Order): OrderItem[] {
-  const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number;removedIngredients?:string[];unitRemovals?:string[][]}[];
+  const saved = JSON.parse(order.items_json) as {id:string;quantity:number;name?:string;price?:number;removedIngredients?:string[];unitRemovals?:string[][];unitDrinks?:string[]}[];
   return saved.map(item => {
     const original = menu.find(product => product.id === item.id);
-    return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0, removedIngredients: item.removedIngredients ?? [], unitRemovals: item.unitRemovals };
+    return { id: item.id, quantity: item.quantity, name: item.name ?? original?.name ?? item.id, price: item.price ?? original?.price ?? 0, removedIngredients: item.removedIngredients ?? [], unitRemovals: item.unitRemovals, unitDrinks: item.unitDrinks };
   });
 }
 

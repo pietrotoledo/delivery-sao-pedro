@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
-import { externalPhoto, productPhoto } from "@/lib/product-images";
+import { includesBurger } from "@/lib/menu-options";
+import { externalPhoto } from "@/lib/product-images";
 
 type Product = {
-  id: string; name: string; description: string; category: "burger" | "side" | "drink";
+  id: string; name: string; description: string; category: "burger" | "combo" | "side" | "drink";
   price: number; imageUrl: string | null; stock: number | null; active: boolean; sortOrder: number; ingredients: string[];
 };
 type Form = Omit<Product, "id" | "price" | "imageUrl" | "stock" | "ingredients"> & { price: string; imageUrl: string; stock: string; ingredientsText: string };
 const empty: Form = { name: "", description: "", category: "side", price: "", imageUrl: "", stock: "", active: true, sortOrder: 0, ingredientsText: "" };
-const categoryNames = { burger: "Hambúrguer", side: "Acompanhamento", drink: "Bebida" };
+const categoryNames = { burger: "Hambúrguer", combo: "Combo", side: "Acompanhamento", drink: "Bebida" };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const toForm = (product: Product): Form => ({ ...product, price: (product.price / 100).toFixed(2).replace(".", ","), imageUrl: product.imageUrl ?? "", stock: product.stock === null ? "" : String(product.stock), ingredientsText: product.ingredients.join("\n") });
 
@@ -127,21 +128,21 @@ export default function AdminProducts() {
       <div className="admin-panel-heading"><div><p className="section-kicker">{editing === "new" ? "Adicionar ao cardápio" : "Editar produto"}</p><h2>{editing === "new" ? "Novo produto" : form.name}</h2></div><button type="button" className="product-close" onClick={() => setEditing(null)} aria-label="Fechar formulário"><X size={20} /></button></div>
       <div className="product-form-grid">
         <label>Nome<input required minLength={2} maxLength={80} value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="Ex.: Hambúrguer especial" /></label>
-        <label>Categoria<select value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value as Product["category"] }))}><option value="burger">Hambúrguer</option><option value="side">Acompanhamento</option><option value="drink">Bebida</option></select></label>
+        <label>Categoria<select value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value as Product["category"] }))}><option value="burger">Hambúrguer</option><option value="combo">Combo</option><option value="side">Acompanhamento</option><option value="drink">Bebida</option></select></label>
         <label>Preço (R$)<input required inputMode="decimal" value={form.price} onChange={event => setForm(current => ({ ...current, price: event.target.value }))} placeholder="Ex.: 22,00" /></label>
         <label>Quantidade disponível<input type="number" min={0} max={1000000} step={1} value={form.stock} onChange={event => setForm(current => ({ ...current, stock: event.target.value }))} placeholder="Sem limite" /><small>Deixe vazio para não limitar. Use 0 para esgotado.</small></label>
         <label>Ordem no cardápio<input required type="number" min={0} max={9999} value={form.sortOrder} onChange={event => setForm(current => ({ ...current, sortOrder: Number(event.target.value) }))} /></label>
         <label className="product-wide">Descrição<textarea maxLength={300} rows={3} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} placeholder="Ingredientes, tamanho ou detalhes importantes" /></label>
-        {form.category === "burger" && <label className="product-wide">Ingredientes do hambúrguer<textarea rows={5} value={form.ingredientsText} onChange={event => setForm(current => ({ ...current, ingredientsText: event.target.value }))} placeholder={"Carne\nQueijo\nAlface\nTomate"} /><small>Um ingrediente por linha. O cliente poderá retirar ingredientes de cada hambúrguer separadamente.</small></label>}
+        {includesBurger(form) && <label className="product-wide">Ingredientes do hambúrguer<textarea rows={5} value={form.ingredientsText} onChange={event => setForm(current => ({ ...current, ingredientsText: event.target.value }))} placeholder={"Carne de 140 g\nQueijo\nCebola caramelizada\nMaionese"} /><small>Um ingrediente por linha. O cliente poderá retirar ingredientes de cada hambúrguer separadamente.</small></label>}
         <label className="product-wide">Enviar foto já cortada<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} onChange={event => { void uploadPhoto(event.target.files?.[0]); event.target.value = ""; }} /><small>JPG, PNG, WebP ou AVIF, até 900 KB. Prepare o corte antes de enviar. {uploading ? "Enviando..." : ""}</small></label>
-        <label className="product-wide">URL da foto<input value={form.imageUrl} onChange={event => setForm(current => ({ ...current, imageUrl: event.target.value }))} placeholder="https://... ou /products/foto.webp" /><small>Você também pode usar uma URL HTTPS ou uma foto em /products ou /fotos. Deixe vazio para a foto padrão.</small></label>
+        <label className="product-wide">URL da foto<input value={form.imageUrl} onChange={event => setForm(current => ({ ...current, imageUrl: event.target.value }))} placeholder="https://... ou /products/foto.webp" /><small>Você também pode usar uma URL HTTPS ou uma foto em /products ou /fotos. Deixe vazio para exibir o produto sem foto.</small></label>
       </div>
       {validPreview && <div className="product-preview"><Image src={previewUrl} unoptimized={externalPhoto(previewUrl)} width={110} height={88} alt="Prévia do produto" /><span>Prévia da foto</span></div>}
       <label className="product-active"><input type="checkbox" checked={form.active} onChange={event => setForm(current => ({ ...current, active: event.target.checked }))} /> Disponível no cardápio</label>
       <div className="product-form-actions"><button type="submit" className="admin-primary" disabled={saving || uploading}>{saving ? "Salvando..." : "Salvar produto"}</button><button type="button" className="admin-secondary" onClick={() => setEditing(null)}>Cancelar</button></div>
     </form>}
     {loading ? <div className="admin-panel" role="status">Carregando produtos...</div> : <div className="product-list">{products.map(product => <article className={`product-row ${product.active ? "" : "is-inactive"}`} key={product.id}>
-      <div className="product-row-image"><Image src={productPhoto(product)} unoptimized={externalPhoto(productPhoto(product))} width={84} height={84} alt="" /></div>
+      <div className="product-row-image">{product.imageUrl ? <Image src={product.imageUrl} unoptimized={externalPhoto(product.imageUrl)} width={84} height={84} alt="" /> : <span aria-hidden="true">{product.name.slice(0, 1)}</span>}</div>
       <div className="product-row-copy"><div><span className="product-category">{categoryNames[product.category]}</span><span className={`product-status ${product.active ? "" : "is-inactive"}`}>{product.active ? product.stock === 0 ? "Esgotado" : "Disponível" : "Oculto"}</span><span className="product-category">{product.stock === null ? "Sem limite" : `${product.stock} em estoque`}</span></div><h3>{product.name}</h3><p>{product.description || "Sem descrição"}</p></div>
       <strong className="product-row-price">{money(product.price)}</strong>
       <div className="product-row-actions"><button type="button" onClick={() => start(product)}><Pencil size={15} /> Editar</button><button type="button" onClick={() => toggle(product)}>{product.active ? "Ocultar" : "Ativar"}</button><button type="button" onClick={() => void remove(product)}><Trash2 size={15} /> Excluir</button></div>
