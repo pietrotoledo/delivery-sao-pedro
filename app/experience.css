@@ -762,6 +762,8 @@ button { -webkit-touch-callout: none; }
 .route-picker .route-picker-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .route-picker .route-option { display: flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-height: 48px; padding: 12px 14px; border: 1px solid #d7e1ee; border-radius: 10px; background: #fff; color: var(--brand-blue); font-size: 13px; font-weight: 800; line-height: 1.3; text-decoration: none; }
 .route-option svg { flex: none; }
+.route-option .route-logo { flex: none; width: 28px; height: 28px; object-fit: contain; }
+.route-option .route-logo-waze { padding: 3px; border-radius: 6px; background: #30c6ef; }
 .route-picker .route-option > span { color: inherit; font-size: inherit; line-height: inherit; }
 .route-picker .route-option-waze { background: #e6f7fb; border-color: #b7e2ee; color: #14546b; }
 .route-picker .route-option:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 3px; }
