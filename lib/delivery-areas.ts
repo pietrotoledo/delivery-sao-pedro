@@ -1,4 +1,5 @@
 export const deliveryAreas = [
+  { name: "Aeroclube", fee: 0 },
   { name: "Bairro dos Estados", fee: 0 },
   { name: "Pedro Gondim", fee: 0 },
   { name: "Tambauzinho", fee: 0 },
