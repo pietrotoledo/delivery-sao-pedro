@@ -18,7 +18,7 @@ export const menu = [
   { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: "/products/guarana-azul.webp" },
   { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: "/products/water.webp" },
   { id: "sparkling-water", name: "Água com gás", price: 400, category: "drink", description: "Água mineral com gás.", imageUrl: "/products/sparkling-water.png" },
-  { id: "sweets-kit", name: "Kit com 4 docinhos", price: 700, category: "side", description: "Quatro docinhos por kit.", imageUrl: null },
+  { id: "sweets-kit", name: "Kit com 4 docinhos", price: 700, category: "side", description: "Quatro docinhos por kit.", imageUrl: "/products/docinhos-nuvens.webp" },
 ] as const;
 
 export type Order = {
@@ -193,11 +193,18 @@ export async function ensureSchema() {
       const classicBurger = menu.find(product => product.id === "classic")!;
       await database.batch([
         database.prepare(`INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at)
-          SELECT ?,?,?,'side',?,NULL,1,90,'[]',?,? WHERE NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)`)
-          .bind(sweetsKit.id, sweetsKit.name, sweetsKit.description, sweetsKit.price, sweetsNow, sweetsNow, sweetsRevision),
+          SELECT ?,?,?,'side',?,?,1,90,'[]',?,? WHERE NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)`)
+          .bind(sweetsKit.id, sweetsKit.name, sweetsKit.description, sweetsKit.price, sweetsKit.imageUrl, sweetsNow, sweetsNow, sweetsRevision),
         database.prepare("UPDATE products SET description = ?, updated_at = ? WHERE id = 'classic' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
           .bind(classicBurger.description, sweetsNow, sweetsRevision),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(sweetsRevision, sweetsNow),
+      ]);
+      const sweetsPhotoRevision = "sweets-kit-cloud-photo-2026-10-v1";
+      const sweetsPhotoNow = new Date().toISOString();
+      await database.batch([
+        database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'sweets-kit' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+          .bind(sweetsKit.imageUrl, sweetsPhotoNow, sweetsPhotoRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(sweetsPhotoRevision, sweetsPhotoNow),
       ]);
       const namesRevision = "blueck-burger-combo-names-2026-10-v1";
       const namesNow = new Date().toISOString();

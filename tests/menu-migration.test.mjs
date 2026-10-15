@@ -61,7 +61,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     assert.equal(products.find(product => product.id === "combo").image_url, "/products/combo-azul-v2.webp");
     assert.deepEqual(products.map(product => [product.id, product.image_url]), [
       ["classic", "/products/hamburguer-solo-azul.webp"], ["combo", "/products/combo-azul-v2.webp"], ["fries-small", "/products/batata-azul.webp"],
-      ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["water", "/products/water.webp"], ["sparkling-water", "/products/sparkling-water.png"], ["sweets-kit", null],
+      ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["water", "/products/water.webp"], ["sparkling-water", "/products/sparkling-water.png"], ["sweets-kit", "/products/docinhos-nuvens.webp"],
     ]);
     assert.match(products[0].description, /maionese artesanal/);
     assert.equal(products[0].stock, 7);
@@ -86,7 +86,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     sqlite.exec("DELETE FROM products WHERE id='sweets-kit'; DELETE FROM menu_revisions WHERE id='sweets-kit-artisan-mayo-2026-10-v1'");
     sqlite.prepare("UPDATE products SET description=? WHERE id='classic'").run("Carne de 140 g, queijo, cebola caramelizada e maionese.");
     await loadStore().ensureSchema();
-    assert.deepEqual({ ...sqlite.prepare("SELECT price,image_url,active,stock FROM products WHERE id='sweets-kit'").get() }, { price: 700, image_url: null, active: 1, stock: null });
+    assert.deepEqual({ ...sqlite.prepare("SELECT price,image_url,active,stock FROM products WHERE id='sweets-kit'").get() }, { price: 700, image_url: "/products/docinhos-nuvens.webp", active: 1, stock: null });
     assert.match(sqlite.prepare("SELECT description FROM products WHERE id='classic'").get().description, /maionese artesanal/);
     assert.equal(sqlite.prepare("SELECT price FROM products WHERE id='classic'").get().price, 2600);
     sqlite.exec("UPDATE products SET price=800,stock=3,active=0 WHERE id='sweets-kit'; UPDATE products SET description='Receita editada' WHERE id='classic'");
@@ -94,6 +94,13 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM products WHERE id='sweets-kit'").get().count, 1);
     assert.deepEqual({ ...sqlite.prepare("SELECT price,stock,active FROM products WHERE id='sweets-kit'").get() }, { price: 800, stock: 3, active: 0 });
     assert.equal(sqlite.prepare("SELECT description FROM products WHERE id='classic'").get().description, 'Receita editada');
+    // O kit que ja existia sem foto recebe a imagem sem alterar os dados comerciais.
+    sqlite.exec("DELETE FROM menu_revisions WHERE id='sweets-kit-cloud-photo-2026-10-v1'; UPDATE products SET image_url=NULL WHERE id='sweets-kit'");
+    await loadStore().ensureSchema();
+    assert.deepEqual({ ...sqlite.prepare("SELECT image_url,price,stock,active FROM products WHERE id='sweets-kit'").get() }, { image_url: "/products/docinhos-nuvens.webp", price: 800, stock: 3, active: 0 });
+    sqlite.exec("UPDATE products SET image_url='/products/custom-sweets.webp' WHERE id='sweets-kit'");
+    await loadStore().ensureSchema();
+    assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='sweets-kit'").get().image_url, "/products/custom-sweets.webp");
     // Atualiza os nomes tambem em um banco ja publicado, preservando preco e estoque.
     sqlite.exec("DELETE FROM menu_revisions WHERE id='blueck-burger-combo-names-2026-10-v1'; UPDATE products SET name='Blueck combo',stock=4 WHERE id='combo'; UPDATE products SET name='Hamburguer artesanal' WHERE id='classic'");
     await loadStore().ensureSchema();
