@@ -299,6 +299,7 @@ button { -webkit-touch-callout: none; }
   .site-shell .nav-cta { padding: 9px 10px; }
   .site-shell .hero-inner { display: flex; flex-direction: column; gap: 14px; padding-top: 27px; padding-bottom: 28px; }
   .site-shell .hero-copy { padding: 0; width: 100%; }
+  .site-shell .hero-inner > .hero-combo { order: -1; }
   .site-shell .hero h1 { font-size: clamp(54px, 12vw, 74px); margin: 20px 0 15px; }
   .site-shell .hero-copy > p { font-size: 14px; line-height: 1.55; }
   .event-schedule { margin-top: 16px; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
