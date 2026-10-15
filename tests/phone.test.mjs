@@ -8,7 +8,7 @@ const context = { exports: {} };
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/phone.ts', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, context);
-const { normalizeBrazilianMobile, phoneValidationMessage } = context.exports;
+const { normalizeBrazilianMobile, brazilianMobileError, formatBrazilianMobile } = context.exports;
 
 test('aceita celular com DDD, formatação e código do Brasil', () => {
   for (const value of ['83999123456', '(83) 99912-3456', '+55 (83) 99912-3456', '5583999123456', ' 83 99912 3456 ']) {
@@ -41,6 +41,19 @@ test('API bloqueia telefone inválido antes de acessar o banco ou gerar pagament
   for (const phone of ['83999999999', '23999123456', '558399912345699', null]) {
     const response = await route.exports.POST(new Request('https://example.com/api/orders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({requestKey: '455f490c-dbe4-4c16-8035-4affaba09de7', phone}) }));
     assert.equal(response.status, 400);
-    assert.equal((await response.json()).error, phoneValidationMessage);
+    assert.equal((await response.json()).error, brazilianMobileError(phone));
   }
+});
+
+test('formata digitação e colagem sem esconder excesso ou letras', () => {
+  for (const [raw, expected] of [['8', '8'], ['83', '83'], ['839', '(83) 9'], ['8399912', '(83) 99912'], ['83999123456', '(83) 99912-3456'], ['5583999123456', '+55 (83) 99912-3456'], ['+55 (55) 99912-3456', '+55 (55) 99912-3456'], ['558399912345699', '558399912345699'], ['83999123456abc', '83999123456abc']]) {
+    assert.equal(formatBrazilianMobile(raw), expected);
+  }
+});
+
+test('explica o motivo específico da recusa', () => {
+  for (const [value, message] of [['', /Informe seu celular/], ['999123456', /Inclua os 2 números do DDD/], ['8399912345', /incompleto/], ['23999123456', /Confira o DDD/], ['83899123456', /começar com 9/], ['83999999999', /todos iguais/], ['558399912345699', /números a mais/], ['+1 83999123456', /Brasil/]]) {
+    assert.match(brazilianMobileError(value), message);
+  }
+  assert.equal(brazilianMobileError('(83) 99912-3456'), null);
 });

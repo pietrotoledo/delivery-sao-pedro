@@ -2,7 +2,7 @@ import { comboDrinkOptions, includesBurger } from "@/lib/menu-options";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
-import { normalizeBrazilianMobile, phoneValidationMessage } from "@/lib/phone";
+import { brazilianMobileError, normalizeBrazilianMobile } from "@/lib/phone";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return json({error:"Atualize a página e tente novamente."},400);
   }
   const phone = normalizeBrazilianMobile(body.phone);
-  if (!phone) return json({error:phoneValidationMessage},400);
+  if (!phone) return json({error:brazilianMobileError(body.phone)},400);
   const hash = await requestHash(body);
   await ensureSchema();
   const previous = await db().prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();

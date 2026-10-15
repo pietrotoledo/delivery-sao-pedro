@@ -7,7 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, MapPin, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
 import BrandAvatar from "@/components/brand-avatar";
 import WhatsAppField from "@/components/whatsapp-field";
-import { normalizeBrazilianMobile, phoneValidationMessage } from "@/lib/phone";
+import { brazilianMobileError } from "@/lib/phone";
 import DeliveryAreas from "@/components/delivery-areas";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
 import DeliveryAddressFields, { type AddressLookupState } from "@/components/delivery-address-fields";
@@ -124,7 +124,8 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
       if (addressLookupState === "loading") { setError("Aguarde a consulta do CEP ou escolha preencher sem CEP."); return; }
       if (addressLookupState === "blocked" || addressError) { setError(addressError || "Este CEP fica fora da nossa área de entrega. Confira o CEP ou escolha retirada."); return; }
     }
-    if (!normalizeBrazilianMobile(phone)) { setError(phoneValidationMessage); return; }
+    const phoneError = brazilianMobileError(phone);
+    if (phoneError) { setError(phoneError); return; }
     submitting.current = true;
     setBusy(true);
     try {
