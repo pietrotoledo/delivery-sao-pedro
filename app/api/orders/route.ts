@@ -2,6 +2,7 @@ import { comboDrinkOptions, includesBurger } from "@/lib/menu-options";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
+import { normalizeBrazilianMobile, phoneValidationMessage } from "@/lib/phone";
 import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
 
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
   if (typeof requestKey !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestKey)) {
     return json({error:"Atualize a página e tente novamente."},400);
   }
+  const phone = normalizeBrazilianMobile(body.phone);
+  if (!phone) return json({error:phoneValidationMessage},400);
   const hash = await requestHash(body);
   await ensureSchema();
   const previous = await db().prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
@@ -31,7 +34,6 @@ export async function POST(request: Request) {
   const settings = await config();
   if (settings.paused) return json({error:"Os pedidos estão pausados no momento."},409);
   const name = String(body.name ?? "").trim().slice(0,100);
-  const phone = String(body.phone ?? "").replace(/\D/g,"").slice(0,13);
   const email = String(body.email ?? "").trim().toLowerCase().slice(0,254);
   const method = body.method === "delivery" ? "delivery" : body.method === "pickup" ? "pickup" : null;
   const structuredAddress = method === "delivery" && body.deliveryAddress !== undefined ? parseDeliveryAddress(body.deliveryAddress) : null;
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
   const address = method === "delivery" ? structuredAddress ? formatDeliveryAddress(structuredAddress) : String(body.address ?? "").trim().slice(0,220) : null;
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
   const whatsappOptIn = body.whatsappOptIn === true && evolutionEnabled() ? 1 : 0;
-  if (name.length < 2 || phone.length < 10 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
+  if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
   const deliveryFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
   if (deliveryFee === null || (method === "delivery" && (!address || address.length < 8))) {
     return json({error:"Selecione um dos bairros atendidos e informe um endereço completo válido."},400);
