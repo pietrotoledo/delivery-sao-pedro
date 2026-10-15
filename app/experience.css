@@ -756,15 +756,16 @@ button { -webkit-touch-callout: none; }
 }
 
 /* Route choices shared by customers and couriers. */
-.route-picker { margin-top: 12px; width: 100%; }
+.pickup-box > div { flex: 1; min-width: 0; }
+.route-picker { margin-top: 12px; width: 100%; min-width: 0; }
 .route-picker .route-picker-label { margin: 0 0 10px; color: var(--brand-deep); font-size: 14px; font-weight: 800; line-height: 1.4; }
 .route-picker-label > span { display: block; margin-top: 3px; color: #62728d; font-size: 12px; font-weight: 400; }
-.route-picker .route-picker-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.route-picker .route-option { display: flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-height: 48px; padding: 12px 14px; border: 1px solid #d7e1ee; border-radius: 10px; background: #fff; color: var(--brand-blue); font-size: 13px; font-weight: 800; line-height: 1.3; text-decoration: none; }
-.route-option svg { flex: none; }
-.route-option .route-logo { flex: none; width: 28px; height: 28px; object-fit: contain; }
+.route-picker .route-picker-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; width: 100%; min-width: 0; }
+.route-picker .route-option { display: grid; grid-template-columns: 28px minmax(0, 1fr) 15px; align-items: center; gap: 8px; width: 100%; min-width: 0; min-height: 52px; margin: 0; padding: 11px 14px; border: 1px solid #d7e1ee; border-radius: 10px; background: #fff; color: var(--brand-blue); font-size: 13px; font-weight: 800; line-height: 1.3; text-align: left; text-decoration: none; touch-action: manipulation; }
+.route-picker .route-option > svg { display: block; width: 15px; height: 15px; margin: 0; align-self: center; justify-self: end; }
+.route-option .route-logo { display: block; margin: 0; width: 28px; height: 28px; align-self: center; object-fit: contain; }
 .route-option .route-logo-waze { padding: 3px; border-radius: 6px; background: #30c6ef; }
-.route-picker .route-option > span { color: inherit; font-size: inherit; line-height: inherit; }
+.route-picker .route-option > span { display: block; min-width: 0; margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
 .route-picker .route-option-waze { background: #e6f7fb; border-color: #b7e2ee; color: #14546b; }
 .route-picker .route-option:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 3px; }
 .route-picker-dark .route-picker-label { color: #fff; }
@@ -772,7 +773,6 @@ button { -webkit-touch-callout: none; }
 .route-picker-dark .route-option-maps { background: #fff; border-color: #fff; }
 .delivery-detail-card > .route-picker { margin: 18px 0; padding: 18px; border-radius: 12px; background: var(--surface-soft); }
 @media (hover: hover) { .route-picker .route-option:hover { border-color: var(--brand-blue); background: #edf2fc; } .route-picker .route-option-waze:hover { border-color: #419eb7; background: #d5f0f8; } }
-@media (max-width: 380px) { .route-picker .route-picker-options { grid-template-columns: 1fr; } }
 @media print { .route-picker { display: none !important; } }
 
 /* The event menu is presented without placeholder product photos. */
