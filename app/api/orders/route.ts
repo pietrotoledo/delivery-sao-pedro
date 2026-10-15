@@ -1,4 +1,4 @@
-import { comboDrinkOptions, includesBurger } from "@/lib/menu-options";
+import { availableComboDrinks, comboDrinkOptions, includesBurger } from "@/lib/menu-options";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
   if (!Array.isArray(body.items) || body.items.length > 20) return json({error:"Escolha até 20 tipos de produto por pedido."},400);
   const menu = await getProducts();
   const productsById = new Map(menu.map(product => [product.id, product]));
+  const drinksByValue = new Map(availableComboDrinks(menu).map(drink => [drink.value, drink]));
   const items: OrderItem[] = [];
   for (const candidate of body.items) {
     const raw = candidate && typeof candidate === "object" ? candidate as Record<string,unknown> : {};
@@ -69,13 +70,25 @@ export async function POST(request: Request) {
     if (!Array.isArray(unitDrinks) || unitDrinks.length !== (product.category === "combo" ? quantity : 0) || unitDrinks.some(drink => typeof drink !== "string" || !comboDrinkOptions.includes(drink))) {
       return json({error:"Escolha uma bebida válida para cada combo."},400);
     }
+    if (unitDrinks.some(drink => !drinksByValue.has(drink))) {
+      return json({error:"Uma bebida do combo ficou indisponível. Atualize o cardápio e escolha outra bebida."},409);
+    }
     if (quantity) items.push({id:product.id,quantity,name:product.name,price:product.price,unitRemovals:unitRemovals as string[][], ...(product.category === "combo" ? {unitDrinks: unitDrinks as string[]} : {})});
   }
-  const unavailable = items.find(item => {
+  // Included drinks and separately purchased drinks consume the same stock.
+  const quantitiesById = new Map(items.map(item => [item.id, item.quantity]));
+  for (const item of items) {
+    for (const value of item.unitDrinks ?? []) {
+      const drink = drinksByValue.get(value)!;
+      quantitiesById.set(drink.id, (quantitiesById.get(drink.id) ?? 0) + 1);
+    }
+  }
+  const stockRequirements = Array.from(quantitiesById, ([id, quantity]) => ({ id, quantity }));
+  const unavailable = stockRequirements.find(item => {
     const stock = productsById.get(item.id)?.stock;
     return stock !== null && stock !== undefined && item.quantity > stock;
   });
-  if (unavailable) return json({error:`${unavailable.name} não tem a quantidade solicitada. Atualize o cardápio.`},409);
+  if (unavailable) return json({error:`${productsById.get(unavailable.id)!.name} não tem a quantidade solicitada. Atualize o cardápio.`},409);
   const burgerCount = items.reduce((sum,item)=>sum+(includesBurger(productsById.get(item.id) ?? { category: "" })?item.quantity:0),0);
   if (!items.length || burgerCount > 20) return json({error:"Escolha pelo menos um item e até 20 hambúrgueres por pedido."},400);
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
@@ -84,14 +97,14 @@ export async function POST(request: Request) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const status = "ready_for_payment";
-  const availability = items.map(() => "(id = ? AND active = 1 AND (stock IS NULL OR stock >= ?))").join(" OR ");
-  const availabilityArgs = items.flatMap(item => [item.id, item.quantity]);
+  const availability = stockRequirements.map(() => "(id = ? AND active = 1 AND (stock IS NULL OR stock >= ?))").join(" OR ");
+  const availabilityArgs = stockRequirements.flatMap(item => [item.id, item.quantity]);
   const database = db();
   const statements = [
     database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
       SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
-      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+deliveryFee,status,whatsappOptIn,...availabilityArgs,items.length),
-    ...items.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
+      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+deliveryFee,status,whatsappOptIn,...availabilityArgs,stockRequirements.length),
+    ...stockRequirements.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),
   ];
   const results = await database.batch(statements);

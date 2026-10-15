@@ -1,4 +1,4 @@
-import { comboDrinkOptions, includesBurger } from "./menu-options";
+import { availableComboDrinks, includesBurger } from "./menu-options";
 
 export type MenuProduct = {
   id: string; name: string; price: number; category: string; description: string;
@@ -16,6 +16,7 @@ export const menuBurgerCount = (cart: MenuCart, products: MenuProduct[]) => prod
 export function restoreMenuCart(products: MenuProduct[], quantities: unknown, drinks: unknown, removals: unknown): MenuCart {
   const cart = emptyMenuCart();
   const savedQuantities = record(quantities), savedDrinks = record(drinks), savedRemovals = record(removals);
+  const availableDrinks = new Set(availableComboDrinks(products).map(drink => drink.value));
   let burgersLeft = 20;
   for (const product of products) {
     const quantity = Math.max(0, Math.min(20, product.stock ?? 20, includesBurger(product) ? burgersLeft : 20, Math.floor(Number(savedQuantities[product.id]) || 0)));
@@ -28,7 +29,7 @@ export function restoreMenuCart(products: MenuProduct[], quantities: unknown, dr
     });
     if (product.category === "combo") {
       const choices = savedDrinks[product.id];
-      cart.comboDrinks[product.id] = Array.from({length: quantity}, (_, index) => Array.isArray(choices) && comboDrinkOptions.includes(choices[index]) ? choices[index] : "");
+      cart.comboDrinks[product.id] = Array.from({length: quantity}, (_, index) => Array.isArray(choices) && availableDrinks.has(choices[index]) ? choices[index] : "");
     }
   }
   return cart;
@@ -48,7 +49,7 @@ export function changeMenuQuantity(cart: MenuCart, products: MenuProduct[], id: 
 export function addMenuCombo(cart: MenuCart, products: MenuProduct[], id: string, drink: string): MenuCart {
   const product = products.find(item => item.id === id && item.category === "combo");
   const current = cart.quantities[id] ?? 0;
-  if (!product || !comboDrinkOptions.includes(drink) || current >= Math.min(20, product.stock ?? 20) || menuBurgerCount(cart, products) >= 20) return cart;
+  if (!product || !availableComboDrinks(products).some(option => option.value === drink) || current >= Math.min(20, product.stock ?? 20) || menuBurgerCount(cart, products) >= 20) return cart;
   return {
     quantities: {...cart.quantities, [id]: current + 1},
     removals: {...cart.removals, [id]: [...Array.from({length: current}, (_, index) => cart.removals[id]?.[index] ?? []), []]},
@@ -60,7 +61,7 @@ export function upgradeMenuBurger(cart: MenuCart, products: MenuProduct[], burge
   const burger = products.find(item => item.id === burgerId && item.category === "burger");
   const combo = products.find(item => item.id === comboId && item.category === "combo");
   const burgerQuantity = cart.quantities[burgerId] ?? 0, comboQuantity = cart.quantities[comboId] ?? 0;
-  if (!burger || !combo || burgerQuantity < 1 || !comboDrinkOptions.includes(drink) || comboQuantity >= Math.min(20, combo.stock ?? 20)) return cart;
+  if (!burger || !combo || burgerQuantity < 1 || !availableComboDrinks(products).some(option => option.value === drink) || comboQuantity >= Math.min(20, combo.stock ?? 20)) return cart;
   return {
     quantities: {...cart.quantities, [burgerId]: burgerQuantity - 1, [comboId]: comboQuantity + 1},
     removals: {...cart.removals, [burgerId]: (cart.removals[burgerId] ?? []).slice(0, burgerQuantity - 1), [comboId]: [...Array.from({length: comboQuantity}, (_, index) => cart.removals[comboId]?.[index] ?? []), cart.removals[burgerId]?.[burgerQuantity - 1] ?? []]},

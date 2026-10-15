@@ -11,7 +11,10 @@ const {emptyMenuCart, restoreMenuCart, addMenuCombo, changeMenuQuantity, upgrade
 const products = [
   {id: "classic", category: "burger", price: 2500, stock: null, ingredients: menuOptions.hamburgerIngredients},
   {id: "combo", category: "combo", price: 3500, stock: null, ingredients: menuOptions.hamburgerIngredients},
-  {id: "coke", category: "drink", price: 600, stock: null},
+  {id: "coke", name: "Coca-Cola normal", category: "drink", price: 600, stock: null},
+  {id: "coke-zero", name: "Coca-Cola Zero", category: "drink", price: 600, stock: null},
+  {id: "guarana", name: "Guaran\u00e1", category: "drink", price: 600, stock: null},
+  {id: "sparkling-water", name: "\u00c1gua com g\u00e1s", category: "drink", price: 400, stock: null},
 ];
 
 test("Combo só entra com refrigerante válido e mantém escolhas por unidade", () => {
@@ -81,4 +84,21 @@ test("Combo aceita agua com gas e preserva a bebida ao restaurar o carrinho", ()
   assert.equal(cart.comboDrinks.combo[0], drink);
   const restored = restoreMenuCart(products, cart.quantities, cart.comboDrinks, cart.removals);
   assert.equal(restored.comboDrinks.combo[0], drink);
+});
+
+test("Carrinho preserva as quatro escolhas mesmo com bebidas renomeadas", () => {
+  const renamed = products.map(product => ({ ...product, name: `Nome editado de ${product.id}` }));
+  let cart = emptyMenuCart();
+  for (const drink of menuOptions.comboDrinkOptions) cart = addMenuCombo(cart, renamed, "combo", drink);
+  assert.equal(cart.quantities.combo, 4);
+  assert.deepEqual(Array.from(restoreMenuCart(renamed, cart.quantities, cart.comboDrinks, {}).comboDrinks.combo), menuOptions.comboDrinkOptions);
+});
+
+test("Carrinho impede bebida esgotada no combo e na troca e limpa escolha antiga", () => {
+  const unavailable = products.map(product => product.id === "coke" ? { ...product, stock: 0 } : product);
+  const cart = changeMenuQuantity(emptyMenuCart(), unavailable, "classic", 1);
+  assert.equal(addMenuCombo(cart, unavailable, "combo", "Coca-Cola normal"), cart);
+  assert.equal(upgradeMenuBurger(cart, unavailable, "classic", "combo", "Coca-Cola normal"), cart);
+  const restored = restoreMenuCart(unavailable, { combo: 1 }, { combo: ["Coca-Cola normal"] }, {});
+  assert.equal(restored.comboDrinks.combo[0], "");
 });
