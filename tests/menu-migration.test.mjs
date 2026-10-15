@@ -56,15 +56,21 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     ]);
     assert.equal(products.filter(product => product.category === "burger").length, 1);
     for (const product of products.filter(menuOptions.includesBurger)) assert.deepEqual(JSON.parse(product.ingredients_json), menuOptions.hamburgerIngredients);
-    assert.ok(products.every(product => product.image_url === null));
+    assert.equal(products.find(product => product.id === "combo").image_url, "/products/combo-azul-v2.webp");
+    assert.ok(products.filter(product => product.id !== "combo").every(product => product.image_url === null));
     assert.equal(products[0].stock, 7);
     assert.equal(sqlite.prepare("SELECT active FROM products WHERE id='fries-large'").get().active, 0);
     const oldItem = store.orderItems({items_json: JSON.stringify([{id: "classic", quantity: 1, name: "Pedido antigo", price: 2200}])})[0];
     assert.equal(oldItem.price, 2200);
     assert.equal(oldItem.name, "Pedido antigo");
     sqlite.exec("UPDATE products SET price=2600 WHERE id='classic'");
+    sqlite.exec("UPDATE products SET image_url=NULL WHERE id='combo'; DELETE FROM menu_revisions WHERE id='combo-photo-2026-10-v1'");
     await loadStore().ensureSchema();
     assert.equal(sqlite.prepare("SELECT price FROM products WHERE id='classic'").get().price, 2600);
+    assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='combo'").get().image_url, "/products/combo-azul-v2.webp");
+    sqlite.exec("UPDATE products SET image_url='/products/custom.webp' WHERE id='combo'");
+    await loadStore().ensureSchema();
+    assert.equal(sqlite.prepare("SELECT image_url FROM products WHERE id='combo'").get().image_url, "/products/custom.webp");
   } finally { sqlite.close(); }
 });
 

@@ -11,7 +11,7 @@ export type OrderItem = { id: string; quantity: number; name: string; price: num
 
 export const menu = [
   { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: null },
-  { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + refrigerante à escolha: Coca-Cola normal, Coca-Cola Zero ou Guaraná.", imageUrl: null },
+  { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + refrigerante à escolha: Coca-Cola normal, Coca-Cola Zero ou Guaraná.", imageUrl: "/products/combo-azul-v2.webp" },
   { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: null },
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: null },
   { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: null },
@@ -147,6 +147,12 @@ export async function ensureSchema() {
           database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(revision, now),
         ]);
       }
+      const photoRevision = "combo-photo-2026-10-v1";
+      await database.batch([
+        database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'combo' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+          .bind("/products/combo-azul-v2.webp", new Date().toISOString(), photoRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(photoRevision, new Date().toISOString()),
+      ]);
     })().catch((error) => {
       schemaPromise = undefined;
       throw error;
