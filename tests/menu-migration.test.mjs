@@ -55,6 +55,8 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
       ["classic", 2500], ["combo", 3500], ["fries-small", 800], ["coke", 600], ["coke-zero", 600], ["guarana", 600], ["water", 300], ["sparkling-water", 400], ["sweets-kit", 700],
     ]);
     assert.equal(products.filter(product => product.category === "burger").length, 1);
+    assert.equal(products.find(product => product.id === "classic").name, "Blueck Burguer");
+    assert.equal(products.find(product => product.id === "combo").name, "Blueck Combo");
     for (const product of products.filter(menuOptions.includesBurger)) assert.deepEqual(JSON.parse(product.ingredients_json), menuOptions.hamburgerIngredients);
     assert.equal(products.find(product => product.id === "combo").image_url, "/products/combo-azul-v2.webp");
     assert.deepEqual(products.map(product => [product.id, product.image_url]), [
@@ -92,6 +94,14 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM products WHERE id='sweets-kit'").get().count, 1);
     assert.deepEqual({ ...sqlite.prepare("SELECT price,stock,active FROM products WHERE id='sweets-kit'").get() }, { price: 800, stock: 3, active: 0 });
     assert.equal(sqlite.prepare("SELECT description FROM products WHERE id='classic'").get().description, 'Receita editada');
+    // Atualiza os nomes tambem em um banco ja publicado, preservando preco e estoque.
+    sqlite.exec("DELETE FROM menu_revisions WHERE id='blueck-burger-combo-names-2026-10-v1'; UPDATE products SET name='Blueck combo',stock=4 WHERE id='combo'; UPDATE products SET name='Hamburguer artesanal' WHERE id='classic'");
+    await loadStore().ensureSchema();
+    assert.equal(sqlite.prepare("SELECT name FROM products WHERE id='classic'").get().name, "Blueck Burguer");
+    assert.deepEqual({ ...sqlite.prepare("SELECT name,price,stock FROM products WHERE id='combo'").get() }, { name: "Blueck Combo", price: 3500, stock: 4 });
+    sqlite.exec("UPDATE products SET name='Nome editado pela equipe' WHERE id='combo'");
+    await loadStore().ensureSchema();
+    assert.equal(sqlite.prepare("SELECT name FROM products WHERE id='combo'").get().name, "Nome editado pela equipe");
   } finally { sqlite.close(); }
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { ArrowRight, Check, Minus, Plus } from "lucide-react";
 import { availableComboDrinks, type ComboDrinkOption } from "@/lib/menu-options";
@@ -9,16 +9,21 @@ import { menuBurgerCount, type MenuCart, type MenuProduct } from "@/lib/menu-car
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", {style: "currency", currency: "BRL"});
 
-function DrinkChoice({id, options, disabled, action, onConfirm}: {id: string; options: ComboDrinkOption[]; disabled: boolean; action: string; onConfirm: (drink: string) => void}) {
+function DrinkChoice({id, options, disabled, action, label = "Escolha a bebida incluída", onConfirm}: {id: string; options: ComboDrinkOption[]; disabled: boolean; action: string; label?: string; onConfirm: (drink: string) => void}) {
   const [drink, setDrink] = useState("");
+  const select = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    select.current?.focus({ preventScroll: true });
+    select.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+  }, []);
   const validChoice = options.some(option => option.value === drink);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!disabled && validChoice) onConfirm(drink);
   }
   return <form className="menu-drink-choice" onSubmit={submit}>
-    <label htmlFor={id}>Escolha a bebida incluída</label>
-    <select id={id} required value={validChoice ? drink : ""} disabled={disabled} onChange={event => setDrink(event.target.value)}>
+    <label htmlFor={id}>{label}</label>
+    <select ref={select} id={id} required value={validChoice ? drink : ""} disabled={disabled} onChange={event => setDrink(event.target.value)}>
       <option value="" disabled>Selecione sua bebida</option>
       {options.map(option => <option key={option.id} value={option.value}>{option.label}</option>)}
     </select>
@@ -65,10 +70,10 @@ export default function StorefrontMenu({products, cart, paused, onChange, onAddC
           <p>O nosso hambúrguer artesanal com os acompanhamentos que completam o pedido.</p>
           <ul className="menu-combo-includes"><li><Check size={17} aria-hidden="true" />Hambúrguer com carne de 140 g</li><li><Check size={17} aria-hidden="true" />Batata frita</li><li><Check size={17} aria-hidden="true" />Bebida à sua escolha</li></ul>
           {savings > 0 && <p className="menu-combo-saving">Economize {money(savings)} em relação aos itens separados.</p>}
-          {combo.stock === 0 ? <p className="menu-item-unavailable">Combo esgotado</p> : comboOpen ? <DrinkChoice id="menu-combo-drink" options={drinks} disabled={paused || !comboHasRoom || burgerCount >= 20} action="Adicionar combo" onConfirm={drink => { onAddCombo(combo.id, drink); setComboOpen(false); setFeedback(`Combo com ${drinks.find(option => option.value === drink)?.label ?? drink} adicionado ao pedido.`); }} /> : comboQuantity === 0 ? <button className="menu-primary-action" type="button" disabled={paused || !comboHasRoom || burgerCount >= 20} onClick={() => setComboOpen(true)}>Escolher meu combo<ArrowRight size={18} aria-hidden="true" /></button> : null}
+          {combo.stock === 0 ? <p className="menu-item-unavailable">Combo esgotado</p> : comboOpen ? <DrinkChoice id="menu-combo-drink" label={comboQuantity > 0 ? "Escolha a bebida do novo combo" : undefined} options={drinks} disabled={paused || !comboHasRoom || burgerCount >= 20} action="Adicionar combo" onConfirm={drink => { onAddCombo(combo.id, drink); setComboOpen(false); setFeedback(`Combo com ${drinks.find(option => option.value === drink)?.label ?? drink} adicionado ao pedido.`); }} /> : comboQuantity === 0 ? <button className="menu-primary-action" type="button" disabled={paused || !comboHasRoom || burgerCount >= 20} onClick={() => setComboOpen(true)}>Escolher meu combo<ArrowRight size={18} aria-hidden="true" /></button> : null}
           {comboOpen && combo.stock !== 0 && <button className="menu-combo-cancel" type="button" onClick={() => setComboOpen(false)}>Cancelar</button>}
           {combo.stock !== 0 && !drinks.length && !comboOpen && <p className="menu-item-unavailable">As bebidas do combo estão indisponíveis no momento.</p>}
-          {comboQuantity > 0 && <div className="menu-combo-in-cart"><button type="button" onClick={() => { onChange(combo.id, -1); setComboOpen(false); setFeedback(""); }} disabled={paused} aria-label="Retirar um combo do pedido"><Minus size={16} aria-hidden="true" />Retirar</button><span aria-live="polite">{comboQuantity} {comboQuantity === 1 ? "combo" : "combos"}</span><button type="button" className="menu-combo-add" onClick={() => { setComboOpen(true); setFeedback(""); }} disabled={paused || !comboHasRoom || burgerCount >= 20 || comboOpen} aria-expanded={comboOpen}><Plus size={16} aria-hidden="true" />Adicionar mais</button></div>}
+          {comboQuantity > 0 && <div className="menu-combo-in-cart"><button type="button" onClick={() => { onChange(combo.id, -1); setComboOpen(false); setFeedback(""); }} disabled={paused} aria-label="Retirar um combo do pedido"><Minus size={16} aria-hidden="true" />Retirar</button><span aria-live="polite">{comboQuantity} {comboQuantity === 1 ? "combo" : "combos"}</span><button type="button" className="menu-combo-add" onClick={() => { setComboOpen(true); setFeedback(""); }} disabled={paused || !comboHasRoom || burgerCount >= 20 || comboOpen} aria-expanded={comboOpen}><Plus size={16} aria-hidden="true" />Adicionar outro combo</button></div>}
           <p className="menu-selection-feedback" role="status">{feedback}</p>
         </div>
       </article>}
@@ -76,7 +81,7 @@ export default function StorefrontMenu({products, cart, paused, onChange, onAddC
         <div className={`menu-solo-product ${burger.imageUrl ? "has-photo" : ""}`}>
           {burger.imageUrl && <div className="menu-solo-photo"><Image src={burger.imageUrl} unoptimized={externalPhoto(burger.imageUrl)} fill sizes="(max-width: 700px) 112px, 180px" alt="Hambúrguer artesanal com queijo e cebola caramelizada" /></div>}
           <div className="menu-solo-content">
-        <div className="menu-solo-heading"><div><h3>Só o hambúrguer</h3><p>{burger.description}</p></div><strong>{money(burger.price)}</strong></div>
+        <div className="menu-solo-heading"><div><h3>{burger.name}</h3><p>{burger.description}</p></div><strong>{money(burger.price)}</strong></div>
         <div className="menu-solo-actions"><small>{burger.stock === 0 ? "Hambúrguer esgotado" : burgerQuantity ? "No seu pedido" : "Para quem quer só o artesanal."}</small>{burgerQuantity ? stepper(burger) : <button className="menu-secondary-action" type="button" disabled={paused || burger.stock === 0 || burgerCount >= 20} onClick={() => onChange(burger.id, 1)}>Adicionar hambúrguer<Plus size={17} aria-hidden="true" /></button>}</div>
           </div>
         </div>

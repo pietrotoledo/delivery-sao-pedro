@@ -10,8 +10,8 @@ export type Product = {
 export type OrderItem = { id: string; quantity: number; name: string; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] };
 
 export const menu = [
-  { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese artesanal.", imageUrl: "/products/hamburguer-solo-azul.webp" },
-  { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + bebida à escolha: Coca-Cola normal, Coca-Cola Zero, Guaraná ou água com gás.", imageUrl: "/products/combo-azul-v2.webp" },
+  { id: "classic", name: "Blueck Burguer", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese artesanal.", imageUrl: "/products/hamburguer-solo-azul.webp" },
+  { id: "combo", name: "Blueck Combo", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + bebida à escolha: Coca-Cola normal, Coca-Cola Zero, Guaraná ou água com gás.", imageUrl: "/products/combo-azul-v2.webp" },
   { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: "/products/batata-azul.webp" },
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
   { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: "/products/coca-zero-azul.webp" },
@@ -198,6 +198,14 @@ export async function ensureSchema() {
         database.prepare("UPDATE products SET description = ?, updated_at = ? WHERE id = 'classic' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
           .bind(classicBurger.description, sweetsNow, sweetsRevision),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(sweetsRevision, sweetsNow),
+      ]);
+      const namesRevision = "blueck-burger-combo-names-2026-10-v1";
+      const namesNow = new Date().toISOString();
+      await database.batch([
+        ...menu.filter(product => product.id === "classic" || product.id === "combo").map(product =>
+          database.prepare("UPDATE products SET name = ?, updated_at = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+            .bind(product.name, namesNow, product.id, namesRevision)),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(namesRevision, namesNow),
       ]);
     })().catch((error) => {
       schemaPromise = undefined;
