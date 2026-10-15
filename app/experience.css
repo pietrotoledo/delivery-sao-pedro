@@ -796,3 +796,14 @@ button { -webkit-touch-callout: none; }
 @media (max-width: 700px) { .combo-drink-choices select { font-size: 16px; } }
 .site-shell .menu-group .combo-product-art { aspect-ratio: 1; } .site-shell .menu-group .combo-product-art .product-photo { object-fit: contain; object-position: center; }
 .site-shell .menu-group .product-art { aspect-ratio: 1; } .site-shell .menu-group .product-photo { object-fit: contain; object-position: center; }
+.hero-media.hero-combo { display: block; width: 100%; min-height: 0; background: #071b50; border: 1px solid rgba(255,255,255,.15); }
+.hero-media.hero-combo::after { display: none; }
+.hero-combo-photo { position: relative; width: 100%; aspect-ratio: 1; }
+.hero-combo-photo > img { object-fit: contain; object-position: center; }
+.hero-combo-caption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; border-top: 1px solid rgba(255,255,255,.15); }
+.hero-combo-caption > span:first-child { display: grid; gap: 5px; }
+.hero-combo-caption strong { color: #fff; font-size: 22px; line-height: 1.2; }
+.hero-combo-caption small { color: #dce7ff; font-size: 12px; line-height: 1.5; }
+.hero-combo-action { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-yellow); font-size: 13px; font-weight: 800; }
+.hero-media.hero-combo:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 4px; }
+@media (max-width: 700px) { .hero-combo-caption { padding: 18px; gap: 12px; } .hero-combo-caption strong { font-size: 20px; } }

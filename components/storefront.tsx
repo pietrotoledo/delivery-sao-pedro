@@ -103,7 +103,10 @@ export default function Storefront() {
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
           <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
         </div>
-        <Link className="hero-media hero-menu-card" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver o cardápio da noite"><span className="hero-menu-icon"><ShoppingBag size={38} aria-hidden="true" /></span><h2>O artesanal<br />da nossa noite.</h2><p>Carne de 140 g, queijo, cebola caramelizada e maionese.</p><div className="hero-menu-choices"><span>Hambúrguer individual</span><span>Combo com batata e refri</span></div><span className="hero-menu-link">Confira o cardápio <ArrowRight size={18} /></span></Link>
+        <Link className="hero-media hero-combo" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver o combo da noite no cardápio">
+          <div className="hero-combo-photo"><Image src="/products/combo-azul-v2.webp" fill priority sizes="(max-width: 800px) 100vw, 50vw" alt="Combo com hambúrguer artesanal, batata frita e refrigerante" /></div>
+          <div className="hero-combo-caption"><span><strong>Combo da noite</strong><small>Hambúrguer + batata + refrigerante</small></span><span className="hero-combo-action">Ver cardápio <ArrowRight size={18} aria-hidden="true" /></span></div>
+        </Link>
       </div></section>
       <div className="service-strip"><div className="wrap service-strip-inner"><span>30 de outubro</span><span>Entregas a partir das 18h</span><span>Retirada no {eventLocation.name} · 18h às 22h</span></div></div>
       <div className="wrap storefront-delivery" id="delivery"><DeliveryAreas /></div>
