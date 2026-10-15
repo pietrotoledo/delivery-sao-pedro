@@ -12,10 +12,10 @@ export type OrderItem = { id: string; quantity: number; name: string; price: num
 export const menu = [
   { id: "classic", name: "Hambúrguer artesanal", price: 2500, category: "burger", description: "Carne de 140 g, queijo, cebola caramelizada e maionese.", imageUrl: null },
   { id: "combo", name: "Combo da noite", price: 3500, category: "combo", description: "Hambúrguer artesanal + batata frita + refrigerante à escolha: Coca-Cola normal, Coca-Cola Zero ou Guaraná.", imageUrl: "/products/combo-azul-v2.webp" },
-  { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: null },
-  { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: null },
-  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: null },
-  { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: null },
+  { id: "fries-small", name: "Batata frita individual", price: 800, category: "side", description: "Porção individual de batata frita.", imageUrl: "/products/batata-azul.webp" },
+  { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
+  { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: "/products/coca-zero-azul.webp" },
+  { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: "/products/guarana-azul.webp" },
   { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: null },
 ] as const;
 
@@ -152,6 +152,13 @@ export async function ensureSchema() {
         database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = 'combo' AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
           .bind("/products/combo-azul-v2.webp", new Date().toISOString(), photoRevision),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(photoRevision, new Date().toISOString()),
+      ]);
+      const productPhotosRevision = "product-photos-2026-10-v1";
+      await database.batch([
+        ...menu.filter(product => ["fries-small", "coke", "coke-zero", "guarana"].includes(product.id)).map(product =>
+          database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
+            .bind(product.imageUrl, new Date().toISOString(), product.id, productPhotosRevision)),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(productPhotosRevision, new Date().toISOString()),
       ]);
     })().catch((error) => {
       schemaPromise = undefined;

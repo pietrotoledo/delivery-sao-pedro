@@ -795,3 +795,4 @@ button { -webkit-touch-callout: none; }
 .combo-drink-choices small { font-size: 12px; font-weight: 400; color: #62728d; }
 @media (max-width: 700px) { .combo-drink-choices select { font-size: 16px; } }
 .site-shell .menu-group .combo-product-art { aspect-ratio: 1; } .site-shell .menu-group .combo-product-art .product-photo { object-fit: contain; object-position: center; }
+.site-shell .menu-group .product-art { aspect-ratio: 1; } .site-shell .menu-group .product-photo { object-fit: contain; object-position: center; }
