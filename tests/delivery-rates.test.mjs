@@ -131,12 +131,30 @@ test("Combo conta um hambúrguer e salva a personalização", async () => {
   assert.deepEqual(JSON.parse(api.inserted()[12])[0].unitRemovals, [["Maionese"], []]);
 });
 
-test("Permite batata individual e impede pedido vazio", async () => {
+test("Rejeita acompanhamentos sem hamburguer antes de reservar estoque ou gerar pagamento", async () => {
+  for (const items of [
+    [{ id: "fries-small", quantity: 1 }],
+    [{ id: "sweets-kit", quantity: 1 }],
+    [{ id: "coke", quantity: 1 }],
+    [{ id: "fries-small", quantity: 1 }, { id: "sweets-kit", quantity: 1 }, { id: "sparkling-water", quantity: 1 }],
+    [{ id: "classic", quantity: 0 }, { id: "coke", quantity: 1 }],
+  ]) {
+    const api = orderApi();
+    const response = await api.post(request({ ...payload("Manaíra", 0), items, expectedSubtotal: 0 }));
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /pelo menos um hambúrguer/);
+    assert.equal(api.inserted(), undefined);
+    assert.equal(api.statements().length, 0);
+    assert.equal(api.paymentAttempts(), 0);
+  }
+});
+
+test("Permite batata com hamburguer e impede pedido vazio", async () => {
   const api = orderApi();
-  const response = await api.post(request({ ...payload("Bessa", 500), items: [{ id: "fries-small", quantity: 1 }], expectedSubtotal: 500 }));
+  const response = await api.post(request({ ...payload("Bessa", 500), items: [{ id: "classic", quantity: 1 }, { id: "fries-small", quantity: 1 }], expectedSubtotal: 1500 }));
   assert.equal(response.status, 201);
-  assert.equal(api.inserted()[13], 0);
-  assert.equal(api.inserted()[16], 1000);
+  assert.equal(api.inserted()[13], 1);
+  assert.equal(api.inserted()[16], 2000);
   const empty = orderApi();
   assert.equal((await empty.post(request({ ...payload("Manaíra", 0), items: [], expectedSubtotal: 0 }))).status, 400);
   assert.equal(empty.inserted(), undefined);
@@ -162,13 +180,13 @@ test("Rejeita combo sem refrigerante ou com bebida fora das opcoes", async () =>
   }
 });
 
-test("Kit de 4 docinhos pode ser comprado sem hamburguer e Aeroclube cobra R$ 5", async () => {
+test("Kit de 4 docinhos acompanha hamburguer e Aeroclube cobra R$ 5", async () => {
   const api = orderApi();
-  const response = await api.post(request({ ...payload("Aeroclube", 500), items: [{ id: "sweets-kit", quantity: 2 }], expectedSubtotal: 1400 }));
+  const response = await api.post(request({ ...payload("Aeroclube", 500), items: [{ id: "sweets-kit", quantity: 2 }, { id: "classic", quantity: 1 }], expectedSubtotal: 2400 }));
   assert.equal(response.status, 201);
-  assert.equal(api.inserted()[13], 0);
+  assert.equal(api.inserted()[13], 1);
   assert.equal(api.inserted()[15], 500);
-  assert.equal(api.inserted()[16], 1900);
+  assert.equal(api.inserted()[16], 2900);
   const [item] = JSON.parse(api.inserted()[12]);
   assert.equal(item.name, "Kit com 4 docinhos");
   assert.equal(item.quantity, 2);

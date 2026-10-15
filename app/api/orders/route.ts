@@ -90,7 +90,8 @@ export async function POST(request: Request) {
   });
   if (unavailable) return json({error:`${productsById.get(unavailable.id)!.name} não tem a quantidade solicitada. Atualize o cardápio.`},409);
   const burgerCount = items.reduce((sum,item)=>sum+(includesBurger(productsById.get(item.id) ?? { category: "" })?item.quantity:0),0);
-  if (!items.length || burgerCount > 20) return json({error:"Escolha pelo menos um item e até 20 hambúrgueres por pedido."},400);
+  if (burgerCount < 1) return json({error:"Inclua pelo menos um hambúrguer, avulso ou no combo, para finalizar o pedido."},400);
+  if (burgerCount > 20) return json({error:"Escolha até 20 hambúrgueres por pedido."},400);
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
   if (Number(body.expectedSubtotal) !== subtotal) return json({error:"O cardápio mudou. Atualize a página e confira o novo total antes de pedir."},409);
   if (Number(body.expectedDeliveryFee) !== deliveryFee) return json({error:"A taxa de entrega mudou. Atualize a página e confira o total antes de pedir."},409);

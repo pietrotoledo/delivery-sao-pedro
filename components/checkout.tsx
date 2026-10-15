@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, MapPin, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
 import BrandAvatar from "@/components/brand-avatar";
+import { BurgerRequirementNotice, focusBurgerRequirement, LastBurgerDialog } from "@/components/burger-requirement";
 import WhatsAppField from "@/components/whatsapp-field";
 import { brazilianMobileError } from "@/lib/phone";
 import DeliveryAreas from "@/components/delivery-areas";
@@ -47,6 +48,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [invalidTarget, setInvalidTarget] = useState("");
+  const [pendingRemoval, setPendingRemoval] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/public")
@@ -98,8 +100,23 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
 
   function change(id: string, delta: number) {
     const product = getProduct(id);
-    if (!product) return;
+    if (!product || data?.paused || busy) return;
+    if (delta < 0 && includesBurger(product) && quantities[id] === 1 && burgerCount === 1) {
+      setPendingRemoval(id);
+      return;
+    }
+    applyQuantityChange(id, delta);
+  }
+
+  function applyQuantityChange(id: string, delta: number) {
+    const product = getProduct(id);
+    if (!product || data?.paused || busy) return;
     setQuantities(current => ({ ...current, [id]: Math.max(0, Math.min(20, product.stock ?? 20, (current[id] ?? 0) + delta)) }));
+    if (delta < 0) {
+      const remaining = Math.max(0, (quantities[id] ?? 0) + delta);
+      setRemovals(current => ({ ...current, [id]: (current[id] ?? []).slice(0, remaining) }));
+      if (product.category === "combo") setComboDrinks(current => ({ ...current, [id]: (current[id] ?? []).slice(0, remaining) }));
+    }
   }
 
   function toggleRemoval(id: string, unitIndex: number, ingredient: string) {
@@ -127,7 +144,8 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
     if (submitting.current || data?.paused) return;
     setError("");
     setInvalidTarget("");
-    if (!data || itemCount < 1) { requestCompletion("Adicione pelo menos um item antes de continuar.", ".checkout-edit"); return; }
+    if (!data) return;
+    if (burgerCount < 1) { requestCompletion("Inclua pelo menos um hambúrguer, avulso ou no combo, para finalizar o pedido.", "#burger-requirement a"); return; }
     if (!method) { requestCompletion("Escolha retirada ou entrega antes de continuar.", ".method-options button"); return; }
     const form = event.currentTarget;
     for (const selector of ["#checkout-name", "#checkout-phone", "#checkout-email"]) {
@@ -187,6 +205,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
   const showSuggestions = burgerSuggestions.length > 0 || sideSuggestions.length > 0 || drinkSuggestions.length > 0;
 
   return <div className="checkout-page">
+    {pendingRemoval && <LastBurgerDialog onCancel={() => setPendingRemoval(null)} onConfirm={() => { applyQuantityChange(pendingRemoval, -1); setPendingRemoval(null); focusBurgerRequirement(); }} />}
     <header className="topbar wrap checkout-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><Link className="checkout-back" href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "cardapio")}><ArrowLeft size={17} /> Voltar ao cardápio</Link></header>
     <main className="checkout-main wrap">
       <div className="checkout-heading"><span className="checkout-step">Cardápio <span>›</span> Checkout <span>›</span> Acompanhar pedido</span><h1>Confira e finalize seu pedido.</h1><p>Adicione o que faltar, informe seus dados e veja o total antes de seguir para o Pix.</p></div>
@@ -216,7 +235,7 @@ export default function Checkout({ initialItems }: { initialItems: string }) {
               {product.ingredients.length ? <><p>Retire ingredientes desta unidade:</p>{product.ingredients.map(ingredient => <label key={ingredient}><input type="checkbox" checked={removals[product.id]?.[index]?.includes(ingredient) ?? false} onChange={() => toggleRemoval(product.id, index, ingredient)} disabled={data.paused} /> Sem {ingredient === "Maionese" ? "maionese artesanal" : ingredient.toLowerCase()}</label>)}</> : <p>Sem ingredientes cadastrados para edição.</p>}
             </details>)}</div>}
           </div>) : <p className="checkout-empty">Seu carrinho está vazio. <Link href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "hamburgueres")}>Escolha um hambúrguer</Link>.</p>}</div>
-          <Link className="checkout-edit" href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "cardapio")}>Adicionar mais itens do cardápio</Link><div className="checkout-total"><span>Subtotal</span><strong>{money(subtotal)}</strong></div>{method === "delivery" && <div className="checkout-total checkout-delivery-fee"><span>Entrega · {neighborhood || "selecione o bairro"}</span><strong>{!neighborhood ? "A calcular" : deliveryFee === 0 ? "Grátis" : money(deliveryFee)}</strong></div>}<div className="checkout-total" aria-live="polite"><span>Total</span><strong>{money(total)}</strong></div>{data.paid >= data.capacity && <div className="notice">A produção prevista foi atingida. Seu pedido depende de disponibilidade.</div>}{data.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-yellow checkout-submit" type="submit" form="checkout-form" disabled={busy || data.paused}>{busy ? "Preparando pagamento..." : "Prosseguir para pagamento"}<ArrowRight size={18} /></button><p className="checkout-submit-note">{method ? "O n\u00famero do pedido aparece na pr\u00f3xima tela." : "Ao continuar, indicaremos se falta alguma informa\u00e7\u00e3o."}</p>
+          {burgerCount === 0 && <BurgerRequirementNotice href="/" onChoose={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "hamburgueres")} />}<Link className="checkout-edit" href="/" onClick={() => window.sessionStorage.setItem("blueckyardigans-scroll-target", "cardapio")}>Adicionar mais itens do cardápio</Link><div className="checkout-total"><span>Subtotal</span><strong>{money(subtotal)}</strong></div>{method === "delivery" && <div className="checkout-total checkout-delivery-fee"><span>Entrega · {neighborhood || "selecione o bairro"}</span><strong>{!neighborhood ? "A calcular" : deliveryFee === 0 ? "Grátis" : money(deliveryFee)}</strong></div>}<div className="checkout-total" aria-live="polite"><span>Total</span><strong>{money(total)}</strong></div>{data.paid >= data.capacity && <div className="notice">A produção prevista foi atingida. Seu pedido depende de disponibilidade.</div>}{data.paused && <div className="notice">Os pedidos estão pausados no momento.</div>}{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-yellow checkout-submit" type="submit" form="checkout-form" disabled={busy || data.paused}>{busy ? "Preparando pagamento..." : "Prosseguir para pagamento"}<ArrowRight size={18} /></button><p className="checkout-submit-note">{method ? "O n\u00famero do pedido aparece na pr\u00f3xima tela." : "Ao continuar, indicaremos se falta alguma informa\u00e7\u00e3o."}</p>
         </aside>
       </div>}
     </main>

@@ -939,3 +939,18 @@ button { -webkit-touch-callout: none; }
 .method-options[data-incomplete] { outline: 2px solid #b42318; outline-offset: 5px; border-radius: 10px; }
 .checkout-page input[aria-invalid="true"], .checkout-page select[aria-invalid="true"] { border-color: #b42318; }
 .checkout-page input:focus-visible, .checkout-page select:focus-visible, .method-options button:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 3px; }
+
+.last-burger-dialog { width: min(440px, calc(100% - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: 28px; overflow-y: auto; border: 1px solid #dce5f2; border-radius: 18px; background: #fff; color: var(--brand-deep); box-shadow: 0 24px 80px #071b5033; }
+.last-burger-dialog::backdrop { background: #071b5099; }
+.last-burger-icon { display: grid; width: 48px; height: 48px; margin-bottom: 18px; place-items: center; border-radius: 14px; background: #fff5c7; color: var(--brand-blue); }
+.last-burger-dialog h2 { margin: 0 0 12px; font-family: 'DM Sans', Arial, sans-serif; font-size: 23px; line-height: 1.25; letter-spacing: -.03em; }
+.last-burger-dialog p { margin: 0; color: #526787; font-size: 14px; line-height: 1.6; }
+.last-burger-actions { display: grid; gap: 10px; margin-top: 24px; }
+.last-burger-actions button { min-height: 48px; width: 100%; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.last-burger-actions .button-yellow { border: 0; border-radius: 9px; background: var(--brand-yellow); color: var(--brand-deep); }
+.last-burger-remove { border: 1px solid #d0dcee; border-radius: 9px; background: #fff; color: var(--brand-blue); }
+.last-burger-actions button:focus-visible, .burger-requirement a:focus-visible { outline: 3px solid var(--brand-blue); outline-offset: 3px; }
+.burger-requirement { margin: 18px 0; padding: 16px; border: 1px solid #e6cd68; border-radius: 10px; background: #fff9df; color: var(--brand-deep); }
+.burger-requirement strong { display: block; font-size: 14px; }
+.burger-requirement p { margin: 8px 0; color: #526787; font-size: 13px; line-height: 1.5; }
+.burger-requirement a { display: inline-flex; align-items: center; min-height: 44px; color: var(--brand-blue); font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
