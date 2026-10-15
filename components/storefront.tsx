@@ -93,11 +93,12 @@ export default function Storefront() {
           <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 30 de outubro</div>
           <h1>O sabor da<br />nossa <em>gincana.</em></h1>
         </div>
+          <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
         <Link className="hero-media hero-combo" href="/#cardapio" onClick={event => scrollTo(event, "cardapio")} aria-label="Ver o combo da noite no cardápio">
           <div className="hero-combo-photo"><Image src="/products/combo-azul-v2.webp" fill priority sizes="(max-width: 800px) 100vw, 50vw" alt="Combo com hambúrguer artesanal, batata frita e refrigerante" /></div>
           <div className="hero-combo-caption"><span><strong>Combo da noite</strong><small>Hambúrguer + batata + refrigerante</small></span><span className="hero-combo-action">Ver cardápio <ArrowRight size={18} aria-hidden="true" /></span></div>
         </Link>
-          <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
+
           <section className="hero-delivery" aria-label="Delivery e taxas por bairro">
             <div className="hero-delivery-heading"><Truck size={22} aria-hidden="true" /><h2>Seu hambúrguer vai até você.</h2></div>
             <dl className="hero-delivery-rates">

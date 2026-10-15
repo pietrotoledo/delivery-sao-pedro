@@ -820,6 +820,6 @@ button { -webkit-touch-callout: none; }
 @media (max-width: 900px) {
   .site-shell .hero-copy.hero-flow { display: flex; flex-direction: column; gap: 0; padding: 0; }
   .hero-flow > * { order: 0; }
-  .hero-flow > .hero-combo { margin: 8px 0 22px; }
+  .hero-flow > .hero-combo { margin: 22px 0 0; }
   .hero-flow > .hero-heading { width: 100%; }
 }
