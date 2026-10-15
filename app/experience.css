@@ -299,7 +299,6 @@ button { -webkit-touch-callout: none; }
   .site-shell .nav-cta { padding: 9px 10px; }
   .site-shell .hero-inner { display: flex; flex-direction: column; gap: 14px; padding-top: 27px; padding-bottom: 28px; }
   .site-shell .hero-copy { padding: 0; width: 100%; }
-  .site-shell .hero-inner > .hero-combo { order: -1; }
   .site-shell .hero h1 { font-size: clamp(54px, 12vw, 74px); margin: 20px 0 15px; }
   .site-shell .hero-copy > p { font-size: 14px; line-height: 1.55; }
   .event-schedule { margin-top: 16px; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
@@ -808,3 +807,9 @@ button { -webkit-touch-callout: none; }
 .hero-combo-action { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-yellow); font-size: 13px; font-weight: 800; }
 .hero-media.hero-combo:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 4px; }
 @media (max-width: 700px) { .hero-combo-caption { padding: 18px; gap: 12px; } .hero-combo-caption strong { font-size: 20px; } }
+
+.site-shell .hero-inner { row-gap: 0; }
+.site-shell .hero-heading { grid-column: 1; grid-row: 1; align-self: end; padding-top: 28px; }
+.site-shell .hero-copy { grid-column: 1; grid-row: 2; align-self: start; padding-top: 0; }
+.site-shell .hero-inner > .hero-combo { grid-column: 2; grid-row: 1 / span 2; }
+@media (max-width: 700px) { .site-shell .hero-inner { gap: 14px; } .site-shell .hero-heading { align-self: stretch; padding-top: 0; } .site-shell .hero-copy { align-self: stretch; } }
