@@ -14,7 +14,7 @@ function loadModule(path, imports, extra = {}) {
 
 const events = ['pix_available', 'paid', 'preparing', 'ready', 'out_for_delivery', 'completed'];
 
-test('six order stages schedule six WhatsApp notices but only Pix and thank-you emails', async () => {
+test('six order stages schedule six WhatsApp notices and three customer emails', async () => {
   const pending = [], emails = [], whatsapp = [], rows = new Map();
   const database = { prepare(sql) {
     let args;
@@ -44,8 +44,14 @@ test('six order stages schedule six WhatsApp notices but only Pix and thank-you 
     await Promise.all(pending);
   }
   assert.deepEqual(whatsapp, events);
-  assert.deepEqual(emails.map(x => x.text), ['message:pix_available', 'message:completed']);
-  assert.match(emails[1].subject, /Obrigado pela compra!/);
+  assert.deepEqual(emails.map(x => x.text), ['message:pix_available', 'message:paid', 'message:completed']);
+  assert.match(emails[1].subject, /Pagamento confirmado/);
+  assert.match(emails[2].subject, /Obrigado pela compra!/);
+  notifications.scheduleOrderNotifications('order', 'event_morning', 'https://example.com');
+  notifications.scheduleOrderNotifications('order', 'event_evening', 'https://example.com');
+  await Promise.all(pending);
+  assert.equal(emails.length, 3, 'event reminders are WhatsApp-only');
+  assert.deepEqual(whatsapp.slice(-2), ['event_morning', 'event_evening']);
 });
 
 test('retry discards a previously queued intermediate email without sending it', async () => {
@@ -65,6 +71,6 @@ test('retry discards a previously queued intermediate email without sending it',
   }, { Date, console, fetch: async () => { sent = true; throw Error('Should not send'); } });
   await email.retryEmailNotifications();
   assert.equal(sent, false);
-  assert.ok(updates.some(sql => sql.includes("event NOT IN ('pix_available','completed')")));
+  assert.ok(updates.some(sql => sql.includes("event NOT IN ('pix_available','paid','completed')")));
   assert.ok(updates.some(sql => sql.includes("state='superseded'") && sql.includes('WHERE id=?')));
 });

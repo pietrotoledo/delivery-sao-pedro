@@ -7,14 +7,15 @@ type EmailNoticeRow = {
   attempts: number;
 };
 
-type EmailNotice = Extract<OrderNotice, "pix_available" | "completed">;
+type EmailNotice = Extract<OrderNotice, "pix_available" | "paid" | "completed">;
 
 function isEmailNotice(event: OrderNotice): event is EmailNotice {
-  return event === "pix_available" || event === "completed";
+  return event === "pix_available" || event === "paid" || event === "completed";
 }
 
 const subjects: Record<EmailNotice, string> = {
   pix_available: "Seu Pix está pronto",
+  paid: "Pagamento confirmado · Confira a data do evento",
   completed: "Obrigado pela compra!",
 };
 
@@ -61,7 +62,7 @@ async function sendEmailNotice(id: string) {
   const notice = await db().prepare("SELECT id,order_id,event,subject,message,attempts FROM email_notifications WHERE id=?")
     .bind(id).first<EmailNoticeRow>();
   if (!notice) return;
-  // Also discard intermediate emails queued before the two-email policy.
+  // Discard operational stages that are sent only through WhatsApp.
   if (!isEmailNotice(notice.event)) {
     await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE id=?")
       .bind(new Date().toISOString(), id).run();
@@ -107,7 +108,7 @@ export function scheduleEmailRetries() {
 export async function retryEmailNotifications() {
   if (!emailEnabled()) return;
   await ensureSchema();
-  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE event NOT IN ('pix_available','completed') AND state IN ('pending','failed')")
+  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE event NOT IN ('pix_available','paid','completed') AND state IN ('pending','failed')")
     .bind(new Date().toISOString()).run();
   const now = new Date().toISOString();
   const stale = new Date(Date.now() - 60_000).toISOString();

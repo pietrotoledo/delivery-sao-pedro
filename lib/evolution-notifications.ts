@@ -1,7 +1,8 @@
 import { env, waitUntil } from "cloudflare:workers";
 import { db, ensureSchema, getOrder, type Order } from "./store";
+import { eventReminderActive, eventReminderText, isEventReminder, orderEventSchedule, type EventReminder } from "./event-schedule";
 
-export type OrderNotice = "pix_available" | "paid" | "preparing" | "ready" | "out_for_delivery" | "completed";
+export type OrderNotice = "pix_available" | "paid" | "preparing" | "ready" | "out_for_delivery" | "completed" | EventReminder;
 
 type NoticeRow = {
   id: string; order_id: string; event: OrderNotice; message: string;
@@ -30,13 +31,15 @@ export function orderNoticeMessage(order: Order, event: OrderNotice, origin: str
     case "pix_available":
       return order.checkout_url && !order.paid_at
         ? `${prefix}Seu Pix est\u00e1 pronto. Confira o valor e pague aqui: ${order.checkout_url}\nAcompanhe o pedido: ${track}` : null;
-    case "paid": return `${prefix}Pagamento confirmado! Acompanhe seu pedido: ${track}`;
+    case "paid": return `${prefix}Pagamento confirmado! Seu pedido está garantido para a Noite do Hambúrguer.\n\n${orderEventSchedule(order.method)}\n\nAcompanhe seu pedido: ${track}`;
     case "preparing": return `${prefix}Seu pedido est\u00e1 em preparo. Acompanhe: ${track}`;
     case "ready": return order.method === "pickup"
       ? `${prefix}Seu pedido est\u00e1 pronto para retirada. Leve os quatro \u00faltimos d\u00edgitos do telefone usado na compra. Acompanhe: ${track}`
       : `${prefix}Seu pedido est\u00e1 pronto e ser\u00e1 encaminhado para entrega. Acompanhe: ${track}`;
     case "out_for_delivery": return `${prefix}Seu pedido saiu para entrega. Informe ao entregador os quatro \u00faltimos d\u00edgitos do telefone usado na compra. Acompanhe: ${track}`;
     case "completed": return `${prefix}Seu pedido foi finalizado. Obrigado pela compra! ${track}`;
+    case "event_morning":
+    case "event_evening": return `${prefix}${eventReminderText(order.method, event)}\nAcompanhe seu pedido: ${track}`;
   }
 }
 
@@ -64,7 +67,7 @@ async function enqueueOrderNotice(orderId: string, event: OrderNotice, origin: s
   const result = await db().prepare("INSERT OR IGNORE INTO order_notifications (id,order_id,event,message,updated_at) VALUES (?,?,?,?,?)")
     .bind(id, orderId, event, text, now).run();
   if (!result.meta.changes) return;
-  await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE order_id=? AND id<>? AND state IN ('pending','failed')")
+  await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE order_id=? AND id<>? AND event NOT IN ('event_morning','event_evening') AND state IN ('pending','failed')")
     .bind(now, orderId, id).run();
   await sendNotice(id);
 }
@@ -80,7 +83,8 @@ async function sendNotice(id: string) {
   if (!notice) return;
   const order = await getOrder(notice.order_id);
   const number = order && phoneNumber(order);
-  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded") {
+  const expiredReminder = isEventReminder(notice.event) && (!eventReminderActive(notice.event) || !order?.paid_at || order.status === "completed");
+  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || expiredReminder) {
     await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE id=?").bind(new Date().toISOString(), id).run();
     return;
   }

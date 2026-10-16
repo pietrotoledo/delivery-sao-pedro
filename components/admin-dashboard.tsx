@@ -19,7 +19,7 @@ type Order = {
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
 type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
 type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
-const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão" };
+const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão", event_morning: "lembrete do evento · 11h", event_evening: "lembrete do evento · 18h" };
 const noticeStates: Record<string, string> = { failed: "falhou; nova tentativa programada", superseded: "substituído", pending: "pendente", sending: "enviando" };
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
