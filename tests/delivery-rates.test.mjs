@@ -64,12 +64,30 @@ function orderApi(productChanges = {}) {
 }
 
 const payload = (neighborhood, expectedDeliveryFee) => ({
-  requestKey: webcrypto.randomUUID(), name: "Cliente Teste", phone: "83999123456", email: "teste@example.com",
+  requestKey: webcrypto.randomUUID(), name: "Cliente Teste", phone: "83999123456", email: "teste@example.com", whatsappOptIn: true,
   method: "delivery", neighborhood, address: "Rua Teste, 159", items: [{ id: "classic", quantity: 1 }],
   expectedSubtotal: 1000, expectedDeliveryFee,
 });
 const request = body => new Request("https://example.com/api/orders", {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+});
+
+test("Exige autorização explícita de WhatsApp antes de reservar estoque ou gerar pagamento", async () => {
+  for (const value of [undefined, false, null, 1, "true"]) {
+    const api = orderApi();
+    const response = await api.post(request({ ...payload("Aeroclube", 500), whatsappOptIn: value }));
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /WhatsApp/);
+    assert.equal(api.inserted(), undefined);
+    assert.equal(api.paymentAttempts(), 0);
+  }
+});
+
+test("Preserva a autorização mesmo quando a integração está temporariamente desconfigurada", async () => {
+  const api = orderApi();
+  const response = await api.post(request(payload("Aeroclube", 500)));
+  assert.equal(response.status, 201);
+  assert.equal(api.inserted()[18], 1);
 });
 
 for (const area of deliveryAreas) {

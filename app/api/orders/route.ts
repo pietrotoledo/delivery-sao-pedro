@@ -3,7 +3,6 @@ import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
 import { brazilianMobileError, normalizeBrazilianMobile } from "@/lib/phone";
-import { evolutionEnabled } from "@/lib/evolution-notifications";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
 
 async function requestHash(body: Record<string,unknown>) {
@@ -27,6 +26,7 @@ export async function POST(request: Request) {
   }
   const phone = normalizeBrazilianMobile(body.phone);
   if (!phone) return json({error:brazilianMobileError(body.phone)},400);
+  if (body.whatsappOptIn !== true) return json({error:"Confirme que o número tem WhatsApp e autorize os avisos deste pedido para continuar."},400);
   const hash = await requestHash(body);
   await ensureSchema();
   const previous = await db().prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const neighborhood = method === "delivery" ? structuredAddress?.neighborhood ?? String(body.neighborhood ?? "").trim() : null;
   const address = method === "delivery" ? structuredAddress ? formatDeliveryAddress(structuredAddress) : String(body.address ?? "").trim().slice(0,220) : null;
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
-  const whatsappOptIn = body.whatsappOptIn === true && evolutionEnabled() ? 1 : 0;
+  const whatsappOptIn = 1;
   if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
   const deliveryFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
   if (deliveryFee === null || (method === "delivery" && (!address || address.length < 8))) {
