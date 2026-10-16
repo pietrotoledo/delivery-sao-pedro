@@ -26,7 +26,6 @@ export async function POST(request: Request) {
   }
   const phone = normalizeBrazilianMobile(body.phone);
   if (!phone) return json({error:brazilianMobileError(body.phone)},400);
-  if (body.whatsappOptIn !== true) return json({error:"Confirme que o número tem WhatsApp e autorize os avisos deste pedido para continuar."},400);
   const hash = await requestHash(body);
   await ensureSchema();
   const previous = await db().prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
@@ -44,7 +43,7 @@ export async function POST(request: Request) {
   const neighborhood = method === "delivery" ? structuredAddress?.neighborhood ?? String(body.neighborhood ?? "").trim() : null;
   const address = method === "delivery" ? structuredAddress ? formatDeliveryAddress(structuredAddress) : String(body.address ?? "").trim().slice(0,220) : null;
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
-  const whatsappOptIn = 1;
+  const whatsappOptIn = body.whatsappOptIn === true ? 1 : 0;
   if (name.length < 3) return json({error:"Informe um nome com pelo menos 3 caracteres."},400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
   const deliveryFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
