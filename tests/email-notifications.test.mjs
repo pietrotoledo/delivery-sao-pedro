@@ -14,6 +14,7 @@ function loadModule(path, imports, extra = {}) {
 
 const events = ['pix_available', 'paid', 'preparing', 'ready', 'out_for_delivery', 'completed'];
 const schedule = loadModule('../lib/event-schedule.ts', { './event-location': { eventLocation: { name: 'Evidence', address: 'Rua' } } });
+const queue = loadModule('../lib/notification-queue.ts', { './store': {} });
 
 test('six order stages schedule six WhatsApp notices and two emails including the event date in Pix', async () => {
   const pending = [], emails = [], whatsapp = [], rows = new Map();
@@ -33,6 +34,7 @@ test('six order stages schedule six WhatsApp notices and two emails including th
     './store': { db: () => database, ensureSchema: async () => {}, getOrder: async () => ({ id: 'order', email: 'customer@example.com', status: 'awaiting_payment', method: 'delivery' }) },
     './evolution-notifications': { orderNoticeMessage: (_, event) => `message:${event}` },
     './event-schedule': schedule,
+    './notification-queue': queue,
   }, {
     URL, Date, console, AbortSignal,
     fetch: async (_, options) => { emails.push(JSON.parse(options.body)); return { ok: true, json: async () => ({ id: 'email-id' }) }; },
@@ -73,6 +75,7 @@ test('retry discards a previously queued payment-confirmation email without send
       };
     } }) },
     './evolution-notifications': {},
+    './notification-queue': { ...queue, ensureNotificationSchema: async () => {} },
   }, { Date, console, fetch: async () => { sent = true; throw Error('Should not send'); } });
   await email.retryEmailNotifications();
   assert.equal(sent, false);

@@ -2,6 +2,7 @@ import { env, waitUntil } from "cloudflare:workers";
 import { db, ensureSchema, getOrder } from "./store";
 import { orderNoticeMessage, type OrderNotice } from "./evolution-notifications";
 import { orderEventSchedule } from "./event-schedule";
+import { ensureNotificationSchema, notificationBatch, pixNoticeExpired } from "./notification-queue";
 
 type EmailNoticeRow = {
   id: string; order_id: string; event: OrderNotice; subject: string; message: string;
@@ -71,8 +72,8 @@ async function sendEmailNotice(id: string) {
       .bind(new Date().toISOString(), id).run();
     return;
   }
-  const order = await getOrder(notice.order_id);
-  if (!order?.email || order.contact_deleted_at || order.status === "refunded") {
+  const order = await getOrder(notice.order_id, true);
+  if (!order?.email || order.contact_deleted_at || order.status === "refunded" || pixNoticeExpired(order, notice.event)) {
     await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE id=?")
       .bind(new Date().toISOString(), id).run();
     return;
@@ -110,12 +111,12 @@ export function scheduleEmailRetries() {
 
 export async function retryEmailNotifications() {
   if (!emailEnabled()) return;
-  await ensureSchema();
-  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE event NOT IN ('pix_available','completed') AND state IN ('pending','failed')")
+  await ensureNotificationSchema();
+  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE state IN ('pending','failed') AND (event NOT IN ('pix_available','completed') OR (event='pix_available' AND EXISTS (SELECT 1 FROM orders WHERE orders.id=email_notifications.order_id AND (paid_at IS NOT NULL OR status NOT IN ('ready_for_payment','awaiting_payment')))))")
     .bind(new Date().toISOString()).run();
   const now = new Date().toISOString();
   const stale = new Date(Date.now() - 60_000).toISOString();
-  const rows = await db().prepare("SELECT id FROM email_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?) ORDER BY updated_at LIMIT 10")
-    .bind(now, stale).all<{ id: string }>();
-  await Promise.all(rows.results.map(row => sendEmailNotice(row.id)));
+  const rows = await db().prepare("SELECT id FROM email_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?) ORDER BY updated_at LIMIT ?")
+    .bind(now, stale, notificationBatch.email).all<{ id: string }>();
+  for (const row of rows.results) await sendEmailNotice(row.id);
 }

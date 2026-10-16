@@ -1,4 +1,5 @@
-import { db, ensureSchema, type Order } from "./store";
+import { db, type Order } from "./store";
+import { ensureNotificationSchema, notificationBatch } from "./notification-queue";
 import { evolutionEnabled, orderNoticeMessage } from "./evolution-notifications";
 import { dueEventReminder, eventSchedule } from "./event-schedule";
 
@@ -6,7 +7,7 @@ import { dueEventReminder, eventSchedule } from "./event-schedule";
 export async function queueEventReminders(now = new Date()) {
   const reminder = dueEventReminder(now);
   if (!reminder || !evolutionEnabled()) return;
-  await ensureSchema();
+  await ensureNotificationSchema();
   const database = db();
   const cutoff = new Date(reminder.start).toISOString();
   const orders = await database.prepare(`SELECT * FROM orders
@@ -15,8 +16,8 @@ export async function queueEventReminders(now = new Date()) {
       AND (payment_mode IS NULL OR payment_mode<>'demo')
       AND (payment_note IS NULL OR payment_note NOT LIKE 'TESTE SEM PAGAMENTO REAL%')
       AND NOT EXISTS (SELECT 1 FROM order_notifications n WHERE n.order_id=orders.id AND n.event=?)
-    ORDER BY created_at LIMIT 100`)
-    .bind(cutoff, reminder.event).all<Order>();
+    ORDER BY created_at LIMIT ?`)
+    .bind(cutoff, reminder.event, notificationBatch.reminders).all<Order>();
   if (!orders.results.length) return;
   const timestamp = now.toISOString();
   await database.batch(orders.results.map(order => database.prepare(

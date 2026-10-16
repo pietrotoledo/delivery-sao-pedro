@@ -258,8 +258,8 @@ export async function paidCount() {
   return row?.count ?? 0;
 }
 
-export async function getOrder(id: string) {
-  await ensureSchema();
+export async function getOrder(id: string, schemaReady = false) {
+  if (!schemaReady) await ensureSchema();
   return await db().prepare("SELECT * FROM orders WHERE id = ?").bind(id).first<Order>();
 }
 

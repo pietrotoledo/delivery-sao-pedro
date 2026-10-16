@@ -1,6 +1,7 @@
 import { env, waitUntil } from "cloudflare:workers";
 import { db, ensureSchema, getOrder, type Order } from "./store";
 import { eventReminderActive, eventReminderText, isEventReminder, orderEventSchedule, type EventReminder } from "./event-schedule";
+import { ensureNotificationSchema, notificationBatch, pixNoticeExpired } from "./notification-queue";
 
 export type OrderNotice = "pix_available" | "paid" | "preparing" | "ready" | "out_for_delivery" | "completed" | EventReminder;
 
@@ -76,32 +77,52 @@ async function sendNotice(id: string) {
   const config = settings();
   if (!config) return;
   const now = new Date().toISOString();
-  const claim = await db().prepare("UPDATE order_notifications SET state='sending',attempts=attempts+1,updated_at=? WHERE id=? AND (state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?))")
-    .bind(now, id, now, new Date(Date.now() - 60_000).toISOString()).run();
+  const claim = await db().prepare("UPDATE order_notifications SET state='sending',attempts=attempts+1,updated_at=? WHERE id=? AND (state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)))")
+    .bind(now, id, now).run();
   if (!claim.meta.changes) return;
   const notice = await db().prepare("SELECT * FROM order_notifications WHERE id=?").bind(id).first<NoticeRow>();
   if (!notice) return;
-  const order = await getOrder(notice.order_id);
+  const order = await getOrder(notice.order_id, true);
   const number = order && phoneNumber(order);
   const expiredReminder = isEventReminder(notice.event) && (!eventReminderActive(notice.event) || !order?.paid_at || order.status === "completed");
-  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || expiredReminder) {
+  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || expiredReminder || pixNoticeExpired(order, notice.event)) {
     await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE id=?").bind(new Date().toISOString(), id).run();
     return;
   }
+  let submitted = false;
+  let rejected = false;
+  let providerId: string | undefined;
   try {
+    // A read-only preflight can fail/retry safely: no message has been submitted yet.
+    const connection = await fetch(`${config.base}/instance/connectionState/${encodeURIComponent(config.instance)}`, {
+      headers: { apikey: config.key }, signal: AbortSignal.timeout(5_000),
+    });
+    if (!connection.ok) throw new Error(`Conexão Evolution respondeu HTTP ${connection.status}`);
+    const state = await connection.json() as { instance?: { state?: string } };
+    if (state.instance?.state !== "open") throw new Error("WhatsApp desconectado; nova tentativa programada");
+    submitted = true;
     const response = await fetch(`${config.base}/message/sendText/${encodeURIComponent(config.instance)}`, {
       method: "POST", headers: {"Content-Type": "application/json", apikey: config.key},
       body: JSON.stringify({number, text: notice.message}), signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) throw new Error(`Evolution respondeu HTTP ${response.status}`);
+    if (!response.ok) {
+      rejected = [401, 403, 404, 429].includes(response.status);
+      throw new Error(`Evolution respondeu HTTP ${response.status}`);
+    }
+    const result = await response.json() as { key?: { id?: string } };
+    providerId = result.key?.id;
+    if (!providerId) throw new Error("Evolution não confirmou o identificador da mensagem");
     await db().prepare("UPDATE order_notifications SET state='accepted',accepted_at=?,last_error=NULL,updated_at=? WHERE id=?")
       .bind(new Date().toISOString(), new Date().toISOString(), id).run();
   } catch (error) {
     const delayMinutes = Math.min(60, 2 ** Math.min(6, notice.attempts));
     const retryAt = new Date(Date.now() + delayMinutes * 60_000).toISOString();
-    const reason = error instanceof Error ? error.message.slice(0, 200) : "Falha no envio";
-    await db().prepare("UPDATE order_notifications SET state='failed',next_attempt_at=?,last_error=?,updated_at=? WHERE id=?")
-      .bind(retryAt, reason, new Date().toISOString(), id).run();
+    const uncertain = submitted && !rejected;
+    const detail = error instanceof Error ? error.message : "Falha no envio";
+    const prefix = uncertain ? "Confira o WhatsApp antes de reenviar. " : rejected ? "Rejeitado HTTP: " : "Antes do envio: ";
+    const reason = `${prefix}${providerId ? `Mensagem ${providerId}. ` : ""}${detail}`.slice(0, 300);
+    await db().prepare("UPDATE order_notifications SET state=?,next_attempt_at=?,last_error=?,updated_at=? WHERE id=?")
+      .bind(uncertain ? "uncertain" : "failed", uncertain ? null : retryAt, reason, new Date().toISOString(), id).run();
   }
 }
 
@@ -112,10 +133,14 @@ export function scheduleNotificationRetries() {
 
 export async function retryEvolutionNotifications() {
   if (!evolutionEnabled()) return;
-  await ensureSchema();
+  await ensureNotificationSchema();
   const now = new Date().toISOString();
   const stale = new Date(Date.now() - 60_000).toISOString();
-  const rows = await db().prepare("SELECT id FROM order_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?) ORDER BY updated_at LIMIT 10")
-    .bind(now, stale).all<{id: string}>();
-  await Promise.all(rows.results.map(row => sendNotice(row.id)));
+  await db().prepare("UPDATE order_notifications SET state='uncertain',next_attempt_at=NULL,last_error=SUBSTR('Envio incerto; confira o WhatsApp antes de reenviar. ' || COALESCE(last_error,''),1,300),updated_at=? WHERE (state='sending' AND updated_at<=?) OR (state='failed' AND (last_error IS NULL OR (last_error NOT LIKE 'Antes do envio:%' AND last_error NOT LIKE 'Rejeitado HTTP:%')))")
+    .bind(now, stale).run();
+  await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE event='pix_available' AND state IN ('pending','failed') AND EXISTS (SELECT 1 FROM orders WHERE orders.id=order_notifications.order_id AND (paid_at IS NOT NULL OR status NOT IN ('ready_for_payment','awaiting_payment')))")
+    .bind(now).run();
+  const rows = await db().prepare("SELECT id FROM order_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) ORDER BY updated_at LIMIT ?")
+    .bind(now, notificationBatch.whatsapp).all<{id: string}>();
+  for (const row of rows.results) await sendNotice(row.id);
 }

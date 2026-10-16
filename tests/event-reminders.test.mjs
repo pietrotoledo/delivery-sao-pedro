@@ -39,6 +39,7 @@ test('scheduled reminders select eligible paid orders and register each event on
   };
   const { queueEventReminders } = load('../lib/event-reminders.ts', {
     './store': { db: () => database, ensureSchema: async () => {} },
+    './notification-queue': load('../lib/notification-queue.ts', { './store': { db: () => database } }),
     './event-schedule': schedule,
     './evolution-notifications': { evolutionEnabled: () => true, orderNoticeMessage: (_, event) => event },
   });
