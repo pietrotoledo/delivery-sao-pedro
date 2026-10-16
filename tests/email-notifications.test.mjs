@@ -13,8 +13,9 @@ function loadModule(path, imports, extra = {}) {
 }
 
 const events = ['pix_available', 'paid', 'preparing', 'ready', 'out_for_delivery', 'completed'];
+const schedule = loadModule('../lib/event-schedule.ts', { './event-location': { eventLocation: { name: 'Evidence', address: 'Rua' } } });
 
-test('six order stages schedule six WhatsApp notices and three customer emails', async () => {
+test('six order stages schedule six WhatsApp notices and two emails including the event date in Pix', async () => {
   const pending = [], emails = [], whatsapp = [], rows = new Map();
   const database = { prepare(sql) {
     let args;
@@ -29,8 +30,9 @@ test('six order stages schedule six WhatsApp notices and three customer emails',
   } };
   const email = loadModule('../lib/email-notifications.ts', {
     'cloudflare:workers': { env: { RESEND_API_KEY: 'test-key', RESEND_FROM_EMAIL: 'orders@example.com' }, waitUntil: p => pending.push(p) },
-    './store': { db: () => database, ensureSchema: async () => {}, getOrder: async () => ({ id: 'order', email: 'customer@example.com', status: 'awaiting_payment' }) },
+    './store': { db: () => database, ensureSchema: async () => {}, getOrder: async () => ({ id: 'order', email: 'customer@example.com', status: 'awaiting_payment', method: 'delivery' }) },
     './evolution-notifications': { orderNoticeMessage: (_, event) => `message:${event}` },
+    './event-schedule': schedule,
   }, {
     URL, Date, console, AbortSignal,
     fetch: async (_, options) => { emails.push(JSON.parse(options.body)); return { ok: true, json: async () => ({ id: 'email-id' }) }; },
@@ -44,17 +46,20 @@ test('six order stages schedule six WhatsApp notices and three customer emails',
     await Promise.all(pending);
   }
   assert.deepEqual(whatsapp, events);
-  assert.deepEqual(emails.map(x => x.text), ['message:pix_available', 'message:paid', 'message:completed']);
-  assert.match(emails[1].subject, /Pagamento confirmado/);
-  assert.match(emails[2].subject, /Obrigado pela compra!/);
+  assert.equal(emails.length, 2);
+  assert.match(emails[0].text, /^message:pix_available/);
+  assert.match(emails[0].text, /30 de outubro de 2026/);
+  assert.match(emails[0].text, /19h/);
+  assert.equal(emails[1].text, 'message:completed');
+  assert.match(emails[1].subject, /Obrigado pela compra!/);
   notifications.scheduleOrderNotifications('order', 'event_morning', 'https://example.com');
   notifications.scheduleOrderNotifications('order', 'event_evening', 'https://example.com');
   await Promise.all(pending);
-  assert.equal(emails.length, 3, 'event reminders are WhatsApp-only');
+  assert.equal(emails.length, 2, 'event reminders are WhatsApp-only');
   assert.deepEqual(whatsapp.slice(-2), ['event_morning', 'event_evening']);
 });
 
-test('retry discards a previously queued intermediate email without sending it', async () => {
+test('retry discards a previously queued payment-confirmation email without sending a third email', async () => {
   const updates = [];
   let sent = false;
   const email = loadModule('../lib/email-notifications.ts', {
@@ -64,13 +69,13 @@ test('retry discards a previously queued intermediate email without sending it',
         bind() { return this; },
         async run() { updates.push(sql); return { meta: { changes: 1 } }; },
         async all() { return { results: [{ id: 'legacy' }] }; },
-        async first() { return { id: 'legacy', event: 'preparing' }; },
+        async first() { return { id: 'legacy', event: 'paid' }; },
       };
     } }) },
     './evolution-notifications': {},
   }, { Date, console, fetch: async () => { sent = true; throw Error('Should not send'); } });
   await email.retryEmailNotifications();
   assert.equal(sent, false);
-  assert.ok(updates.some(sql => sql.includes("event NOT IN ('pix_available','paid','completed')")));
+  assert.ok(updates.some(sql => sql.includes("event NOT IN ('pix_available','completed')")));
   assert.ok(updates.some(sql => sql.includes("state='superseded'") && sql.includes('WHERE id=?')));
 });

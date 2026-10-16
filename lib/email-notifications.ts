@@ -1,21 +1,21 @@
 import { env, waitUntil } from "cloudflare:workers";
 import { db, ensureSchema, getOrder } from "./store";
 import { orderNoticeMessage, type OrderNotice } from "./evolution-notifications";
+import { orderEventSchedule } from "./event-schedule";
 
 type EmailNoticeRow = {
   id: string; order_id: string; event: OrderNotice; subject: string; message: string;
   attempts: number;
 };
 
-type EmailNotice = Extract<OrderNotice, "pix_available" | "paid" | "completed">;
+type EmailNotice = Extract<OrderNotice, "pix_available" | "completed">;
 
 function isEmailNotice(event: OrderNotice): event is EmailNotice {
-  return event === "pix_available" || event === "paid" || event === "completed";
+  return event === "pix_available" || event === "completed";
 }
 
 const subjects: Record<EmailNotice, string> = {
   pix_available: "Seu Pix está pronto",
-  paid: "Pagamento confirmado · Confira a data do evento",
   completed: "Obrigado pela compra!",
 };
 
@@ -38,8 +38,11 @@ export function scheduleOrderEmail(orderId: string, event: OrderNotice, origin: 
 async function enqueueOrderEmail(orderId: string, event: EmailNotice, origin: string) {
   const order = await getOrder(orderId);
   if (!order?.email || order.contact_deleted_at) return;
-  const message = orderNoticeMessage(order, event, new URL(origin).origin);
-  if (!message) return;
+  const noticeMessage = orderNoticeMessage(order, event, new URL(origin).origin);
+  if (!noticeMessage) return;
+  const message = event === "pix_available"
+    ? `${noticeMessage}\n\n${orderEventSchedule(order.method)}`
+    : noticeMessage;
   await ensureSchema();
   const now = new Date().toISOString();
   const id = `${orderId}:${event}`;
@@ -108,7 +111,7 @@ export function scheduleEmailRetries() {
 export async function retryEmailNotifications() {
   if (!emailEnabled()) return;
   await ensureSchema();
-  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE event NOT IN ('pix_available','paid','completed') AND state IN ('pending','failed')")
+  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE event NOT IN ('pix_available','completed') AND state IN ('pending','failed')")
     .bind(new Date().toISOString()).run();
   const now = new Date().toISOString();
   const stale = new Date(Date.now() - 60_000).toISOString();
