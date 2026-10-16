@@ -53,3 +53,10 @@ test("Trata CEP inexistente, resposta inválida, indisponibilidade e cancelament
   for (const response of [Response.json({ erro: true }), Response.json({}), Response.json(null), new Response("", { status: 503 })]) await assert.rejects(lookupCep("99999999", signal, async () => response), /CEP|manualmente/);
   await assert.rejects(lookupCep("58030390", signal, async () => { throw new DOMException("Cancelado", "AbortError"); }), { name: "AbortError" });
 });
+
+test("CEP de Brisamar reconhece o bairro e libera endereço em João Pessoa", async () => {
+  assert.equal(servedNeighborhood(" BRISAMAR "), "Brisamar");
+  const found = await lookupCep("58000-000", new AbortController().signal, async () => Response.json({ logradouro: "Rua Teste", bairro: "Brisamar", localidade: "João Pessoa", uf: "PB" }));
+  assert.equal(found.neighborhood, "Brisamar");
+  assert.equal(deliveryAddressError({ ...emptyDeliveryAddress, ...found, number: "159" }), null);
+});

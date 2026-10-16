@@ -103,7 +103,7 @@ for (const area of deliveryAreas) {
 }
 
 test("Rejeita bairro não atendido e taxa adulterada antes de criar o pedido", async () => {
-  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Bessa", 0, 409], ["Aeroclube", 0, 409]]) {
+  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Bessa", 0, 409], ["Aeroclube", 0, 409], ["Brisamar", 0, 409]]) {
     const api = orderApi();
     assert.equal((await api.post(request(payload(neighborhood, fee)))).status, status);
     assert.equal(api.inserted(), undefined);
@@ -271,4 +271,16 @@ test("Bebida avulsa e incluida no combo compartilham o mesmo estoque", async () 
     assert.equal(sqlite.prepare("SELECT stock FROM products WHERE id='coke'").get().stock, 0);
     assert.equal(sqlite.prepare("SELECT stock FROM products WHERE id='combo'").get().stock, 4);
   } finally { sqlite.close(); }
+});
+
+test("Brisamar aceita endereço estruturado e soma R$ 5 ao total do Pix", async () => {
+  const api = orderApi();
+  const deliveryAddress = { ...addressContext.exports.emptyDeliveryAddress, street: "Rua Teste", number: "159", neighborhood: "Brisamar" };
+  const response = await api.post(request({ ...payload("Manaíra", 500), deliveryAddress }));
+  assert.equal(response.status, 201);
+  assert.equal(api.inserted()[9], "Brisamar");
+  assert.match(api.inserted()[10], /Brisamar/);
+  assert.equal(api.inserted()[15], 500);
+  assert.equal(api.inserted()[16], 1500);
+  assert.equal(api.paymentAttempts(), 1);
 });

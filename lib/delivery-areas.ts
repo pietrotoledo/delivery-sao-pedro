@@ -8,6 +8,7 @@ export const deliveryAreas = [
   { name: "Altiplano", fee: 500 },
   { name: "Cabo Branco", fee: 500 },
   { name: "Bessa", fee: 500 },
+  { name: "Brisamar", fee: 500 },
   { name: "Tambaú", fee: 500 },
 ] as const;
 
