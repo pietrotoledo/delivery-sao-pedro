@@ -7,13 +7,15 @@ type EmailNoticeRow = {
   attempts: number;
 };
 
-const subjects: Record<OrderNotice, string> = {
+type EmailNotice = Extract<OrderNotice, "pix_available" | "completed">;
+
+function isEmailNotice(event: OrderNotice): event is EmailNotice {
+  return event === "pix_available" || event === "completed";
+}
+
+const subjects: Record<EmailNotice, string> = {
   pix_available: "Seu Pix está pronto",
-  paid: "Pagamento confirmado",
-  preparing: "Seu pedido está em preparo",
-  ready: "Seu pedido está pronto",
-  out_for_delivery: "Seu pedido saiu para entrega",
-  completed: "Pedido concluído",
+  completed: "Obrigado pela compra!",
 };
 
 function settings() {
@@ -26,13 +28,13 @@ function settings() {
 export function emailEnabled() { return Boolean(settings()); }
 
 export function scheduleOrderEmail(orderId: string, event: OrderNotice, origin: string) {
-  if (!emailEnabled()) return;
+  if (!isEmailNotice(event) || !emailEnabled()) return;
   waitUntil(enqueueOrderEmail(orderId, event, origin).catch(error => {
     console.error("Falha ao registrar aviso por e-mail", error);
   }));
 }
 
-async function enqueueOrderEmail(orderId: string, event: OrderNotice, origin: string) {
+async function enqueueOrderEmail(orderId: string, event: EmailNotice, origin: string) {
   const order = await getOrder(orderId);
   if (!order?.email || order.contact_deleted_at) return;
   const message = orderNoticeMessage(order, event, new URL(origin).origin);
@@ -59,6 +61,12 @@ async function sendEmailNotice(id: string) {
   const notice = await db().prepare("SELECT id,order_id,event,subject,message,attempts FROM email_notifications WHERE id=?")
     .bind(id).first<EmailNoticeRow>();
   if (!notice) return;
+  // Also discard intermediate emails queued before the two-email policy.
+  if (!isEmailNotice(notice.event)) {
+    await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE id=?")
+      .bind(new Date().toISOString(), id).run();
+    return;
+  }
   const order = await getOrder(notice.order_id);
   if (!order?.email || order.contact_deleted_at || order.status === "refunded") {
     await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE id=?")
@@ -99,6 +107,8 @@ export function scheduleEmailRetries() {
 export async function retryEmailNotifications() {
   if (!emailEnabled()) return;
   await ensureSchema();
+  await db().prepare("UPDATE email_notifications SET state='superseded',updated_at=? WHERE event NOT IN ('pix_available','completed') AND state IN ('pending','failed')")
+    .bind(new Date().toISOString()).run();
   const now = new Date().toISOString();
   const stale = new Date(Date.now() - 60_000).toISOString();
   const rows = await db().prepare("SELECT id FROM email_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) OR (state='sending' AND updated_at<=?) ORDER BY updated_at LIMIT 10")
