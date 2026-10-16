@@ -2,7 +2,7 @@
 
 Implementado em 16/10/2026: páginas `/privacidade`, `/cookies` e `/termos`, links globais e no checkout, aviso informativo sobre armazenamento essencial e autorização opcional de WhatsApp. Apenas `whatsappOptIn: true` grava a opção ativa. A fila existente consulta essa opção antes de enviar WhatsApp. Nenhum rastreador opcional foi introduzido.
 
-O aviso “Entendi” não representa consentimento para rastreamento ou tratamento de todos os dados. Seu fechamento é guardado em `localStorage`, com chave versionada. Novas ferramentas de análise ou publicidade exigem revisão do inventário e mecanismo adequado antes da ativação.
+O fechamento do aviso não representa consentimento para rastreamento ou tratamento de todos os dados. A interface usa um ícone discreto de fechar com nome acessível e alvo de toque de 44 px. Seu fechamento é guardado em um cookie de preferência versionado, por até 180 dias, com `SameSite=Lax`, `Path=/` e `Secure` em HTTPS. Preferências antigas em `localStorage` continuam sendo respeitadas. Novas ferramentas de análise ou publicidade exigem revisão do inventário e mecanismo adequado antes da ativação.
 
 ## Informações aguardadas da organização
 
