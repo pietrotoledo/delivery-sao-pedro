@@ -1,8 +1,10 @@
+import { eventLocation, eventLocationMapUrl } from "./event-location";
+
 export function navigationUrls(destination: string) {
   const mapsQuery = new URLSearchParams({ api: "1", destination, travelmode: "driving" });
   const wazeQuery = new URLSearchParams({ q: destination, navigate: "yes" });
   return {
-    maps: `https://www.google.com/maps/dir/?${mapsQuery}`,
+    maps: destination === eventLocation.address ? eventLocationMapUrl : `https://www.google.com/maps/dir/?${mapsQuery}`,
     waze: `https://waze.com/ul?${wazeQuery}`,
   };
 }
