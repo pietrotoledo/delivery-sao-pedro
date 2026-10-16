@@ -45,7 +45,8 @@ export async function POST(request: Request) {
   const address = method === "delivery" ? structuredAddress ? formatDeliveryAddress(structuredAddress) : String(body.address ?? "").trim().slice(0,220) : null;
   const notes = String(body.notes ?? "").trim().slice(0,300) || null;
   const whatsappOptIn = 1;
-  if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
+  if (name.length < 3) return json({error:"Informe um nome com pelo menos 3 caracteres."},400);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
   const deliveryFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
   if (deliveryFee === null || (method === "delivery" && (!address || address.length < 8))) {
     return json({error:"Selecione um dos bairros atendidos e informe um endereço completo válido."},400);
