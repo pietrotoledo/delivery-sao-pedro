@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   }
   const phone = normalizeBrazilianMobile(body.phone);
   if (!phone) return json({error:brazilianMobileError(body.phone)},400);
+  if (body.whatsappOptIn !== true) return json({error:"Confirme que o número tem WhatsApp e autorize os avisos deste pedido para continuar."},400);
   const hash = await requestHash(body);
   await ensureSchema();
   const previous = await db().prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
   const whatsappOptIn = body.whatsappOptIn === true ? 1 : 0;
   if (name.length < 3) return json({error:"Informe um nome com pelo menos 3 caracteres."},400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !method) return json({error:"Informe nome, WhatsApp, e-mail válido e modalidade."},400);
-  const deliveryFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
-  if (deliveryFee === null || (method === "delivery" && (!address || address.length < 8))) {
+  const areaFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "") : 0;
+  if (areaFee === null || (method === "delivery" && (!address || address.length < 8))) {
     return json({error:"Selecione um dos bairros atendidos e informe um endereço completo válido."},400);
   }
   if (!Array.isArray(body.items) || body.items.length > 20) return json({error:"Escolha até 20 tipos de produto por pedido."},400);
@@ -93,8 +94,10 @@ export async function POST(request: Request) {
   if (burgerCount < 1) return json({error:"Inclua pelo menos um hambúrguer, avulso ou no combo, para finalizar o pedido."},400);
   if (burgerCount > 20) return json({error:"Escolha até 20 hambúrgueres por pedido."},400);
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
+  const quotedFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "", subtotal) ?? 0 : 0;
+  const deliveryFee = quotedFee === "combinar" ? null : quotedFee;
   if (Number(body.expectedSubtotal) !== subtotal) return json({error:"O cardápio mudou. Atualize a página e confira o novo total antes de pedir."},409);
-  if (Number(body.expectedDeliveryFee) !== deliveryFee) return json({error:"A taxa de entrega mudou. Atualize a página e confira o total antes de pedir."},409);
+  if ((body.expectedDeliveryFee === null ? null : Number(body.expectedDeliveryFee)) !== deliveryFee) return json({error:"A taxa de entrega mudou. Atualize a página e confira o total antes de pedir."},409);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const status = "ready_for_payment";
@@ -104,7 +107,7 @@ export async function POST(request: Request) {
   const statements = [
     database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
       SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
-      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+deliveryFee,status,whatsappOptIn,...availabilityArgs,stockRequirements.length),
+      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+(deliveryFee ?? 0),status,whatsappOptIn,...availabilityArgs,stockRequirements.length),
     ...stockRequirements.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),
   ];

@@ -2,7 +2,7 @@
 
 Plano futuro de avisos de Pix e atualizações: [notificações dos pedidos](docs/notificacoes-pedidos.md).
 
-Pré-venda da Noite do Hambúrguer de 30 de outubro de 2026. As entregas começam às 19h; a retirada no Evidence Class Club ocorre das 18h às 22h.
+Pré-venda da Noite do Hambúrguer de 30 de outubro de 2026. As entregas começam às 19h; a retirada na Casa Branca de Esquina ocorre das 18h às 22h.
 
 ## O que está pronto
 

@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, MapPinned, Phone, Truck } from "lucide-react";
+import { ArrowLeft, BadgeDollarSign, KeyRound, MapPinned, Phone, Truck } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import NavigationLinks from "./navigation-links";
-import { deliveryDestination, deliveryPhoneHref } from "@/lib/delivery-links";
+import { addressWithNeighborhood, deliveryDestination, deliveryPhoneHref } from "@/lib/delivery-links";
 
 type DeliveryOrder = {
   id: string; createdAt: string; name: string; phone: string;
   neighborhood: string | null; address: string | null; notes: string | null;
-  items: {name: string; quantity: number}[]; status: string; confirmedAt: string | null;
+  items: {name: string; quantity: number}[]; status: string; confirmedAt: string | null; feeToArrange?: boolean;
 };
 
 const statusLabels: Record<string, string> = {
@@ -75,7 +75,8 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
       {!loading && restricted && <div className="delivery-empty">Acesse a área dos entregadores para consultar este pedido. <Link href="/entregas">Entrar</Link></div>}
       {order && <article className="delivery-detail-card">
         <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
-        <p className="delivery-address"><MapPinned size={19} /><span>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</span></p>
+        <p className="delivery-address"><MapPinned size={19} /><span>{addressWithNeighborhood(order.address, order.neighborhood) || "Endereço não informado"}</span></p>
+        {order.feeToArrange && <p className="delivery-fee-arrange"><BadgeDollarSign size={18} aria-hidden="true" /><span>Frete a combinar: não está no Pix. O valor do Uber Moto é combinado com o cliente pelo WhatsApp.</span></p>}
         {destination && <NavigationLinks destination={destination} label="Rota para o cliente" />}
         <div className="delivery-actions">{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {order.phone}</a>}</div>
         <section className="delivery-detail-items"><h3>Itens do pedido</h3>{order.items.map((item, index) => <p key={`${item.name}-${index}`}>{item.quantity}× {item.name}</p>)}</section>

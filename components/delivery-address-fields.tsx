@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Check, MapPin, Search } from "lucide-react";
-import { deliveryAreas } from "@/lib/delivery-areas";
+import { deliveryAreaCity, deliveryAreas } from "@/lib/delivery-areas";
 import { cepDigits, emptyDeliveryAddress, formatCep, lookupCep, type DeliveryAddress } from "@/lib/delivery-address";
 
 export type AddressLookupState = "idle" | "loading" | "blocked";
@@ -27,7 +27,7 @@ export default function DeliveryAddressFields({ value, onChange, onLookupState }
       try {
         const found = await lookupCep(value.cep, controller.signal);
         if (!active) return;
-        const outside = found.city.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() !== "joao pessoa" || found.state !== "PB" || (Boolean(found.postalNeighborhood) && !found.neighborhood);
+        const outside = found.city.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() !== deliveryAreaCity(found.neighborhood).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || found.state !== "PB" || (Boolean(found.postalNeighborhood) && !found.neighborhood);
         onChange(current => ({ ...current, street: found.street, neighborhood: found.neighborhood, city: found.city, state: found.state }));
         onLookupState(outside ? "blocked" : "idle");
         setStatus(outside ? "blocked" : "success");
@@ -54,10 +54,10 @@ export default function DeliveryAddressFields({ value, onChange, onLookupState }
   }
 
   function manual() {
-    onChange(current => ({ ...current, cep: "", city: "João Pessoa", state: "PB", neighborhood: status === "blocked" ? "" : current.neighborhood }));
+    onChange(current => { const neighborhood = status === "blocked" ? "" : current.neighborhood; return { ...current, cep: "", city: deliveryAreaCity(neighborhood), state: "PB", neighborhood }; });
     onLookupState("idle");
     setStatus("idle");
-    setFeedback("Preencha seu endereço e selecione um dos bairros atendidos em João Pessoa - PB.");
+    setFeedback("Preencha seu endereço e selecione um dos bairros atendidos.");
   }
 
   const update = (field: keyof DeliveryAddress, text: string) => onChange(current => ({ ...current, [field]: text }));
@@ -66,7 +66,7 @@ export default function DeliveryAddressFields({ value, onChange, onLookupState }
 
   return <fieldset className="checkout-address">
     <legend><MapPin size={19} aria-hidden="true" /> Endereço de entrega</legend>
-    <p className="checkout-address-intro">Digite seu CEP para preencher o endereço. Entregamos nos bairros indicados de João Pessoa - PB.</p>
+    <p className="checkout-address-intro">Digite seu CEP para preencher o endereço. Entregamos nos bairros indicados de João Pessoa e em Intermares (Cabedelo) - PB.</p>
     <div className="checkout-cep-row">
       <label htmlFor="delivery-cep">CEP<input id="delivery-cep" name="postal-code" value={value.cep} onChange={event => changeCep(event.target.value)} autoComplete="postal-code" inputMode="numeric" placeholder="00000-000" maxLength={9} pattern="[0-9]{5}-?[0-9]{3}" aria-describedby="delivery-cep-feedback" aria-invalid={status === "error" || blocked} /></label>
       <button className="checkout-address-manual" type="button" onClick={manual}>{value.cep ? "Preencher sem CEP" : "Não sei meu CEP"}</button>
@@ -76,7 +76,7 @@ export default function DeliveryAddressFields({ value, onChange, onLookupState }
       <label className="address-street" htmlFor="delivery-street">Rua ou avenida<input id="delivery-street" value={value.street} onChange={event => update("street", event.target.value)} autoComplete="address-line1" placeholder="Nome da rua ou avenida" required minLength={3} maxLength={90} disabled={loading || blocked} /></label>
       <label htmlFor="delivery-number">Número<input id="delivery-number" value={value.number} onChange={event => update("number", event.target.value)} placeholder="Ex.: 159 ou S/N" required maxLength={12} disabled={loading || blocked} /></label>
       <label htmlFor="delivery-complement">Complemento <span className="address-optional">opcional</span><input id="delivery-complement" value={value.complement} onChange={event => update("complement", event.target.value)} autoComplete="address-line2" placeholder="Apto., bloco ou casa" maxLength={40} disabled={loading || blocked} /></label>
-      <label className="address-neighborhood" htmlFor="delivery-neighborhood">Bairro<select id="delivery-neighborhood" value={value.neighborhood} onChange={event => update("neighborhood", event.target.value)} autoComplete="address-level3" required disabled={loading || blocked}><option value="" disabled>Selecione seu bairro</option>{deliveryAreas.map(area => <option key={area.name} value={area.name}>{area.name} · {area.fee === 0 ? "Frete grátis" : "Taxa de R$ 5,00"}</option>)}</select></label>
+      <label className="address-neighborhood" htmlFor="delivery-neighborhood">Bairro<select id="delivery-neighborhood" value={value.neighborhood} onChange={event => { const neighborhood = event.target.value; onChange(current => ({ ...current, neighborhood, city: current.cep ? current.city : deliveryAreaCity(neighborhood) })); }} autoComplete="address-level3" required disabled={loading || blocked}><option value="" disabled>Selecione seu bairro</option>{deliveryAreas.map(area => <option key={area.name} value={area.name}>{area.name}{area.city ? ` (${area.city})` : ""} · {area.fee === 0 ? "Frete grátis" : area.fee === "combinar" ? "Taxa a combinar no WhatsApp (grátis acima de R$ 60)" : "R$ 5,00 (grátis acima de R$ 60)"}</option>)}</select></label>
       <label className="address-city" htmlFor="delivery-city">Cidade / UF<input id="delivery-city" value={`${value.city} - ${value.state}`} readOnly autoComplete="off" /></label>
       <label className="address-reference" htmlFor="delivery-reference">Ponto de referência <span className="address-optional">opcional</span><input id="delivery-reference" value={value.reference} onChange={event => update("reference", event.target.value)} placeholder="Ex.: em frente à praça" maxLength={50} disabled={loading || blocked} /></label>
     </div>

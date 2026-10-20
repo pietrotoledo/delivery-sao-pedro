@@ -14,5 +14,6 @@ export async function GET(request: Request, context: {params: Promise<{id: strin
     neighborhood: order.neighborhood, address: order.address, notes: order.notes,
     items: orderItems(order).flatMap(item => item.unitRemovals?.length || item.unitDrinks?.length ? orderItemLabels(item).map(name => ({name, quantity: 1})) : [{name: item.name, quantity: item.quantity}]),
     status: order.status, confirmedAt: order.handoff_confirmed_at,
+    feeToArrange: order.delivery_fee === null && order.total !== null,
   }});
 }

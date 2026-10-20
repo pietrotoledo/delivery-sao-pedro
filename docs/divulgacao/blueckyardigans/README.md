@@ -11,4 +11,4 @@ Versão com azul-marinho, tipografia limpa e nomes divertidos dos produtos.
 
 Os stories estão em 1080 × 1920 pixels. Os nomes divertidos são usados somente nos materiais de divulgação; os nomes dos produtos no site permanecem inalterados.
 
-Evento: Noite do Hambúrguer, em 30 de outubro de 2026. Retirada no Evidence Class Club das 18h às 22h; delivery a partir das 18h.
+Evento: Noite do Hambúrguer, em 30 de outubro de 2026. Retirada na Casa Branca de Esquina das 18h às 22h; delivery a partir das 19h.

@@ -6,7 +6,7 @@ import Link from "next/link";
 import BrandAvatar from "@/components/brand-avatar";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import NavigationLinks from "@/components/navigation-links";
-import { deliveryDestination } from "@/lib/delivery-links";
+import { addressWithNeighborhood, deliveryDestination } from "@/lib/delivery-links";
 
 type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[]};
 type TeamOrder = {
@@ -102,11 +102,11 @@ export default function TeamOrderPage() {
           <div className="team-card-head"><div><small>PEDIDO</small><h2>#{order.id.slice(0, 8).toUpperCase()}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
           <div className="team-fact"><span>Cliente</span><strong>{order.name}</strong></div>
           <div className="team-fact"><span>Recebimento</span><strong>{pickup ? "Retirada presencial" : "Delivery"}</strong></div>
-          {order.method === "delivery" && <div className="team-address"><span>Endereço de entrega</span><strong>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</strong>{destination && <NavigationLinks destination={destination} label="Rota para o cliente" />}</div>}
+          {order.method === "delivery" && <div className="team-address"><span>Endereço de entrega</span><strong>{addressWithNeighborhood(order.address, order.neighborhood) || "Endereço não informado"}</strong>{destination && <NavigationLinks destination={destination} label="Rota para o cliente" />}</div>}
           <div className="team-items"><h3>Itens</h3>{order.items.map((item, index) => <div className="team-item" key={`${item.id}-${index}`}><strong>{item.quantity}× {item.name}</strong><span>{money(item.quantity * item.price)}</span>{orderItemLabels(item).map((label, index) => <small key={index}>{label}</small>)}</div>)}</div>
           {order.notes && <div className="team-notes"><strong>Observação</strong><p>{order.notes}</p></div>}
           <div className="team-fact"><span>Produtos</span><strong>{money(order.subtotal)}</strong></div>
-          {order.method === "delivery" && <div className="team-fact"><span>Entrega</span><strong>{order.deliveryFee === null ? "A definir" : money(order.deliveryFee)}</strong></div>}
+          {order.method === "delivery" && <div className="team-fact"><span>Entrega</span><strong>{order.deliveryFee === null ? (order.total === null ? "A definir" : "A combinar no WhatsApp") : money(order.deliveryFee)}</strong></div>}
           <div className="team-fact team-total"><span>Total</span><strong>{order.total === null ? "A definir" : money(order.total)}</strong></div>
           <p className="team-created">Criado em {date(order.createdAt)}</p>
           <div className="team-print"><button type="button" onClick={() => window.print()}>Imprimir nota do pedido</button></div>

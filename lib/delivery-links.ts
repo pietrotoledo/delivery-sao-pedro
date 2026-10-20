@@ -1,3 +1,4 @@
+import { deliveryAreaCity } from "./delivery-areas";
 import { eventLocation, eventLocationMapUrl } from "./event-location";
 
 export function navigationUrls(destination: string) {
@@ -9,8 +10,16 @@ export function navigationUrls(destination: string) {
   };
 }
 
+// Endereços estruturados já trazem bairro e cidade; pedidos antigos só trazem rua e número.
+export function addressWithNeighborhood(address: string | null, neighborhood: string | null) {
+  if (!address) return neighborhood ?? "";
+  return neighborhood && !address.includes(neighborhood) ? `${address} · ${neighborhood}` : address;
+}
+
 export function deliveryDestination(address: string, neighborhood: string | null) {
-  return [address, neighborhood, "João Pessoa, PB"].filter(Boolean).join(", ");
+  const city = deliveryAreaCity(neighborhood ?? "");
+  const street = address.split(" · ").filter(part => !part.startsWith("Referência:")).join(", ");
+  return [street, neighborhood && !address.includes(neighborhood) ? neighborhood : null, address.includes(city) ? null : `${city}, PB`].filter(Boolean).join(", ");
 }
 
 export function deliveryDirectionsUrl(address: string, neighborhood: string | null) {

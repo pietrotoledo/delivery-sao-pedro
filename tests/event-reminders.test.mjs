@@ -74,3 +74,14 @@ test('payment confirmation contains the event date and the correct delivery or p
     assert.match(text, /https:\/\/example.com\/pedido\/example-order/);
   }
 });
+
+test('payment confirmation asks to calculate the Uber Moto fee only when delivery fee is to be arranged', () => {
+  const { orderNoticeMessage } = load('../lib/evolution-notifications.ts', {
+    'cloudflare:workers': {}, './store': {}, './event-schedule': schedule,
+  });
+  const order = { id: 'example-order', method: 'delivery', delivery_fee: null, total: 3000 };
+  assert.match(orderNoticeMessage(order, 'paid', 'https://example.com'), /calcular o seu frete pelo Uber Moto/);
+  assert.doesNotMatch(orderNoticeMessage({ ...order, delivery_fee: 500, total: 3500 }, 'paid', 'https://example.com'), /Uber Moto/);
+  assert.doesNotMatch(orderNoticeMessage({ ...order, method: 'pickup', delivery_fee: 0 }, 'paid', 'https://example.com'), /Uber Moto/);
+  assert.doesNotMatch(orderNoticeMessage(order, 'preparing', 'https://example.com'), /Uber Moto/);
+});

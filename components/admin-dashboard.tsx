@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, PackageCheck, RefreshCw, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
+import { eventLocation } from "@/lib/event-location";
+import { addressWithNeighborhood } from "@/lib/delivery-links";
 import BrandAvatar from "./brand-avatar";
 import AdminProducts from "./admin-products";
 import AdminContacts from "./admin-contacts";
@@ -223,7 +225,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               return <article className="admin-order" key={order.id}>
                 <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
                 <p className="admin-order-items">{products.flatMap(item => orderItemLabels({ ...item, name: item.name || names[item.id] || item.id })).join(" · ")}</p>
-                <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${order.address} · ${order.neighborhood}` : "Retirada no Evidence Class Club"}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
+                <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${addressWithNeighborhood(order.address, order.neighborhood)}${order.delivery_fee === null && order.total !== null ? " · taxa a combinar no WhatsApp" : ""}` : `Retirada na ${eventLocation.name}`}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
                 {notices.length > 0 && <p className="admin-order-note">Avisos: {notices.map(notice => `${notice.channel === "email" ? "E-mail" : "WhatsApp"} ${noticeEvents[notice.event] ?? notice.event} (${notice.state === "accepted" ? `aceito pelo ${notice.channel === "email" ? "Resend" : "Evolution"}` : noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}

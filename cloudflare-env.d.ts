@@ -8,6 +8,7 @@ declare namespace Cloudflare {
     EVOLUTION_API_URL?: string;
     EVOLUTION_API_KEY?: string;
     EVOLUTION_INSTANCE?: string;
+    STORE_WHATSAPP?: string;
     RESEND_API_KEY?: string;
     RESEND_FROM_EMAIL?: string;
   }

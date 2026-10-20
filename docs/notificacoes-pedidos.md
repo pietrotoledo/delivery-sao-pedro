@@ -12,6 +12,8 @@ Atualizado em 9 de outubro de 2026. O WhatsApp usa a Evolution API e o e-mail us
 
 O comprador pode aceitar avisos pelo WhatsApp no checkout quando a integração estiver configurada. A loja registra uma mensagem por evento e pedido para reduzir envios repetidos. Ela tenta enviar em segundo plano e registra se a Evolution aceitou a mensagem ou retornou erro. Falhas e avisos pendentes são verificados a cada cinco minutos pelo Worker da Cloudflare e também quando o painel admin está aberto. O estado do pedido não depende do WhatsApp.
 
+Em pedidos de entrega com taxa a combinar (Bancários, Portal do Sol e Intermares, até R$ 60), o aviso de pagamento confirmado inclui: "Vamos calcular o seu frete pelo Uber Moto e te enviar o valor por aqui no WhatsApp". A página do pedido mostra o mesmo aviso e o número da loja.
+
 Eventos: Pix disponível; pagamento confirmado; em preparo; pronto; saiu para entrega; concluído. O link Pix é enviado apenas depois de gerado pela InfinitePay. O pagamento é comunicado somente depois da verificação pelo `payment_check`.
 
 Configure estes segredos de runtime no Worker da Cloudflare, sem gravar valores no Git:
@@ -21,6 +23,7 @@ Configure estes segredos de runtime no Worker da Cloudflare, sem gravar valores 
 | `EVOLUTION_API_URL` | URL pública HTTPS da Evolution API, sem barra final |
 | `EVOLUTION_API_KEY` | Chave de API da Evolution |
 | `EVOLUTION_INSTANCE` | Nome da instância conectada ao WhatsApp |
+| `STORE_WHATSAPP` | Opcional. Substitui o número da loja exibido na página do pedido, hoje (61) 99647-9192 |
 
 A Evolution API precisa estar instalada em um servidor próprio e a instância precisa estar conectada. A integração usa `POST /message/sendText/{instanceName}` com `apikey` no cabeçalho. O site continua funcionando se a Evolution ficar indisponível; o painel mostra a falha e o agendamento tenta novamente quando ela voltar. Apenas o aviso mais recente ainda não aceito de cada pedido fica na fila; avisos anteriores são substituídos. O HTTP aceito pela Evolution não comprova entrega no aparelho do cliente.
 

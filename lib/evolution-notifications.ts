@@ -24,6 +24,21 @@ function settings() {
 
 export function evolutionEnabled() { return Boolean(settings()); }
 
+// Pedido de entrega em bairro com taxa a combinar: o frete é calculado pelo Uber Moto e enviado pelo WhatsApp.
+export const deliveryFeeToArrange = (order: Pick<Order, "method" | "delivery_fee" | "total">) =>
+  order.method === "delivery" && order.delivery_fee === null && order.total !== null;
+
+export const uberMotoNotice = "Vamos calcular o seu frete pelo Uber Moto e te enviar o valor por aqui no WhatsApp. Se precisar falar com a gente, é só responder esta mensagem.";
+
+// Número de WhatsApp da loja exibido ao cliente: (61) 99647-9192. STORE_WHATSAPP substitui, se definido.
+const defaultStoreWhatsapp = "5561996479192";
+
+export function storeWhatsapp(): string {
+  const configured = env.STORE_WHATSAPP?.replace(/\D/g, "");
+  if (!configured) return defaultStoreWhatsapp;
+  return configured.length <= 11 ? `55${configured}` : configured;
+}
+
 export function orderNoticeMessage(order: Order, event: OrderNotice, origin: string) {
   const number = order.id.slice(0, 8).toUpperCase();
   const track = `${origin}/pedido/${order.id}`;
@@ -32,7 +47,7 @@ export function orderNoticeMessage(order: Order, event: OrderNotice, origin: str
     case "pix_available":
       return order.checkout_url && !order.paid_at
         ? `${prefix}Seu Pix est\u00e1 pronto. Confira o valor e pague aqui: ${order.checkout_url}\nAcompanhe o pedido: ${track}` : null;
-    case "paid": return `${prefix}Pagamento confirmado! Seu pedido está garantido para a Noite do Hambúrguer.\n\n${orderEventSchedule(order.method)}\n\nAcompanhe seu pedido: ${track}`;
+    case "paid": return `${prefix}Pagamento confirmado! Seu pedido está garantido para a Noite do Hambúrguer.\n\n${orderEventSchedule(order.method)}${deliveryFeeToArrange(order) ? `\n\n${uberMotoNotice}` : ""}\n\nAcompanhe seu pedido: ${track}`;
     case "preparing": return `${prefix}Seu pedido est\u00e1 em preparo. Acompanhe: ${track}`;
     case "ready": return order.method === "pickup"
       ? `${prefix}Seu pedido est\u00e1 pronto para retirada. Leve os quatro \u00faltimos d\u00edgitos do telefone usado na compra. Acompanhe: ${track}`

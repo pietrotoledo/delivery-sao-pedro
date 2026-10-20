@@ -6,12 +6,13 @@ import vm from "node:vm";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import ts from "typescript";
-import { deliveryAreas, deliveryFeeFor } from "../lib/delivery-areas.ts";
+import * as deliveryAreasModule from "../lib/delivery-areas.ts";
+const { deliveryAreas, deliveryFeeFor } = deliveryAreasModule;
 import { availableComboDrinks, includesBurger, hamburgerIngredients, comboDrinkOptions } from "../lib/menu-options.ts";
 import * as phoneHelpers from "../lib/phone.ts";
 
 const require = createRequire(import.meta.url);
-const addressContext = { exports: {}, fetch, require: () => ({ deliveryAreas }) };
+const addressContext = { exports: {}, fetch, require: () => deliveryAreasModule };
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../lib/delivery-address.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, addressContext);
@@ -75,7 +76,7 @@ const request = body => new Request("https://example.com/api/orders", {
 test("Exige autorização explícita de WhatsApp antes de reservar estoque ou gerar pagamento", async () => {
   for (const value of [undefined, false, null, 1, "true"]) {
     const api = orderApi();
-    const response = await api.post(request({ ...payload("Aeroclube", 500), whatsappOptIn: value }));
+    const response = await api.post(request({ ...payload("Miramar", 500), whatsappOptIn: value }));
     assert.equal(response.status, 400);
     assert.match((await response.json()).error, /WhatsApp/);
     assert.equal(api.inserted(), undefined);
@@ -85,25 +86,27 @@ test("Exige autorização explícita de WhatsApp antes de reservar estoque ou ge
 
 test("Preserva a autorização mesmo quando a integração está temporariamente desconfigurada", async () => {
   const api = orderApi();
-  const response = await api.post(request(payload("Aeroclube", 500)));
+  const response = await api.post(request(payload("Miramar", 500)));
   assert.equal(response.status, 201);
   assert.equal(api.inserted()[18], 1);
 });
 
 for (const area of deliveryAreas) {
+  const fee = area.fee === "combinar" ? null : area.fee;
   test(`Pedido em ${area.name}: taxa ${area.fee} e total correto, pronto para Pix`, async () => {
     const api = orderApi();
-    const response = await api.post(request(payload(area.name, area.fee)));
+    const deliveryAddress = { ...addressContext.exports.emptyDeliveryAddress, street: "Rua Teste", number: "159", neighborhood: area.name, city: area.city ?? "João Pessoa" };
+    const response = await api.post(request({ ...payload(area.name, fee), deliveryAddress }));
     assert.equal(response.status, 201);
-    assert.equal(api.inserted()[15], area.fee);
-    assert.equal(api.inserted()[16], 1000 + area.fee);
+    assert.equal(api.inserted()[15], fee);
+    assert.equal(api.inserted()[16], 1000 + (fee ?? 0));
     assert.equal(api.inserted()[17], "ready_for_payment");
     assert.equal(api.paymentAttempts(), 1);
   });
 }
 
 test("Rejeita bairro não atendido e taxa adulterada antes de criar o pedido", async () => {
-  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Bessa", 0, 409], ["Aeroclube", 0, 409], ["Brisamar", 0, 409]]) {
+  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Pedro Gondim", 0, 409], ["Miramar", 0, 409], ["Brisamar", 0, 409]]) {
     const api = orderApi();
     assert.equal((await api.post(request(payload(neighborhood, fee)))).status, status);
     assert.equal(api.inserted(), undefined);
@@ -121,19 +124,19 @@ test("Retirada permanece sem taxa e pronta para Pix", async () => {
 
 test("Salva endereço estruturado completo e calcula a taxa pelo bairro estruturado", async () => {
   const api = orderApi();
-  const deliveryAddress = { ...addressContext.exports.emptyDeliveryAddress, cep: "58037-000", street: "Rua Teste", number: "159", complement: "Apto. 10", reference: "Portaria azul", neighborhood: "Bessa" };
+  const deliveryAddress = { ...addressContext.exports.emptyDeliveryAddress, cep: "58037-000", street: "Rua Teste", number: "159", complement: "Apto. 10", reference: "Portaria azul", neighborhood: "Altiplano" };
   const response = await api.post(request({ ...payload("Manaíra", 500), address: "Ignorar texto adulterado", deliveryAddress }));
   assert.equal(response.status, 201);
-  assert.equal(api.inserted()[9], "Bessa");
+  assert.equal(api.inserted()[9], "Altiplano");
   assert.equal(api.inserted()[10], addressContext.exports.formatDeliveryAddress(deliveryAddress));
   assert.equal(api.inserted()[15], 500);
 });
 
 test("Rejeita endereço estruturado incompleto e fora de João Pessoa antes de cobrar", async () => {
-  const valid = { ...addressContext.exports.emptyDeliveryAddress, street: "Rua Teste", number: "159", neighborhood: "Bessa" };
+  const valid = { ...addressContext.exports.emptyDeliveryAddress, street: "Rua Teste", number: "159", neighborhood: "Altiplano" };
   for (const deliveryAddress of [null, {}, { ...valid, city: "Cabedelo" }, { ...valid, state: "PE" }, { ...valid, neighborhood: "Centro" }, { ...valid, number: "" }, { ...valid, cep: "123" }]) {
     const api = orderApi();
-    const response = await api.post(request({ ...payload("Bessa", 500), deliveryAddress }));
+    const response = await api.post(request({ ...payload("Altiplano", 500), deliveryAddress }));
     assert.equal(response.status, 400);
     assert.equal(api.inserted(), undefined);
     assert.equal(api.paymentAttempts(), 0);
@@ -169,7 +172,7 @@ test("Rejeita acompanhamentos sem hamburguer antes de reservar estoque ou gerar 
 
 test("Permite batata com hamburguer e impede pedido vazio", async () => {
   const api = orderApi();
-  const response = await api.post(request({ ...payload("Bessa", 500), items: [{ id: "classic", quantity: 1 }, { id: "fries-small", quantity: 1 }], expectedSubtotal: 1500 }));
+  const response = await api.post(request({ ...payload("Altiplano", 500), items: [{ id: "classic", quantity: 1 }, { id: "fries-small", quantity: 1 }], expectedSubtotal: 1500 }));
   assert.equal(response.status, 201);
   assert.equal(api.inserted()[13], 1);
   assert.equal(api.inserted()[16], 2000);
@@ -198,9 +201,9 @@ test("Rejeita combo sem refrigerante ou com bebida fora das opcoes", async () =>
   }
 });
 
-test("Kit de 4 docinhos acompanha hamburguer e Aeroclube cobra R$ 5", async () => {
+test("Kit de 4 docinhos acompanha hamburguer e Miramar cobra R$ 5", async () => {
   const api = orderApi();
-  const response = await api.post(request({ ...payload("Aeroclube", 500), items: [{ id: "sweets-kit", quantity: 2 }, { id: "classic", quantity: 1 }], expectedSubtotal: 2400 }));
+  const response = await api.post(request({ ...payload("Miramar", 500), items: [{ id: "sweets-kit", quantity: 2 }, { id: "classic", quantity: 1 }], expectedSubtotal: 2400 }));
   assert.equal(response.status, 201);
   assert.equal(api.inserted()[13], 1);
   assert.equal(api.inserted()[15], 500);
@@ -233,7 +236,7 @@ test("API recusa bebida esgotada, inativa ou com quantidade insuficiente para os
 });
 
 test("Bebida avulsa e incluida no combo compartilham o mesmo estoque", async () => {
-  const body = { ...payload("Aeroclube", 500), items: [{ id: "combo", quantity: 1, unitDrinks: ["Coca-Cola normal"] }, { id: "coke", quantity: 1 }], expectedSubtotal: 2100 };
+  const body = { ...payload("Miramar", 500), items: [{ id: "combo", quantity: 1, unitDrinks: ["Coca-Cola normal"] }, { id: "coke", quantity: 1 }], expectedSubtotal: 2100 };
   const unavailable = orderApi({ coke: { stock: 1 } });
   assert.equal((await unavailable.post(request(body))).status, 409);
   const api = orderApi({ coke: { stock: 2 } });
@@ -283,4 +286,43 @@ test("Brisamar aceita endereço estruturado e soma R$ 5 ao total do Pix", async 
   assert.equal(api.inserted()[15], 500);
   assert.equal(api.inserted()[16], 1500);
   assert.equal(api.paymentAttempts(), 1);
+});
+
+test("Novas regras: frete grátis nos bairros da orla e R$ 5 nos demais, grátis acima de R$ 60", () => {
+  for (const name of ["Manaíra", "Bessa", "Aeroclube", "Tambaú", "Jardim Oceania"]) assert.equal(deliveryFeeFor(name, 1000), 0);
+  for (const name of ["Bairro dos Estados", "Cabo Branco", "Pedro Gondim", "Tambauzinho", "Miramar", "Brisamar", "Altiplano"]) {
+    assert.equal(deliveryFeeFor(name, 6000), 500);
+    assert.equal(deliveryFeeFor(name, 6001), 0);
+  }
+  assert.equal(deliveryFeeFor("Centro", 9000), null);
+});
+
+test("Pedido acima de R$ 60 em bairro com taxa sai com frete grátis e recusa taxa antiga", async () => {
+  const body = { ...payload("Miramar", 0), items: [{ id: "classic", quantity: 7 }], expectedSubtotal: 7000 };
+  const api = orderApi();
+  assert.equal((await api.post(request(body))).status, 201);
+  assert.equal(api.inserted()[15], 0);
+  assert.equal(api.inserted()[16], 7000);
+  const stale = orderApi();
+  assert.equal((await stale.post(request({ ...body, requestKey: webcrypto.randomUUID(), expectedDeliveryFee: 500 }))).status, 409);
+});
+
+test("Bancários, Portal do Sol e Intermares: taxa a combinar no WhatsApp, fora do Pix, e grátis acima de R$ 60", async () => {
+  for (const name of ["Bancários", "Portal do Sol", "Intermares"]) {
+    assert.equal(deliveryFeeFor(name, 6000), "combinar");
+    assert.equal(deliveryFeeFor(name, 6001), 0);
+  }
+  const intermares = { ...addressContext.exports.emptyDeliveryAddress, street: "Rua Teste", number: "159", neighborhood: "Intermares", city: "Cabedelo" };
+  assert.equal(addressContext.exports.deliveryAddressError(intermares), null);
+  assert.ok(addressContext.exports.deliveryAddressError({ ...intermares, city: "João Pessoa" }));
+  assert.ok(addressContext.exports.deliveryAddressError({ ...intermares, neighborhood: "Bessa" }));
+  const api = orderApi();
+  assert.equal((await api.post(request({ ...payload("Intermares", null), deliveryAddress: intermares }))).status, 201);
+  assert.equal(api.inserted()[15], null);
+  assert.equal(api.inserted()[16], 1000);
+  const stale = orderApi();
+  assert.equal((await stale.post(request({ ...payload("Portal do Sol", 0) }))).status, 409);
+  const free = orderApi();
+  assert.equal((await free.post(request({ ...payload("Bancários", 0), items: [{ id: "classic", quantity: 7 }], expectedSubtotal: 7000 }))).status, 201);
+  assert.equal(free.inserted()[15], 0);
 });

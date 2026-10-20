@@ -1,4 +1,4 @@
-import { deliveryAreas } from "./delivery-areas";
+import { deliveryAreaCity, deliveryAreas } from "./delivery-areas";
 
 export type DeliveryAddress = {
   cep: string; street: string; number: string; complement: string; reference: string;
@@ -18,7 +18,7 @@ export function formatCep(value: string) {
 }
 
 export function servedNeighborhood(value: string): string {
-  const aliases: Record<string, string> = { estados: "Bairro dos Estados", "altiplano cabo branco": "Altiplano" };
+  const aliases: Record<string, string> = { estados: "Bairro dos Estados", "altiplano cabo branco": "Altiplano", "jardim intermares": "Intermares" };
   const name = aliases[normalize(value)] ?? value;
   return deliveryAreas.find(area => normalize(area.name) === normalize(name))?.name ?? "";
 }
@@ -35,8 +35,8 @@ export function formatDeliveryAddress(value: DeliveryAddress) {
 
 export function deliveryAddressError(value: DeliveryAddress): string | null {
   if (value.cep && !/^\d{5}-?\d{3}$/.test(value.cep)) return "Informe um CEP com 8 dígitos ou escolha preencher sem CEP.";
-  if (normalize(value.city) !== "joao pessoa" || value.state.toUpperCase() !== "PB") return "Fazemos entregas apenas nos bairros atendidos de João Pessoa - PB.";
   if (!deliveryAreas.some(area => area.name === value.neighborhood)) return "Selecione um dos bairros atendidos para continuar.";
+  if (normalize(value.city) !== normalize(deliveryAreaCity(value.neighborhood)) || value.state.toUpperCase() !== "PB") return "Fazemos entregas apenas nos bairros atendidos de João Pessoa e em Intermares (Cabedelo) - PB.";
   if (value.street.trim().length < 3 || !value.number.trim()) return "Informe a rua e o número. Se não houver número, escreva S/N.";
   if (value.street.length > 90 || value.number.length > 12 || value.complement.length > 40 || value.reference.length > 50 || formatDeliveryAddress(value).length > 220) return "Resuma o endereço, o complemento e a referência para até 220 caracteres no total.";
   return null;

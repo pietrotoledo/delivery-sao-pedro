@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, Heart, MapPinned, RefreshCw, Truck } from "lucide-react";
+import { ArrowRight, BadgeDollarSign, Heart, MapPinned, RefreshCw, Truck } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
+import { addressWithNeighborhood } from "@/lib/delivery-links";
 
 type DeliveryOrder = {
-  id: string; name: string; neighborhood: string | null; address: string | null; status: string;
+  id: string; name: string; neighborhood: string | null; address: string | null; status: string; feeToArrange?: boolean;
 };
 type DeliveryData = { orders: DeliveryOrder[]; error?: string };
 
@@ -76,7 +77,8 @@ export default function DeliveryDashboard() {
         <p className="delivery-list-intro">Toque em um pedido para ver os detalhes e informar o código. A lista atualiza a cada 10 segundos.</p>
         <div className="delivery-list">{orders.length ? orders.map(order => <a className="delivery-card" href={`/entregas/pedido/${encodeURIComponent(order.id)}`} key={order.id}>
           <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
-          <p className="delivery-address"><MapPinned size={19} /><span>{order.address || "Endereço não informado"}{order.neighborhood ? ` · ${order.neighborhood}` : ""}</span></p>
+          <p className="delivery-address"><MapPinned size={19} /><span>{addressWithNeighborhood(order.address, order.neighborhood) || "Endereço não informado"}</span></p>
+          {order.feeToArrange && <p className="delivery-fee-arrange"><BadgeDollarSign size={18} aria-hidden="true" /><span>Frete a combinar: não está no Pix. O valor do Uber Moto é combinado com o cliente pelo WhatsApp.</span></p>}
           <span className="delivery-card-hint">{order.status === "out_for_delivery" ? "Abrir pedido e informar código" : "Ver pedido"} <ArrowRight size={16} aria-hidden="true" /></span>
         </a>) : <div className="delivery-empty">{showCompleted ? "Nenhuma entrega concluída." : "Nenhuma entrega em andamento."}</div>}</div>
       </>}

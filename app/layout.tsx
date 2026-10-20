@@ -7,7 +7,7 @@ import PrivacyNotice from "@/components/privacy-notice";
 
 export const metadata: Metadata = {
   title: "BLUECKYARDIGANS | Noite do Hambúrguer",
-  description: "Noite do Hambúrguer Blueckyardigans em 30 de outubro de 2026. Entregas a partir das 19h e retirada no Evidence Class Club, R. Pfa. Eudesia Vieira, 159 - Estados, João Pessoa - PB, das 18h às 22h.",
+  description: "Noite do Hambúrguer Blueckyardigans em 30 de outubro de 2026. Entregas a partir das 19h e retirada na Casa Branca de Esquina, Rua Francisco Claudino Pereira, 885 - Manaíra, João Pessoa - PB, das 18h às 22h.",
   icons: { icon: "/mascote.png" },
 };
 

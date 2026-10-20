@@ -32,15 +32,15 @@ function orderApi() {
   return { post: context.exports.POST, inserted: () => inserted };
 }
 
-for (const [choice, expected] of [[undefined, 0], [false, 0], [true, 1], ['true', 0]]) {
-  test(`pedido funciona com escolha WhatsApp ${String(choice)} e grava somente autorização explícita`, async () => {
+for (const [choice, expected] of [[undefined, 400], [false, 400], [true, 201], ['true', 400]]) {
+  test(`pedido exige autorização WhatsApp: ${String(choice)} responde ${expected}`, async () => {
     const api = orderApi();
     const response = await api.post(new Request('https://example.com/api/orders', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requestKey: crypto.randomUUID(), name: 'Maria Silva', phone: '83999123456', email: 'maria@example.com',
         method: 'pickup', items: [{ id: 'classic', quantity: 1 }], expectedSubtotal: 2500, expectedDeliveryFee: 0, whatsappOptIn: choice }),
     }));
-    assert.equal(response.status, 201, JSON.stringify(await response.json()));
-    assert.equal(api.inserted()[18], expected);
+    assert.equal(response.status, expected, JSON.stringify(await response.json()));
+    assert.equal(api.inserted()?.[18], expected === 201 ? 1 : undefined);
   });
 }

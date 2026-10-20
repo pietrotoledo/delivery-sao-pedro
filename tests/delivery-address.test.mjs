@@ -3,9 +3,10 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
 import ts from "typescript";
-import { deliveryAreas } from "../lib/delivery-areas.ts";
+import * as deliveryAreasModule from "../lib/delivery-areas.ts";
+const { deliveryAreas } = deliveryAreasModule;
 
-const context = { exports: {}, fetch, require: () => ({ deliveryAreas }) };
+const context = { exports: {}, fetch, require: () => deliveryAreasModule };
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../lib/delivery-address.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, context);
@@ -18,7 +19,8 @@ test("Formata CEP e reconhece apenas bairros atendidos, incluindo nomes usados p
   assert.equal(servedNeighborhood("Estados"), "Bairro dos Estados");
   assert.equal(servedNeighborhood("Altiplano Cabo Branco"), "Altiplano");
   assert.equal(servedNeighborhood("TAMBAU"), "Tambaú");
-  assert.equal(servedNeighborhood("Jardim Oceania"), "");
+  assert.equal(servedNeighborhood("jardim oceania"), "Jardim Oceania");
+  assert.equal(servedNeighborhood("Centro"), "");
 });
 
 test("Endereço completo preserva CEP, número, complemento e referência; manual dispensa CEP", () => {
