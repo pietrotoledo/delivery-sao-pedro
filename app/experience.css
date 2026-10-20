@@ -39,7 +39,17 @@
 .service-strip-free { font-weight: 900; }
 .checkout-free-hint { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: #fff7d1; color: var(--brand-deep); font-size: 13px; font-weight: 700; line-height: 1.45; }
 .checkout-free-hint.is-free { background: #ddf5e3; color: #14532d; }
-.status-uber-moto { background: #fff7d1; }
+.uber-moto-card { margin: 16px 0; padding: 20px; border: 2px solid #f2c200; border-radius: 14px; background: #fff7d1; color: var(--brand-deep); }
+.uber-moto-heading { display: flex; gap: 10px; align-items: center; }
+.uber-moto-heading svg { flex: none; color: #128c4a; }
+.uber-moto-card h3 { margin: 0; font-family: "DM Sans", Arial, sans-serif; font-size: 22px; line-height: 1.25; letter-spacing: -.02em; text-transform: none; }
+.uber-moto-card > p { margin: 10px 0 0; font-size: 16px; line-height: 1.55; }
+.button-whatsapp { display: flex; gap: 10px; align-items: center; justify-content: center; width: 100%; min-height: 58px; margin-top: 16px; padding: 12px 18px; border-radius: 12px; background: #25d366; color: #06301a; font-size: 17px; font-weight: 800; text-align: center; text-decoration: none; box-shadow: 0 4px 0 #1a9e4b; }
+.button-whatsapp:hover { background: #22c35e; }
+.button-whatsapp svg { flex: none; }
+.button-whatsapp:focus-visible { outline: 3px solid var(--brand-blue); outline-offset: 3px; }
+.uber-moto-card .uber-moto-number { margin-top: 12px; font-size: 14px; text-align: center; }
+.uber-moto-number strong { white-space: nowrap; }
 .status-contact { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft); font-size: 14px; line-height: 1.5; }
 .delivery-fee-arrange { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: #fff7d1; color: #5c4400; font-size: 13px; font-weight: 700; line-height: 1.45; }
 .delivery-fee-arrange svg { flex: none; margin-top: 1px; }
