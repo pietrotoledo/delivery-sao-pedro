@@ -16,6 +16,11 @@ const statusLabels: Record<string, string> = {
   out_for_delivery: "Saiu para entrega", completed: "Entregue",
 };
 
+async function readJson<T>(response: Response): Promise<T> {
+  try { return await response.json() as T; }
+  catch { throw new Error(response.ok ? "Resposta inválida do servidor. Tente atualizar." : "O servidor está indisponível no momento. Tente atualizar em alguns segundos."); }
+}
+
 export default function DeliveryDashboard() {
   const [data, setData] = useState<DeliveryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,8 +31,8 @@ export default function DeliveryDashboard() {
 
   const load = useCallback(async () => {
     const response = await fetch("/api/delivery/orders", { cache: "no-store" });
-    const result = await response.json() as DeliveryData;
     if (response.status === 403) { setData(null); return; }
+    const result = await readJson<DeliveryData>(response);
     if (!response.ok) throw new Error(result.error || "Não foi possível carregar as entregas.");
     setData(result);
     setError("");
@@ -43,7 +48,7 @@ export default function DeliveryDashboard() {
     event.preventDefault(); setBusy(true); setError("");
     try {
       const response = await fetch("/api/delivery/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
-      const result = await response.json() as { error?: string };
+      const result = await readJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(result.error || "Não foi possível entrar.");
       setPassword("");
       await load();

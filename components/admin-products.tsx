@@ -79,7 +79,7 @@ export default function AdminProducts() {
       const isNew = editing === "new";
       const response = await fetch(isNew ? "/api/admin/products" : `/api/admin/products/${editing}`, {
         method: isNew ? "POST" : "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, price, stock, ingredients: form.ingredientsText.split(/\r?\n/).map(value => value.trim()).filter(Boolean) }),
+        body: JSON.stringify({ ...form, price, ...(isNew || stock !== products.find(product => product.id === editing)?.stock ? { stock } : { stock: undefined }), ingredients: form.ingredientsText.split(/\r?\n/).map(value => value.trim()).filter(Boolean) }),
       });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Não foi possível salvar o produto.");

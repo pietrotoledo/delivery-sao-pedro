@@ -16,7 +16,7 @@ const code = (id: string) => id.slice(0, 8).toUpperCase();
 const statusNames: Record<string, string> = {
   awaiting_quote: "Aguardando taxa", ready_for_payment: "Aguardando Pix",
   awaiting_payment: "Aguardando Pix", paid: "Pago", preparing: "Em preparo",
-  ready: "Pronto", out_for_delivery: "Em entrega", completed: "Concluído", refunded: "Devolução registrada",
+  ready: "Pronto", out_for_delivery: "Em entrega", completed: "Concluído", refunded: "Devolução registrada", expired: "Expirado",
 };
 
 function contactMessage(order: ContactOrder) {

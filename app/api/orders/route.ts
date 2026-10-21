@@ -3,6 +3,8 @@ import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
 import { brazilianMobileError, normalizeBrazilianMobile } from "@/lib/phone";
+import { burgerAvailability, releaseExpiredOrders } from "@/lib/stock";
+import { capacitySql, reservedBurgersSql } from "@/lib/stock-rules";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
 
 async function requestHash(body: Record<string,unknown>) {
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
   if (previous) return previous.request_hash === hash ? existingResponse(previous) : json({error:"Esta tentativa já foi usada para outro pedido. Atualize a página."},409);
   const settings = await config();
   if (settings.paused) return json({error:"Os pedidos estão pausados no momento."},409);
+  await releaseExpiredOrders();
   const name = String(body.name ?? "").trim().slice(0,100);
   const email = String(body.email ?? "").trim().toLowerCase().slice(0,254);
   const method = body.method === "delivery" ? "delivery" : body.method === "pickup" ? "pickup" : null;
@@ -93,6 +96,10 @@ export async function POST(request: Request) {
   const burgerCount = items.reduce((sum,item)=>sum+(includesBurger(productsById.get(item.id) ?? { category: "" })?item.quantity:0),0);
   if (burgerCount < 1) return json({error:"Inclua pelo menos um hambúrguer, avulso ou no combo, para finalizar o pedido."},400);
   if (burgerCount > 20) return json({error:"Escolha até 20 hambúrgueres por pedido."},400);
+  const burgers = await burgerAvailability();
+  if (burgerCount > burgers.left) {
+    return json({error: burgers.left ? `Restam apenas ${burgers.left} ${burgers.left === 1 ? "hambúrguer disponível" : "hambúrgueres disponíveis"}. Ajuste a quantidade do pedido.` : "Os hambúrgueres esgotaram. Obrigado pelo interesse!"},409);
+  }
   const subtotal = items.reduce((sum,item)=>sum+item.price*item.quantity,0);
   const quotedFee = method === "delivery" ? deliveryFeeFor(neighborhood ?? "", subtotal) ?? 0 : 0;
   const deliveryFee = quotedFee === "combinar" ? null : quotedFee;
@@ -106,8 +113,8 @@ export async function POST(request: Request) {
   const database = db();
   const statements = [
     database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
-      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ?`)
-      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+(deliveryFee ?? 0),status,whatsappOptIn,...availabilityArgs,stockRequirements.length),
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ? AND ${reservedBurgersSql} + ? <= ${capacitySql}`)
+      .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+(deliveryFee ?? 0),status,whatsappOptIn,...availabilityArgs,stockRequirements.length,burgerCount),
     ...stockRequirements.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),
   ];
@@ -115,6 +122,8 @@ export async function POST(request: Request) {
   if (!results[0].meta.changes) {
     const existing = await database.prepare("SELECT * FROM orders WHERE request_key = ?").bind(requestKey).first<Order>();
     if (existing) return existing.request_hash === hash ? existingResponse(existing) : json({error:"Esta tentativa já foi usada para outro pedido. Atualize a página."},409);
+    const left = (await burgerAvailability()).left;
+    if (burgerCount > left) return json({error: left ? `Restam apenas ${left} ${left === 1 ? "hambúrguer disponível" : "hambúrgueres disponíveis"}. Ajuste a quantidade do pedido.` : "Os hambúrgueres esgotaram. Obrigado pelo interesse!"},409);
     return json({error:"Um produto ficou indisponível. Atualize o cardápio e tente novamente."},409);
   }
   if (paymentHandle()) {

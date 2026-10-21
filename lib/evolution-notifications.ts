@@ -1,6 +1,7 @@
 import { env, waitUntil } from "cloudflare:workers";
 import { db, ensureSchema, getOrder, type Order } from "./store";
 import { eventReminderActive, eventReminderText, isEventReminder, orderEventSchedule, type EventReminder } from "./event-schedule";
+import { defaultStoreWhatsapp } from "./store-contact";
 import { ensureNotificationSchema, notificationBatch, pixNoticeExpired } from "./notification-queue";
 
 export type OrderNotice = "pix_available" | "paid" | "preparing" | "ready" | "out_for_delivery" | "completed" | EventReminder;
@@ -31,8 +32,6 @@ export const deliveryFeeToArrange = (order: Pick<Order, "method" | "delivery_fee
 export const uberMotoNotice = "Vamos calcular o seu frete pelo Uber Moto e te enviar o valor por aqui no WhatsApp. Se precisar falar com a gente, é só responder esta mensagem.";
 
 // Número de WhatsApp da loja exibido ao cliente: (61) 99647-9192. STORE_WHATSAPP substitui, se definido.
-const defaultStoreWhatsapp = "5561996479192";
-
 export function storeWhatsapp(): string {
   const configured = env.STORE_WHATSAPP?.replace(/\D/g, "");
   if (!configured) return defaultStoreWhatsapp;

@@ -6,6 +6,7 @@ import { ArrowLeft, BadgeDollarSign, KeyRound, MapPinned, Phone, Truck } from "l
 import BrandAvatar from "./brand-avatar";
 import NavigationLinks from "./navigation-links";
 import { addressWithNeighborhood, deliveryDestination, deliveryPhoneHref } from "@/lib/delivery-links";
+import { phoneLabel } from "@/lib/store-contact";
 
 type DeliveryOrder = {
   id: string; createdAt: string; name: string; phone: string;
@@ -18,6 +19,11 @@ const statusLabels: Record<string, string> = {
   out_for_delivery: "Saiu para entrega", completed: "Entregue",
 };
 
+async function readJson<T>(response: Response): Promise<T> {
+  try { return await response.json() as T; }
+  catch { throw new Error(response.ok ? "Resposta inválida do servidor. Tente atualizar." : "O servidor está indisponível no momento. Tente atualizar em alguns segundos."); }
+}
+
 export default function DeliveryOrderDetail({id}: {id: string}) {
   const [order, setOrder] = useState<DeliveryOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,8 +35,8 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/delivery/orders/${encodeURIComponent(id)}`, {cache: "no-store"});
-    const result = await response.json() as {order?: DeliveryOrder; error?: string};
     if (response.status === 403) { setRestricted(true); setOrder(null); return; }
+    const result = await readJson<{order?: DeliveryOrder; error?: string}>(response);
     if (!response.ok || !result.order) {
       if (response.status === 404) setOrder(null);
       throw new Error(result.error || "Não foi possível carregar o pedido.");
@@ -54,7 +60,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
       const response = await fetch(`/api/delivery/orders/${encodeURIComponent(id)}/confirm`, {
         method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code}),
       });
-      const result = await response.json() as {error?: string};
+      const result = await readJson<{error?: string}>(response);
       if (!response.ok) throw new Error(result.error || "Não foi possível confirmar a entrega.");
       setCode("");
       await load();
@@ -78,7 +84,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
         <p className="delivery-address"><MapPinned size={19} /><span>{addressWithNeighborhood(order.address, order.neighborhood) || "Endereço não informado"}</span></p>
         {order.feeToArrange && <p className="delivery-fee-arrange"><BadgeDollarSign size={18} aria-hidden="true" /><span>Frete a combinar: não está no Pix. O valor do Uber Moto é combinado com o cliente pelo WhatsApp.</span></p>}
         {destination && <NavigationLinks destination={destination} label="Rota para o cliente" />}
-        <div className="delivery-actions">{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {order.phone}</a>}</div>
+        <div className="delivery-actions">{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {phoneLabel(order.phone)}</a>}</div>
         <section className="delivery-detail-items"><h3>Itens do pedido</h3>{order.items.map((item, index) => <p key={`${item.name}-${index}`}>{item.quantity}× {item.name}</p>)}</section>
         {order.notes && <p className="delivery-note"><strong>Observação:</strong> {order.notes}</p>}
         {order.status === "out_for_delivery" && <section className="delivery-confirm">

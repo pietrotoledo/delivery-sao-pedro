@@ -29,7 +29,7 @@ const labels: Record<string, string> = {
   awaiting_quote: "Aguardando taxa", ready_for_payment: "Aguardando pagamento",
   awaiting_payment: "Aguardando pagamento", paid: "Pago", preparing: "Em preparo",
   ready: "Pronto", out_for_delivery: "Saiu para entrega",
-  completed: "Concluído", refunded: "Devolução registrada",
+  completed: "Concluído", refunded: "Devolução registrada", expired: "Expirado · Pix não pago",
 };
 const names: Record<string, string> = {
   classic: "Clássico", bacon: "Bacon", "fries-small": "Batata pequena",

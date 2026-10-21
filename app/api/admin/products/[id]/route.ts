@@ -12,9 +12,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const input = parseProductInput(body, existing);
   if (typeof input === "string") return json({ error: input }, 400);
   if (input.category === "burger" && input.active && products.some(product => product.id !== id && product.category === "burger" && product.active)) return json({ error: "O cardápio permite apenas um hambúrguer ativo." }, 409);
-  await db().prepare("UPDATE products SET name=?,description=?,category=?,price=?,image_url=?,stock=?,active=?,sort_order=?,ingredients_json=?,updated_at=? WHERE id=?")
-    .bind(input.name,input.description,input.category,input.price,input.imageUrl,input.stock,input.active ? 1 : 0,input.sortOrder,JSON.stringify(input.ingredients),new Date().toISOString(),id).run();
-  return json({ product: { id, ...input } });
+  // O estoque só muda quando o admin altera a quantidade; vendas feitas enquanto o formulário estava aberto são preservadas.
+  const stockChanged = "stock" in body;
+  await db().prepare("UPDATE products SET name=?,description=?,category=?,price=?,image_url=?,stock=CASE WHEN ? THEN ? ELSE stock END,active=?,sort_order=?,ingredients_json=?,updated_at=? WHERE id=?")
+    .bind(input.name,input.description,input.category,input.price,input.imageUrl,stockChanged ? 1 : 0,input.stock,input.active ? 1 : 0,input.sortOrder,JSON.stringify(input.ingredients),new Date().toISOString(),id).run();
+  const saved = (await getProducts(true)).find(product => product.id === id);
+  return json({ product: saved ?? { id, ...input } });
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {

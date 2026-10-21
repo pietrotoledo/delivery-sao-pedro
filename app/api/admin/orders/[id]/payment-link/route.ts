@@ -7,6 +7,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const order = await getOrder(id);
   if (!order) return json({ error: "Pedido não encontrado." }, 404);
   if (order.paid_at || order.status === "refunded") return json({ error: "Este pedido não aceita novo pagamento." }, 409);
+  if (order.status === "expired") return json({ error: "Este pedido expirou porque o Pix não foi pago a tempo." }, 409);
   if (order.total === null) return json({ error: "Defina a taxa de entrega antes de gerar o Pix." }, 409);
   if (!paymentHandle()) return json({ error: "Configure a InfinitePay para gerar links reais." }, 409);
   if (order.checkout_url) return json({ url: order.checkout_url });

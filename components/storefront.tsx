@@ -15,7 +15,7 @@ import { eventLocation } from "@/lib/event-location";
 import { externalPhoto } from "@/lib/product-images";
 
 type Product = MenuProduct;
-type PublicData = { menu: Product[]; capacity: number; paid: number; paused: boolean; demo: boolean };
+type PublicData = { menu: Product[]; capacity: number; paid: number; burgersLeft?: number; paused: boolean; demo: boolean };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export default function Storefront() {
   const [data, setData] = useState<PublicData | null>(null);
@@ -132,7 +132,7 @@ export default function Storefront() {
         <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>Escolha seu pedido.</h2></div><p>Combo completo ou só o hambúrguer. Depois, acrescente o que quiser.</p></div>
         {!data && !loadError && <p className="menu-feedback" role="status">Carregando cardápio...</p>}
         {loadError && <p className="menu-feedback" role="alert">Não foi possível carregar o cardápio. <button type="button" onClick={() => window.location.reload()}>Tentar novamente</button></p>}
-        {data?.paused && <div className="notice">Os pedidos estão pausados no momento. Volte mais tarde para comprar.</div>}
+        {data?.paused && <div className="notice">Os pedidos estão pausados no momento. Volte mais tarde para comprar.</div>}{!data?.paused && data?.burgersLeft === 0 && <div className="notice">Os hambúrgueres esgotaram. Obrigado pelo interesse!</div>}
         {data && <StorefrontMenu products={data.menu} cart={cart} paused={data.paused} onChange={change} onAddCombo={addCombo} onUpgrade={upgrade} />}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">

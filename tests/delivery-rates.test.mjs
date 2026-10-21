@@ -16,11 +16,15 @@ const addressContext = { exports: {}, fetch, require: () => deliveryAreasModule 
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../lib/delivery-address.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, addressContext);
+const stockRules = { exports: {}, require: () => ({ comboDrinkProductId: value => ({ "Coca-Cola normal": "coke", "Coca-Cola Zero": "coke-zero", "Guaraná": "guarana", "Água com gás": "sparkling-water" })[value] }) };
+vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../lib/stock-rules.ts", import.meta.url), "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, stockRules);
 const route = ts.transpileModule(readFileSync(new URL("../app/api/orders/route.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 
-function orderApi(productChanges = {}) {
+function orderApi(productChanges = {}, burgersLeft = 100) {
   let savedStatements = [];
   let inserted;
   let paymentAttempts = 0;
@@ -56,6 +60,8 @@ function orderApi(productChanges = {}) {
       if (name === "@/lib/menu-options") return { availableComboDrinks, includesBurger, comboDrinkOptions };
       if (name === "@/lib/phone") return phoneHelpers;
       if (name === "@/lib/evolution-notifications") return { evolutionEnabled: () => false };
+      if (name === "@/lib/stock") return { releaseExpiredOrders: async () => 0, burgerAvailability: async () => ({ reserved: 100 - burgersLeft, capacity: 100, left: burgersLeft }) };
+      if (name === "@/lib/stock-rules") return stockRules.exports;
       if (name === "@/lib/payment") return { createCheckout: async () => { paymentAttempts++; return { demo: true }; } };
       return require(name);
     },
@@ -253,7 +259,8 @@ test("Bebida avulsa e incluida no combo compartilham o mesmo estoque", async () 
       INSERT INTO products VALUES ('combo',1,5,'x'),('coke',1,2,'x');
       CREATE TABLE orders(id TEXT PRIMARY KEY,request_key TEXT UNIQUE,request_hash TEXT,created_at TEXT,updated_at TEXT,
         name TEXT,phone TEXT,email TEXT,method TEXT,neighborhood TEXT,address TEXT,notes TEXT,items_json TEXT,
-        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER);`);
+        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER);
+      CREATE TABLE settings(id INTEGER PRIMARY KEY,capacity INTEGER,paused INTEGER);`);
     sqlite.exec("BEGIN");
     for (const statement of api.statements()) sqlite.prepare(statement.sql).run(...statement.args);
     sqlite.exec("COMMIT");
@@ -325,4 +332,45 @@ test("Bancários, Portal do Sol e Intermares: taxa a combinar no WhatsApp, fora 
   const free = orderApi();
   assert.equal((await free.post(request({ ...payload("Bancários", 0), items: [{ id: "classic", quantity: 7 }], expectedSubtotal: 7000 }))).status, 201);
   assert.equal(free.inserted()[15], 0);
+});
+
+
+test("Limite de hambúrgueres: recusa pedido acima do que resta, antes de reservar ou cobrar", async () => {
+  const api = orderApi({}, 2);
+  const response = await api.post(request({ ...payload("Manaíra", 0), items: [{ id: "classic", quantity: 3 }], expectedSubtotal: 3000 }));
+  assert.equal(response.status, 409);
+  assert.match((await response.json()).error, /Restam apenas 2 hambúrgueres disponíveis/);
+  assert.equal(api.inserted(), undefined);
+  assert.equal(api.paymentAttempts(), 0);
+  const soldOut = orderApi({}, 0);
+  const closed = await soldOut.post(request(payload("Manaíra", 0)));
+  assert.equal(closed.status, 409);
+  assert.match((await closed.json()).error, /esgotaram/);
+  const ok = orderApi({}, 1);
+  assert.equal((await ok.post(request(payload("Manaíra", 0)))).status, 201);
+});
+
+test("Limite de hambúrgueres no banco: dois pedidos simultâneos não passam do limite", async () => {
+  const sqlite = new DatabaseSync(":memory:");
+  try {
+    sqlite.exec(`CREATE TABLE products(id TEXT PRIMARY KEY,active INTEGER,stock INTEGER,updated_at TEXT);
+      INSERT INTO products VALUES ('classic',1,NULL,'x');
+      CREATE TABLE orders(id TEXT PRIMARY KEY,request_key TEXT UNIQUE,request_hash TEXT,created_at TEXT,updated_at TEXT,
+        name TEXT,phone TEXT,email TEXT,method TEXT,neighborhood TEXT,address TEXT,notes TEXT,items_json TEXT,
+        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER);
+      CREATE TABLE settings(id INTEGER PRIMARY KEY,capacity INTEGER,paused INTEGER);
+      INSERT INTO settings VALUES (1,5,0);
+      INSERT INTO orders (id,burger_count,status) VALUES ('pago',2,'paid'),('aguardando',2,'awaiting_payment'),('expirado',9,'expired'),('devolvido',9,'refunded');`);
+    // Os dois pedidos foram aceitos pela checagem prévia (resta 1), mas só o primeiro grava.
+    const first = orderApi({}, 1); await first.post(request(payload("Manaíra", 0)));
+    const second = orderApi({}, 1); await second.post(request(payload("Manaíra", 0)));
+    for (const api of [first, second]) for (const statement of api.statements()) sqlite.prepare(statement.sql).run(...statement.args);
+    assert.equal(sqlite.prepare("SELECT SUM(burger_count) AS n FROM orders WHERE status NOT IN ('expired','refunded')").get().n, 5);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM orders WHERE name='Cliente Teste'").get().n, 1);
+  } finally { sqlite.close(); }
+});
+
+test("Estoque conta bebidas dos combos", () => {
+  assert.deepEqual(JSON.parse(JSON.stringify(stockRules.exports.stockRequirements([{ id: "combo", quantity: 2, unitDrinks: ["Coca-Cola normal", "Guaraná"] }, { id: "coke", quantity: 1 }]))),
+    [{ id: "combo", quantity: 2 }, { id: "coke", quantity: 2 }, { id: "guarana", quantity: 1 }]);
 });

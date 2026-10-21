@@ -1,5 +1,6 @@
 import { db, getOrder, orderItems, paymentHandle, type Order } from "./store";
 import { scheduleOrderNotifications } from "./order-notifications";
+import { takeStockStatements } from "./stock";
 
 type PaymentNotice = { order_nsu?: string; transaction_nsu?: string; invoice_slug?: string; slug?: string; capture_method?: string };
 
@@ -16,8 +17,13 @@ export async function verifyPayment(notice: PaymentNotice, origin?: string) {
   const result = await response.json() as { success?:boolean;paid?:boolean;amount?:number;capture_method?:string };
   if (!result.success || !result.paid || result.capture_method !== "pix" || result.amount !== order.total) return false;
   const now = new Date().toISOString();
-  const updated = await db().prepare("UPDATE orders SET status = 'paid', payment_mode = 'infinitepay', paid_at = ?, updated_at = ?, transaction_nsu = ?, invoice_slug = ? WHERE id = ? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment')")
-    .bind(now, now, notice.transaction_nsu, notice.invoice_slug || notice.slug, order.id).run();
+  // Um Pix pago depois do prazo é aceito: o dinheiro já entrou e o estoque é reservado de novo.
+  const results = await db().batch([
+    ...takeStockStatements(order, "paid_at IS NULL AND status='expired'", []),
+    db().prepare("UPDATE orders SET status = 'paid', payment_mode = 'infinitepay', paid_at = ?, updated_at = ?, transaction_nsu = ?, invoice_slug = ? WHERE id = ? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment','expired')")
+      .bind(now, now, notice.transaction_nsu, notice.invoice_slug || notice.slug, order.id),
+  ]);
+  const updated = results.at(-1)!;
   if (updated.meta.changes && origin) scheduleOrderNotifications(order.id, "paid", origin);
   return true;
 }

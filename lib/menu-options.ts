@@ -12,6 +12,7 @@ const comboDrinks = [
 
 // Preserve saved cart/order values; product eligibility uses IDs, not editable names.
 export const comboDrinkOptions: string[] = comboDrinks.map(drink => drink.value);
+export const comboDrinkProductId = (value: string): string | undefined => comboDrinks.find(drink => drink.value === value)?.id;
 export type ComboDrinkOption = { id: string; value: string; label: string; price: number };
 type DrinkProduct = { id: string; category: string; name?: string; price: number; stock?: number | null; active?: boolean };
 

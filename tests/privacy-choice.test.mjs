@@ -17,6 +17,8 @@ function orderApi() {
     '@/lib/delivery-areas': { deliveryFeeFor: () => 0 },
     '@/lib/delivery-address': {},
     '@/lib/payment': {},
+    '@/lib/stock': { releaseExpiredOrders: async () => 0, burgerAvailability: async () => ({ left: 100 }) },
+    '@/lib/stock-rules': { reservedBurgersSql: '0', capacitySql: '100' },
     '@/lib/phone': { normalizeBrazilianMobile: () => '5583999123456' },
     '@/lib/store': {
       sameOrigin: () => true, json: (body, status = 200) => Response.json(body, { status }),

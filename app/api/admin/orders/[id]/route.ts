@@ -1,6 +1,7 @@
 import { createCheckout } from "@/lib/payment";
-import { adminOnly, db, getOrder, json, orderItems, paymentHandle, sameOrigin } from "@/lib/store";
+import { adminOnly, db, getOrder, json, paymentHandle, sameOrigin } from "@/lib/store";
 import { scheduleOrderNotifications, type OrderNotice } from "@/lib/order-notifications";
+import { restoreStockStatements, takeStockStatements } from "@/lib/stock";
 
 const statuses = ["paid","preparing","ready","out_for_delivery"];
 
@@ -39,20 +40,31 @@ export async function PATCH(request: Request, context: {params:Promise<{id:strin
     scheduleOrderNotifications(id, "completed", new URL(request.url).origin);
   } else if (body.action === "demo_paid") {
     if (paymentHandle() || order.total===null || order.paid_at) return json({error:"Simulação indisponível."},400);
-    await db().prepare("UPDATE orders SET status='paid',payment_mode='demo',paid_at=?,updated_at=? WHERE id=?").bind(now,now,id).run();
+    await db().batch([
+      ...takeStockStatements(order, "paid_at IS NULL AND status='expired'", []),
+      db().prepare("UPDATE orders SET status='paid',payment_mode='demo',paid_at=?,updated_at=? WHERE id=? AND paid_at IS NULL").bind(now,now,id),
+    ]);
   } else if (body.action === "manual_paid") {
     const note = String(body.note ?? "").trim().slice(0, 300);
-    if (!note || order.total === null || order.paid_at || order.status === "refunded" || !["ready_for_payment", "awaiting_payment"].includes(order.status)) {
+    if (!note || order.total === null || order.paid_at || order.status === "refunded" || !["ready_for_payment", "awaiting_payment", "expired"].includes(order.status)) {
       return json({error:"Confirme um pagamento pendente e informe a referência do recebimento."},400);
     }
-    const result = await db().prepare("UPDATE orders SET status='paid',payment_mode='manual',payment_note=?,paid_at=?,updated_at=? WHERE id=? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment')")
-      .bind(note,now,now,id).run();
+    const results = await db().batch([
+      ...takeStockStatements(order, "paid_at IS NULL AND status='expired'", []),
+      db().prepare("UPDATE orders SET status='paid',payment_mode='manual',payment_note=?,paid_at=?,updated_at=? WHERE id=? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment','expired')")
+        .bind(note,now,now,id),
+    ]);
+    const result = results.at(-1)!;
     if (!result.meta.changes) return json({error:"Este pedido já foi atualizado. Recarregue o painel."},409);
     scheduleOrderNotifications(id, "paid", new URL(request.url).origin);
   } else if (body.action === "refund") {
     const note = String(body.note??"").trim().slice(0,300);
     if (!order.paid_at || order.status==="refunded" || !note) return json({error:"Registre o motivo e devolva o valor antes de marcar como reembolsado."},400);
-    await db().prepare("UPDATE orders SET status='refunded',refund_note=?,updated_at=? WHERE id=?").bind(note,now,id).run();
+    // Pedido devolvido antes de sair para entrega ou ser retirado: os produtos voltam ao estoque.
+    await db().batch([
+      ...restoreStockStatements(order, "status IN ('paid','preparing','ready')", []),
+      db().prepare("UPDATE orders SET status='refunded',refund_note=?,updated_at=? WHERE id=? AND status<>'refunded'").bind(note,now,id),
+    ]);
   } else return json({error:"Ação inválida."},400);
   return json({ok:true});
 }
@@ -65,8 +77,8 @@ export async function DELETE(request: Request, context: {params:Promise<{id:stri
   const database = db();
   const unpaid = !order.paid_at;
   const statements = unpaid ? [
-    ...orderItems(order).map(item => database.prepare("UPDATE products SET stock=stock+?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=? AND paid_at IS NULL)")
-      .bind(item.quantity,new Date().toISOString(),item.id,id)),
+    // Pedido expirado já devolveu o estoque.
+    ...restoreStockStatements(order, "paid_at IS NULL AND status NOT IN ('expired','refunded')", []),
     database.prepare("DELETE FROM orders WHERE id=? AND paid_at IS NULL").bind(id),
   ] : [database.prepare("DELETE FROM orders WHERE id=? AND paid_at IS NOT NULL").bind(id)];
   const results = await database.batch(statements);

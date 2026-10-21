@@ -20,7 +20,7 @@ const date = (value: string) => new Date(value).toLocaleString("pt-BR", {timeZon
 const statusLabels: Record<string, string> = {
   awaiting_quote: "Aguardando taxa", ready_for_payment: "Aguardando pagamento", awaiting_payment: "Aguardando pagamento",
   paid: "Pago", preparing: "Em preparo", ready: "Pronto para retirada",
-  out_for_delivery: "Saiu para entrega", completed: "Concluído", refunded: "Devolução registrada",
+  out_for_delivery: "Saiu para entrega", completed: "Concluído", refunded: "Devolução registrada", expired: "Expirado",
 };
 
 export default function TeamOrderPage() {

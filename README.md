@@ -57,6 +57,14 @@ Para uma versão pública com vendas reais, configure também os segredos de run
 
 A área `/entregas` usa `DELIVERY_PASSWORD` e mostra somente pedidos de entrega pagos, com endereço, rota no Google Maps e telefone para ligação. A senha local foi gerada em `.env`, que é ignorado pelo Git. Configure o mesmo segredo no ambiente publicado antes de entregar o acesso à equipe.
 
+## Estoque
+
+- **Quantidade disponível** (Produtos no admin): cada pedido reserva os itens na hora em que é criado, incluindo a bebida escolhida no combo. Quando chega a zero, o produto aparece como esgotado e o site recusa novos pedidos. Deixe vazio para não limitar.
+- **Limite de hambúrgueres** (painel admin): soma hambúrgueres avulsos e combos de todos os pedidos pagos ou aguardando Pix. Ao atingir o limite, hambúrguer e combo ficam esgotados e o site recusa pedidos acima do que resta.
+- **Pix não pago em 30 minutos**: o pedido vira "Expirado" e devolve o estoque. Se o pagamento chegar depois, ele é aceito e o estoque é reservado de novo.
+- **Devolução** antes de o pedido sair para entrega ou ser retirado devolve os itens ao estoque. Excluir um pedido não pago também devolve.
+- Salvar um produto no admin só altera a quantidade se ela foi mudada no formulário; vendas feitas enquanto ele estava aberto são preservadas.
+
 ## Regras de operação
 
 - O contador soma hambúrgueres pagos, não bebidas nem pedidos aguardando pagamento.
