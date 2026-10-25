@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 
 const load = (path, modules) => {
-  const context = { exports: {}, require: name => modules[name], Date, Map, Array, Math, JSON, console };
+  const context = { exports: {}, require: name => modules[name], Date, Map, Array, Math, JSON, URL, console };
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText, context);
@@ -116,4 +116,87 @@ test('Limite de hambúrgueres ignora pedidos expirados e devolvidos', async () =
   assert.deepEqual({ ...await stock.burgerAvailability() }, { reserved: 4, capacity: 10, left: 6 });
   sqlite.exec('UPDATE settings SET capacity=3');
   assert.equal((await stock.burgerAvailability()).left, 0);
+});
+
+// Exercita a rota administrativa real, incluindo estoque e avanço das etapas.
+function manualPaymentSetup(status = 'expired', method = 'pickup') {
+  const h = setup();
+  h.addOrder('manual', status, 45);
+  h.sqlite.exec(`ALTER TABLE orders ADD COLUMN total INTEGER DEFAULT 7000;
+    ALTER TABLE orders ADD COLUMN method TEXT;
+    ALTER TABLE orders ADD COLUMN payment_mode TEXT;
+    ALTER TABLE orders ADD COLUMN payment_note TEXT;
+    ALTER TABLE orders ADD COLUMN handoff_confirmed_at TEXT;
+    ALTER TABLE orders ADD COLUMN handoff_note TEXT;`);
+  h.sqlite.prepare('UPDATE orders SET method=?').run(method);
+  const notifications = [];
+  const route = load('../app/api/admin/orders/[id]/route.ts', {
+    '@/lib/payment': {},
+    '@/lib/store': {
+      adminOnly: async () => true, sameOrigin: () => true,
+      db: () => h.database,
+      getOrder: async id => h.sqlite.prepare('SELECT * FROM orders WHERE id=?').get(id),
+      json: (body, status = 200) => ({ body, status }),
+    },
+    '@/lib/stock': h.stock,
+    '@/lib/order-notifications': {
+      scheduleOrderNotifications: (...args) => notifications.push(args),
+    },
+  });
+  const patch = body => route.PATCH({
+    url: 'https://example.invalid/api/admin/orders/manual', json: async () => body,
+  }, { params: Promise.resolve({ id: 'manual' }) });
+  return { ...h, notifications, patch };
+}
+
+for (const status of ['ready_for_payment', 'awaiting_payment', 'expired']) {
+  test(`Confirmação manual de ${status} registra pagamento e reserva estoque apenas uma vez`, async () => {
+    const h = manualPaymentSetup(status);
+    const before = h.stockOf('classic');
+    const result = await h.patch({ action: 'manual_paid', note: ' Pix conferido no extrato ' });
+    assert.equal(result.status, 200);
+    const paid = h.sqlite.prepare('SELECT * FROM orders WHERE id=?').get('manual');
+    assert.equal(paid.status, 'paid');
+    assert.equal(paid.payment_mode, 'manual');
+    assert.equal(paid.payment_note, 'Pix conferido no extrato');
+    assert.ok(paid.paid_at);
+    const expected = before - (status === 'expired' ? 1 : 0);
+    assert.equal(h.stockOf('classic'), expected);
+    assert.equal(h.stockOf('coke'), 9 - (status === 'expired' ? 1 : 0));
+    assert.equal(h.notifications.length, 1);
+    assert.equal(h.notifications[0][1], 'paid');
+    assert.equal((await h.patch({ action: 'manual_paid', note: 'Repetição' })).status, 400);
+    assert.equal(h.stockOf('classic'), expected);
+    assert.equal(h.notifications.length, 1);
+    h.sqlite.close();
+  });
+}
+
+for (const method of ['pickup', 'delivery']) {
+  test(`Pedido expirado pago manualmente segue todas as etapas de ${method}`, async () => {
+    const h = manualPaymentSetup('expired', method);
+    await h.patch({ action: 'manual_paid', note: 'Recebimento conferido' });
+    assert.equal((await h.patch({ action: 'manual_handoff', note: 'Recebido' })).status, 400);
+    for (const status of ['preparing', 'ready', ...(method === 'delivery' ? ['out_for_delivery'] : [])]) {
+      assert.equal((await h.patch({ action: 'status', status })).status, 200);
+      assert.equal(h.statusOf('manual'), status);
+    }
+    assert.equal((await h.patch({ action: 'manual_handoff', note: 'Cliente recebeu' })).status, 200);
+    assert.equal(h.statusOf('manual'), 'completed');
+    assert.equal((await h.patch({ action: 'status', status: 'paid' })).status, 400);
+    assert.equal(h.stockOf('classic'), 3, 'avançar etapas não desconta novamente');
+    h.sqlite.close();
+  });
+}
+
+test('Pagamento manual exige referência e total, e não reabre devoluções', async () => {
+  const h = manualPaymentSetup();
+  assert.equal((await h.patch({ action: 'manual_paid', note: ' ' })).status, 400);
+  h.sqlite.exec('UPDATE orders SET total=NULL');
+  assert.equal((await h.patch({ action: 'manual_paid', note: 'Recebido' })).status, 400);
+  h.sqlite.exec("UPDATE orders SET total=7000,status='refunded'");
+  assert.equal((await h.patch({ action: 'manual_paid', note: 'Recebido' })).status, 400);
+  assert.equal(h.stockOf('classic'), 4);
+  assert.equal(h.notifications.length, 0);
+  h.sqlite.close();
 });
