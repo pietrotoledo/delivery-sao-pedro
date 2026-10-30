@@ -659,7 +659,10 @@ button { -webkit-touch-callout: none; }
 .admin-side .side-foot { padding: 0 9px; }
 .admin-main { margin: 0 auto; }
 .admin-main .admin-order { border: 1px solid #dce5f2; border-radius: 14px; padding: 22px; box-shadow: 0 6px 22px rgba(13,46,110,.035); }
-.admin-main .admin-order-top h3 { font-size: 18px; }
+.admin-main .admin-order-top h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 18px; }
+.admin-main .admin-order-top h3 > span { min-width: 0; overflow-wrap: anywhere; }
+.admin-main .admin-order-whatsapp { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 28px; border: 1px solid #dcebe1; border-radius: 7px; background: #f3f8f5; color: #287348; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) { .admin-main .admin-order-whatsapp:hover { background: #e5f2e9; border-color: #a8cdb5; } }
 .admin-main .status-pill { border: 1px solid #d9e4fb; }
 .admin-main .status-preparing { background: #fff3ce; color: #74520b; border-color: #f8dfa0; }
 .admin-main .status-ready, .admin-main .status-out_for_delivery { background: #e7f5ec; color: #1b6a3c; border-color: #c8e9d3; }

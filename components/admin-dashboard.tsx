@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import { eventLocation } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
@@ -41,6 +41,13 @@ const names: Record<string, string> = {
 };
 const closedStatuses = new Set(["completed", "refunded"]);
 const normalizeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " ");
+
+function whatsappHref(phone: string) {
+  if (!/^\+?[\d\s().-]+$/.test(phone.trim()) || (phone.trim().startsWith("+") && !phone.trim().startsWith("+55"))) return null;
+  const digits = phone.replace(/\D/g, "");
+  const number = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+  return /^55\d{10,11}$/.test(number) ? `https://wa.me/${number}` : null;
+}
 
 export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" | "contacts" | "deliveries" }) {
   const [data, setData] = useState<AdminData | null>(null);
@@ -271,8 +278,9 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               const canAdvance = Boolean(nextStatus && nextStatus !== "completed");
               const canComplete = nextStatus === "completed";
               const busy = busyOrderId === order.id;
+              const whatsapp = whatsappHref(order.phone);
               return <article className="admin-order" key={order.id}>
-                <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
+                <div className="admin-order-top"><div><h3><span>{order.name}</span>{whatsapp && <a className="admin-order-whatsapp" href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label={`Abrir WhatsApp de ${order.name}`} title={`Conversar com ${order.name} no WhatsApp`}><MessageCircle size={15} aria-hidden="true" /></a>}<small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
                 <span className={`admin-order-method ${order.method === "pickup" ? "is-pickup" : "is-delivery"}`}>{order.method === "pickup" ? <ShoppingBag size={14} aria-hidden="true" /> : <Truck size={14} aria-hidden="true" />}{order.method === "pickup" ? "Retirada" : "Delivery"}</span>
                 <p className="admin-order-items">{products.flatMap(item => orderItemLabels({ ...item, name: item.name || names[item.id] || item.id })).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${addressWithNeighborhood(order.address, order.neighborhood)}${order.delivery_fee === null && order.total !== null ? " · taxa a combinar no WhatsApp" : ""}` : `Retirada na ${eventLocation.name}`}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
