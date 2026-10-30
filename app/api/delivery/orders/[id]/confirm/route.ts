@@ -12,5 +12,7 @@ export async function POST(request: Request, context: {params: Promise<{id: stri
   try { body = await request.json() as {code?: unknown}; }
   catch { return json({error: "Informe o código de quatro dígitos."}, 400); }
   const result = await confirmHandoff(order, body.code, new URL(request.url).origin);
-  return "error" in result ? json({error: result.error}, result.status) : json({ok: true});
+  return "error" in result ? json({error: result.error}, result.status) : json({ok: true, order: {
+    id: result.order.id, status: result.order.status, confirmedAt: result.order.handoff_confirmed_at,
+  }});
 }

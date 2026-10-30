@@ -1,12 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import BrandAvatar from "@/components/brand-avatar";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import NavigationLinks from "@/components/navigation-links";
 import { addressWithNeighborhood, deliveryDestination } from "@/lib/delivery-links";
+import { requestJson, singleFlight } from "@/lib/client-request";
 
 type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[]};
 type TeamOrder = {
@@ -30,8 +31,13 @@ export default function TeamOrderPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(true);
   const printed = useRef(false);
+  const loadVersion = useRef(0);
+  const confirming = useRef(false);
+  const completed = order?.status === "completed";
+  const invalidateLoad = useCallback(() => { ++loadVersion.current; }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -41,24 +47,28 @@ export default function TeamOrderPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
-  const load = useCallback(async () => {
+  const loadTask = useCallback(async () => {
+    if (confirming.current) return;
     if (!token) { setLoading(false); setError("Link da equipe inválido. Abra o pedido pelo painel admin."); return; }
+    const version = ++loadVersion.current;
     try {
-      const response = await fetch(`/api/team/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`, {cache: "no-store"});
-      const result = await response.json() as {order?: TeamOrder; error?: string};
+      const { response, result } = await requestJson<{order?: TeamOrder; error?: string}>(`/api/team/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`, {cache: "no-store"});
+      if (version !== loadVersion.current) return;
       if (!response.ok || !result.order) throw new Error(result.error || "Não foi possível carregar o pedido.");
       setOrder(result.order);
       setError("");
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível carregar o pedido."); }
+    } catch (failure) { if (version === loadVersion.current) setError(failure instanceof Error ? failure.message : "Não foi possível carregar o pedido."); }
     finally { setLoading(false); }
   }, [id, token]);
+  const runLoad = useMemo(() => singleFlight(), []);
+  const load = useCallback((fresh = false) => runLoad(loadTask, fresh), [runLoad, loadTask]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || completed) return;
     const initial = setTimeout(() => { void load(); }, 0);
     const timer = setInterval(() => { void load(); }, 10000);
-    return () => { clearTimeout(initial); clearInterval(timer); };
-  }, [load, token]);
+    return () => { invalidateLoad(); clearTimeout(initial); clearInterval(timer); };
+  }, [load, token, completed, invalidateLoad]);
 
   useEffect(() => {
     if (!order || printed.current || new URLSearchParams(window.location.search).get("print") !== "1") return;
@@ -72,18 +82,24 @@ export default function TeamOrderPage() {
 
   async function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!/^\d{4}$/.test(code)) { setError("Digite os quatro últimos dígitos do telefone."); return; }
-    setBusy(true); setError("");
+    if (confirming.current) return;
+    if (!/^\d{4}$/.test(code)) { setConfirmError("Digite os quatro últimos dígitos do telefone."); return; }
+    confirming.current = true;
+    invalidateLoad();
+    setBusy(true); setConfirmError(""); setError("");
     try {
-      const response = await fetch(`/api/team/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`, {
+      const { response, result } = await requestJson<{order?: TeamOrder; error?: string}>(`/api/team/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`, {
         method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code}),
       });
-      const result = await response.json() as {order?: TeamOrder; error?: string};
-      if (!response.ok || !result.order) throw new Error(result.error || "Não foi possível confirmar.");
+      if (!response.ok || !result.order || result.order.status !== "completed") throw new Error(result.error || "Não foi possível confirmar.");
       setOrder(result.order);
       setCode("");
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível confirmar."); }
-    finally { setBusy(false); }
+    } catch (failure) {
+      setConfirmError(failure instanceof Error ? failure.message : "Não foi possível confirmar.");
+      confirming.current = false;
+      void load(true);
+    }
+    finally { confirming.current = false; setBusy(false); }
   }
 
   const destination = order?.method === "delivery" && order.address
@@ -97,6 +113,7 @@ export default function TeamOrderPage() {
       <div className="team-intro"><p className="section-kicker">Pedido #{id.slice(0, 8).toUpperCase()}</p><h1>{order ? (pickup ? "Confirmação de retirada" : "Entrega do pedido") : "Pedido da equipe"}</h1><p>Confira os itens e confirme o recebimento com o código informado pelo cliente.</p></div>
       {loading && <div className="team-card">Carregando pedido...</div>}
       {error && <div className="team-error" role="alert">{error}</div>}
+      {!loading && token && !order && <button className="mini-button" type="button" onClick={() => { setLoading(true); void load(true); }}>Tentar novamente</button>}
       {order && <>
         <section className="team-card team-order-card">
           <div className="team-card-head"><div><small>PEDIDO</small><h2>#{order.id.slice(0, 8).toUpperCase()}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
@@ -114,7 +131,7 @@ export default function TeamOrderPage() {
         <section className="team-card team-confirm">
           <small>CONFIRMAÇÃO</small><h2>{pickup ? "Confirmar retirada" : "Confirmar entrega"}</h2>
           {order.status === "completed" ? <div className="team-success" role="status">✓ Pedido {pickup ? "retirado" : "entregue"} e finalizado{order.confirmedAt ? ` em ${date(order.confirmedAt)}` : ""}.</div>
-            : order.canConfirm ? <><p>Peça ao cliente os quatro últimos dígitos do telefone informado na compra. O código não aparece nesta tela.</p><form onSubmit={confirm}><label htmlFor="handoff-code">Código de confirmação</label><input id="handoff-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4}" maxLength={4} placeholder="0000" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 4))} required /><button type="submit" disabled={busy || code.length !== 4}>{busy ? "Confirmando..." : pickup ? "Confirmar retirada" : "Confirmar entrega"}</button></form></>
+            : order.canConfirm ? <><p>Peça ao cliente os quatro últimos dígitos do telefone informado na compra. O código não aparece nesta tela.</p><form onSubmit={confirm}><label htmlFor="handoff-code">Código de confirmação</label><input id="handoff-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4}" maxLength={4} placeholder="0000" value={code} disabled={busy} onChange={event => { setCode(event.target.value.replace(/\D/g, "").slice(0, 4)); setConfirmError(""); }} required /><button type="submit" disabled={busy || code.length !== 4}>{busy ? "Confirmando..." : pickup ? "Confirmar retirada" : "Confirmar entrega"}</button></form>{confirmError && <p className="team-error" role="alert">{confirmError}</p>}</>
             : <p>Este pedido ainda não pode ser finalizado. Aguarde o pagamento e a atualização para “{pickup ? "Pronto para retirada" : "Saiu para entrega"}” no painel.</p>}
         </section>
       </>}

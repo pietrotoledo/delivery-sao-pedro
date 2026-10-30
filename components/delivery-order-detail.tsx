@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, BadgeDollarSign, KeyRound, MapPinned, MessageCircle, Phone, Truck, UserRound } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import NavigationLinks from "./navigation-links";
 import { addressWithNeighborhood, deliveryDestination, deliveryPhoneHref, deliveryWhatsappHref } from "@/lib/delivery-links";
 import { phoneLabel } from "@/lib/store-contact";
+import { requestJson, singleFlight } from "@/lib/client-request";
 import useDeliverySync from "./use-delivery-sync";
 
 type DeliveryOrder = {
@@ -21,11 +22,6 @@ const statusLabels: Record<string, string> = {
   out_for_delivery: "Saiu para entrega", completed: "Entregue",
 };
 
-async function readJson<T>(response: Response): Promise<T> {
-  try { return await response.json() as T; }
-  catch { throw new Error(response.ok ? "Resposta inválida do servidor. Tente atualizar." : "O servidor está indisponível no momento. Tente atualizar em alguns segundos."); }
-}
-
 export default function DeliveryOrderDetail({id}: {id: string}) {
   const [order, setOrder] = useState<DeliveryOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,14 +31,16 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const loadVersion = useRef(0);
+  const confirming = useRef(false);
+  const completed = order?.status === "completed";
+  const invalidateLoad = useCallback(() => { ++loadVersion.current; }, []);
 
-  const load = useCallback(async () => {
+  const loadTask = useCallback(async () => {
+    if (confirming.current) return;
     const version = ++loadVersion.current;
-    const response = await fetch(`/api/delivery/orders/${encodeURIComponent(id)}`, {cache: "no-store"});
+    const { response, result } = await requestJson<{order?: DeliveryOrder; error?: string}>(`/api/delivery/orders/${encodeURIComponent(id)}`, {cache: "no-store"});
     if (version !== loadVersion.current) return;
     if (response.status === 403) { setRestricted(true); setOrder(null); return; }
-    const result = await readJson<{order?: DeliveryOrder; error?: string}>(response);
-    if (version !== loadVersion.current) return;
     if (!response.ok || !result.order) {
       if (response.status === 404) setOrder(null);
       throw new Error(result.error || "Não foi possível carregar o pedido.");
@@ -51,28 +49,44 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
     setRestricted(false);
     setError("");
   }, [id]);
-  useDeliverySync(Boolean(order) && !restricted, load);
+  const runLoad = useMemo(() => singleFlight(), []);
+  const load = useCallback((fresh = false) => runLoad(loadTask, fresh), [runLoad, loadTask]);
+  useDeliverySync(Boolean(order) && !restricted && !completed, load);
 
   useEffect(() => {
+    if (completed) return;
     const initial = window.setTimeout(() => { void load().catch(failure => setError(failure.message)).finally(() => setLoading(false)); }, 0);
     const timer = window.setInterval(() => { void load().catch(() => {}); }, 10000);
-    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
-  }, [load]);
+    return () => { invalidateLoad(); window.clearTimeout(initial); window.clearInterval(timer); };
+  }, [load, completed, invalidateLoad]);
+
+  function retryLoad() {
+    setLoading(true); setError("");
+    void load(true).catch(failure => setError(failure.message)).finally(() => setLoading(false));
+  }
 
   async function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (confirming.current) return;
     if (!/^\d{4}$/.test(code)) { setConfirmError("Digite os quatro dígitos do código."); return; }
+    confirming.current = true;
+    invalidateLoad();
     setBusy(true); setConfirmError("");
     try {
-      const response = await fetch(`/api/delivery/orders/${encodeURIComponent(id)}/confirm`, {
+      const { response, result } = await requestJson<{order?: Pick<DeliveryOrder, "id" | "status" | "confirmedAt">; error?: string}>(`/api/delivery/orders/${encodeURIComponent(id)}/confirm`, {
         method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code}),
       });
-      const result = await readJson<{error?: string}>(response);
       if (!response.ok) throw new Error(result.error || "Não foi possível confirmar a entrega.");
+      if (!result.order || result.order.id !== id || result.order.status !== "completed") throw new Error("Atualize o pedido para conferir se a entrega foi confirmada.");
+      const confirmed = result.order;
+      setOrder(current => current ? { ...current, ...confirmed } : current);
       setCode("");
-      await load();
-    } catch (failure) { setConfirmError(failure instanceof Error ? failure.message : "Não foi possível confirmar a entrega."); }
-    finally { setBusy(false); }
+    } catch (failure) {
+      setConfirmError(failure instanceof Error ? failure.message : "Não foi possível confirmar a entrega.");
+      confirming.current = false;
+      void load(true).catch(() => {});
+    }
+    finally { confirming.current = false; setBusy(false); }
   }
 
   const destination = order?.address ? deliveryDestination(order.address, order.neighborhood) : null;
@@ -86,6 +100,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
       <div className="delivery-heading"><p className="section-kicker">{order ? `Pedido #${order.id.slice(0, 8).toUpperCase()}` : "Área dos entregadores"}</p><h1>Detalhes do pedido</h1><p>Confira a entrega e peça o código de verificação ao cliente no recebimento.</p></div>
       {loading && <div className="delivery-empty" role="status">Carregando pedido...</div>}
       {error && <div className="team-error" role="alert">{error}</div>}
+      {!loading && !restricted && !order && <button className="mini-button" type="button" onClick={retryLoad}>Tentar novamente</button>}
       {!loading && restricted && <div className="delivery-empty">Acesse a área dos entregadores para consultar este pedido. <Link href="/entregas">Entrar</Link></div>}
       {order && <article className="delivery-detail-card">
         <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
@@ -98,7 +113,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
         {order.notes && <p className="delivery-note"><strong>Observação:</strong> {order.notes}</p>}
         {order.status === "out_for_delivery" && <section className="delivery-confirm">
           <div className="delivery-confirm-heading"><KeyRound size={19} /><div><strong>Código de verificação</strong><p>Peça ao cliente os quatro últimos dígitos do telefone informado no pedido.</p></div></div>
-          <form onSubmit={confirm}><label className="sr-only" htmlFor="delivery-code">Código de verificação do pedido</label><input id="delivery-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4}" maxLength={4} placeholder="0000" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 4))} required /><button type="submit" disabled={busy || code.length !== 4}>{busy ? "Confirmando..." : "Confirmar entrega"}</button></form>
+          <form onSubmit={confirm}><label className="sr-only" htmlFor="delivery-code">Código de verificação do pedido</label><input id="delivery-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4}" maxLength={4} placeholder="0000" value={code} disabled={busy} onChange={event => { setCode(event.target.value.replace(/\D/g, "").slice(0, 4)); setConfirmError(""); }} required /><button type="submit" disabled={busy || code.length !== 4}>{busy ? "Confirmando..." : "Confirmar entrega"}</button></form>
           {confirmError && <p className="delivery-confirm-error" role="alert">{confirmError}</p>}
         </section>}
         {order.status === "completed" && <p className="delivery-confirmed" role="status">✓ Entrega confirmada{order.confirmedAt ? ` em ${new Date(order.confirmedAt).toLocaleString("pt-BR", {timeZone: "America/Sao_Paulo"})}` : ""}.</p>}

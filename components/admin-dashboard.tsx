@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import { eventLocation } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
+import { requestJson, singleFlight } from "@/lib/client-request";
 import BrandAvatar from "./brand-avatar";
 import AdminProducts from "./admin-products";
 import AdminContacts from "./admin-contacts";
@@ -53,6 +54,8 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [data, setData] = useState<AdminData | null>(null);
   const [capacity, setCapacity] = useState(100);
   const [loading, setLoading] = useState(true);
+  const [restricted, setRestricted] = useState(false);
+  const [loginBusy, setLoginBusy] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [methodFilter, setMethodFilter] = useState<"all" | "pickup" | "delivery">("all");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState("");
@@ -61,22 +64,23 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [password, setPassword] = useState("");
   const [feeInputs, setFeeInputs] = useState<Record<string, string>>({});
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
-  const loadVersion = useRef(0);
   const lastServerCapacity = useRef<number | undefined>(undefined);
 
-  const load = useCallback(async () => {
-    const version = ++loadVersion.current;
-    const response = await fetch("/api/admin", { cache: "no-store" });
-    const result = await response.json() as AdminData;
-    if (version !== loadVersion.current) return;
-    if (response.status === 403) setData(null);
-    if (!response.ok) throw new Error(result.error || "Acesso restrito.");
+  const loadTask = useCallback(async () => {
+    const { response, result } = await requestJson<AdminData>("/api/admin", { cache: "no-store" });
+    if (response.status === 403) { setData(null); setRestricted(true); return; }
+    if (!response.ok) throw new Error(result.error || "Não foi possível carregar o painel.");
+    if (!Array.isArray(result.orders) || !result.settings) throw new Error("O painel recebeu dados incompletos. Tente atualizar.");
     setData(result);
+    setRestricted(false);
+    setError("");
     if (lastServerCapacity.current !== result.settings.capacity) {
       lastServerCapacity.current = result.settings.capacity;
       setCapacity(result.settings.capacity);
     }
   }, []);
+  const runLoad = useMemo(() => singleFlight(), []);
+  const load = useCallback((fresh = false) => runLoad(loadTask, fresh), [runLoad, loadTask]);
   useDeliverySync(Boolean(data) && view === "orders", load);
 
   useEffect(() => {
@@ -86,6 +90,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     const timer = view === "orders" ? setInterval(() => load().catch(() => {}), 10000) : undefined;
     return () => { clearTimeout(initial); if (timer) clearInterval(timer); };
   }, [load, view]);
+
+  function retryLoad() {
+    setError(""); setLoading(true);
+    void load(true).catch(failure => setError(failure.message)).finally(() => setLoading(false));
+  }
 
   const paidOrders = data?.orders.filter(order => order.paid_at && order.status !== "refunded") ?? [];
   const revenue = paidOrders.reduce((sum, order) => sum + (order.total ?? 0), 0);
@@ -127,12 +136,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   async function changeSettings(next: { capacity: number; paused: boolean }) {
     setError("");
     try {
-      const response = await fetch("/api/admin/settings", {
+      const { response, result } = await requestJson<{ error?: string }>("/api/admin/settings", {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next),
       });
-      const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Falha ao salvar.");
-      await load();
+      await load(true);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Falha ao salvar."); }
   }
 
@@ -140,12 +148,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     setError("");
     setBusyOrderId(id);
     try {
-      const response = await fetch(`/api/admin/orders/${id}`, {
+      const { response, result } = await requestJson<{ error?: string }>(`/api/admin/orders/${id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
-      const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Falha ao atualizar.");
-      await load();
+      await load(true);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Falha ao atualizar."); }
     finally { setBusyOrderId(null); }
   }
@@ -160,10 +167,9 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     if (!window.confirm(warning)) return;
     setError("");
     try {
-      const response = await fetch(`/api/admin/orders/${order.id}`, { method: "DELETE" });
-      const result = await response.json() as { error?: string };
+      const { response, result } = await requestJson<{ error?: string }>(`/api/admin/orders/${order.id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(result.error || "Não foi possível apagar o pedido.");
-      await load();
+      await load(true);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível apagar o pedido."); }
   }
 
@@ -183,16 +189,18 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
 
   async function login(event: React.FormEvent) {
     event.preventDefault();
+    if (loginBusy) return;
+    setLoginBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/admin/login", {
+      const { response, result } = await requestJson<{ error?: string }>("/api/admin/login", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }),
       });
-      const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Acesso negado.");
       setPassword("");
-      await load();
+      await load(true);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível entrar."); }
+    finally { setLoginBusy(false); }
   }
 
   return <div className="admin-shell">
@@ -212,10 +220,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/admin/entregas" className={view === "deliveries" ? "active" : ""} aria-current={view === "deliveries" ? "page" : undefined}>Entregas</a><Link href="/">Ver loja</Link></nav>
       {error && <div className="admin-alert" role="alert">{error}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
-      {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
+      {!loading && !data && !restricted && <div className="admin-panel"><p>Não foi possível carregar o painel.</p><button type="button" className="mini-button" onClick={retryLoad}>Tentar novamente</button></div>}
+      {!loading && !data && restricted && <form className="admin-panel admin-login" onSubmit={login}>
         <h2>Acesso da equipe</h2>
         <p>Entre com a senha do painel.</p>
-        <div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={event => setPassword(event.target.value)} /><button type="submit">Entrar</button></div>
+        <div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={event => setPassword(event.target.value)} /><button type="submit" disabled={loginBusy}>{loginBusy ? "Entrando..." : "Entrar"}</button></div>
       </form>}
       {data && view === "products" && <AdminProducts />}
       {data && view === "contacts" && <AdminContacts demo={data.demo} />}
