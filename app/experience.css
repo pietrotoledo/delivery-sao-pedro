@@ -296,6 +296,9 @@
 .admin-filters button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line-soft); background: #fff; color: #566989; border-radius: 8px; padding: 9px 11px; font-size: 12px; font-weight: 800; }
 .admin-filters button.selected { color: #fff; background: var(--brand-blue); border-color: var(--brand-blue); }
 .admin-filters button span { font-size: 11px; opacity: .8; }
+.admin-order-method { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 6px 10px; border-radius: 7px; font-size: 12px; font-weight: 800; }
+.admin-order-method.is-pickup { background: #fff3cd; color: #765500; }
+.admin-order-method.is-delivery { background: #e9efff; color: #193e9f; }
 .admin-empty { color: #697b9a; font-size: 14px; padding: 24px 0; }
 .admin-main .admin-order-items { margin: 14px 0 9px; color: var(--brand-deep); font-size: 14px; font-weight: 800; }
 .admin-order-facts { display: flex; justify-content: space-between; gap: 18px; color: #62728d; font-size: 13px; line-height: 1.5; }

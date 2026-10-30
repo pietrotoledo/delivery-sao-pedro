@@ -47,6 +47,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [capacity, setCapacity] = useState(100);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
+  const [methodFilter, setMethodFilter] = useState<"all" | "pickup" | "delivery">("all");
   const [nameSearch, setNameSearch] = useState("");
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
@@ -95,6 +96,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   }
   const normalizedSearch = normalizeName(nameSearch);
   const visibleOrders = data?.orders.filter(order => {
+    if (methodFilter !== "all" && order.method !== methodFilter) return false;
     if (normalizedSearch && !normalizeName(order.name).includes(normalizedSearch)) return false;
     if (filter === "attention") return order.status === "awaiting_quote";
     if (filter === "payment") return !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status);
@@ -220,6 +222,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
             <label htmlFor="admin-name-search">Buscar pelo nome da pessoa</label>
             <div><Search size={18} aria-hidden="true" /><input id="admin-name-search" type="search" value={nameSearch} onChange={event => setNameSearch(event.target.value)} placeholder="Digite o nome ou parte dele" aria-controls="admin-orders-list" />{nameSearch && <button type="button" onClick={() => setNameSearch("")}>Limpar</button>}</div>
           </div>
+          <div className="admin-filters" role="group" aria-label="Filtrar por entrega ou retirada">
+            <button type="button" className={methodFilter === "all" ? "selected" : ""} aria-pressed={methodFilter === "all"} onClick={() => setMethodFilter("all")}>Todos os tipos <span>{data.orders.length}</span></button>
+            <button type="button" className={methodFilter === "pickup" ? "selected" : ""} aria-pressed={methodFilter === "pickup"} onClick={() => setMethodFilter("pickup")}><ShoppingBag size={15} aria-hidden="true" /> Retirada <span>{data.orders.filter(order => order.method === "pickup").length}</span></button>
+            <button type="button" className={methodFilter === "delivery" ? "selected" : ""} aria-pressed={methodFilter === "delivery"} onClick={() => setMethodFilter("delivery")}><Truck size={15} aria-hidden="true" /> Delivery <span>{data.orders.filter(order => order.method === "delivery").length}</span></button>
+          </div>
           <div className="admin-filters" role="group" aria-label="Filtrar pedidos">
             {([
               ["all", "Todos", data.orders.length],
@@ -233,7 +240,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
           {filter === "paid" && <p className="admin-filter-help">Pagamentos confirmados ficam aqui até a equipe clicar em “Iniciar preparo”.</p>}
           {normalizedSearch && <p className="admin-filter-help" role="status">{visibleOrders.length} {visibleOrders.length === 1 ? "pedido encontrado" : "pedidos encontrados"} para “{nameSearch.trim()}” no filtro selecionado.</p>}
           <div className="admin-orders" id="admin-orders-list">
-            {visibleOrders.length === 0 && <p className="admin-empty">{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
+            {visibleOrders.length === 0 && <p className="admin-empty">{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : methodFilter !== "all" ? "Nenhum pedido desse tipo nos filtros selecionados." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
               const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] }[];
               const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
@@ -246,6 +253,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               const busy = busyOrderId === order.id;
               return <article className="admin-order" key={order.id}>
                 <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
+                <span className={`admin-order-method ${order.method === "pickup" ? "is-pickup" : "is-delivery"}`}>{order.method === "pickup" ? <ShoppingBag size={14} aria-hidden="true" /> : <Truck size={14} aria-hidden="true" />}{order.method === "pickup" ? "Retirada" : "Delivery"}</span>
                 <p className="admin-order-items">{products.flatMap(item => orderItemLabels({ ...item, name: item.name || names[item.id] || item.id })).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${addressWithNeighborhood(order.address, order.neighborhood)}${order.delivery_fee === null && order.total !== null ? " · taxa a combinar no WhatsApp" : ""}` : `Retirada na ${eventLocation.name}`}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.delivery_driver_name && <p className="admin-order-note"><strong>Entregador: {order.delivery_driver_name}</strong> · Rota #{order.delivery_route_id?.slice(0, 6).toUpperCase()} · <a href="/admin/entregas">Gerenciar rota</a></p>}
