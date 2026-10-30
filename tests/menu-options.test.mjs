@@ -6,10 +6,11 @@ const drinks = [
   { id: "coke", name: "Coca-Cola", category: "drink", price: 600, stock: null },
   { id: "coke-zero", name: "Coca Zero", category: "drink", price: 600, stock: null },
   { id: "guarana", name: "Guarana Antarctica", category: "drink", price: 600, stock: null },
+  { id: "guarana-zero", name: "Guaraná Zero", category: "drink", price: 500, stock: null },
   { id: "sparkling-water", name: "Água com gás", category: "drink", price: 400, stock: null },
 ];
 
-test("Os quatro IDs continuam no combo quando os nomes sao diferentes dos valores salvos", () => {
+test("Os IDs continuam no combo quando os nomes sao diferentes dos valores salvos", () => {
   const options = availableComboDrinks(drinks);
   assert.deepEqual(options.map(option => option.id), drinks.map(drink => drink.id));
   assert.deepEqual(options.map(option => option.value), comboDrinkOptions);
@@ -23,6 +24,6 @@ test("Oculta bebidas esgotadas, inativas, removidas e categorias incorretas", ()
     { ...drinks[1], active: false },
     { ...drinks[2], category: "side" },
   ]), []);
-  assert.deepEqual(availableComboDrinks([{ ...drinks[3], stock: 1 }]).map(option => option.id), ["sparkling-water"]);
+  assert.deepEqual(availableComboDrinks([{ ...drinks[4], stock: 1 }]).map(option => option.id), ["sparkling-water"]);
   assert.deepEqual(availableComboDrinks([{ ...drinks[0], id: "another-product" }]), []);
 });

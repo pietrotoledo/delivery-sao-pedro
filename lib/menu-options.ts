@@ -7,6 +7,7 @@ const comboDrinks = [
   { id: "coke", value: "Coca-Cola normal" },
   { id: "coke-zero", value: "Coca-Cola Zero" },
   { id: "guarana", value: "Guaraná" },
+  { id: "guarana-zero", value: "Guaraná Zero" },
   { id: "sparkling-water", value: "Água com gás" },
 ] as const;
 

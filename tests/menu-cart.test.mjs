@@ -86,11 +86,11 @@ test("Combo aceita agua com gas e preserva a bebida ao restaurar o carrinho", ()
   assert.equal(restored.comboDrinks.combo[0], drink);
 });
 
-test("Carrinho preserva as quatro escolhas mesmo com bebidas renomeadas", () => {
-  const renamed = products.map(product => ({ ...product, name: `Nome editado de ${product.id}` }));
+test("Carrinho preserva todas as escolhas mesmo com bebidas renomeadas", () => {
+  const renamed = [...products, { id: "guarana-zero", category: "drink", price: 500, stock: null }].map(product => ({ ...product, name: `Nome editado de ${product.id}` }));
   let cart = emptyMenuCart();
   for (const drink of menuOptions.comboDrinkOptions) cart = addMenuCombo(cart, renamed, "combo", drink);
-  assert.equal(cart.quantities.combo, 4);
+  assert.equal(cart.quantities.combo, menuOptions.comboDrinkOptions.length);
   assert.deepEqual(Array.from(restoreMenuCart(renamed, cart.quantities, cart.comboDrinks, {}).comboDrinks.combo), menuOptions.comboDrinkOptions);
 });
 

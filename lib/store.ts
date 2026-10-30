@@ -16,6 +16,7 @@ export const menu = [
   { id: "coke", name: "Coca-Cola normal", price: 600, category: "drink", description: "Coca-Cola original.", imageUrl: "/products/coca-original-azul.webp" },
   { id: "coke-zero", name: "Coca-Cola Zero", price: 600, category: "drink", description: "Coca-Cola sem açúcar.", imageUrl: "/products/coca-zero-azul.webp" },
   { id: "guarana", name: "Guaraná", price: 600, category: "drink", description: "Refrigerante de guaraná.", imageUrl: "/products/guarana-azul.webp" },
+  { id: "guarana-zero", name: "Guaraná Zero", price: 500, category: "drink", description: "Guaraná Antarctica Zero açúcar, lata de 350 ml.", imageUrl: "/products/guarana-zero-azul.webp" },
   { id: "water", name: "Água mineral", price: 300, category: "drink", description: "Água mineral.", imageUrl: "/products/water.webp" },
   { id: "sparkling-water", name: "Água com gás", price: 400, category: "drink", description: "Água mineral com gás.", imageUrl: "/products/sparkling-water.png" },
   { id: "sweets-kit", name: "Kit com 4 docinhos", price: 700, category: "side", description: "Quatro docinhos por kit.", imageUrl: "/products/docinhos-nuvens.webp" },
@@ -161,6 +162,16 @@ export async function ensureSchema() {
           database.prepare("UPDATE products SET image_url = ?, updated_at = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)")
             .bind(product.imageUrl, new Date().toISOString(), product.id, productPhotosRevision)),
         database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(productPhotosRevision, new Date().toISOString()),
+      ]);
+      const guaranaZeroRevision = "guarana-zero-product-2026-10-v1";
+      const guaranaZeroNow = new Date().toISOString();
+      await database.batch([
+        database.prepare(`INSERT OR IGNORE INTO products (id,name,description,category,price,image_url,active,sort_order,ingredients_json,created_at,updated_at)
+          SELECT 'guarana-zero','Guaraná Zero','Guaraná Antarctica Zero açúcar, lata de 350 ml.','drink',
+            COALESCE((SELECT price FROM products WHERE id = 'guarana'),500),'/products/guarana-zero-azul.webp',1,65,'[]',?,?
+          WHERE NOT EXISTS (SELECT 1 FROM menu_revisions WHERE id = ?)`)
+          .bind(guaranaZeroNow, guaranaZeroNow, guaranaZeroRevision),
+        database.prepare("INSERT OR IGNORE INTO menu_revisions (id,applied_at) VALUES (?,?)").bind(guaranaZeroRevision, guaranaZeroNow),
       ]);
       const burgerPhotoRevision = "burger-photo-2026-10-v1";
       await database.batch([

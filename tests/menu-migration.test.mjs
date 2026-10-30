@@ -52,7 +52,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     await store.ensureSchema();
     const products = sqlite.prepare("SELECT * FROM products WHERE active=1 ORDER BY sort_order").all();
     assert.deepEqual(products.map(product => [product.id, product.price]), [
-      ["classic", 2500], ["combo", 3500], ["fries-small", 800], ["coke", 600], ["coke-zero", 600], ["guarana", 600], ["water", 300], ["sparkling-water", 400], ["sweets-kit", 700],
+      ["classic", 2500], ["combo", 3500], ["fries-small", 800], ["coke", 600], ["coke-zero", 600], ["guarana", 600], ["guarana-zero", 500], ["water", 300], ["sparkling-water", 400], ["sweets-kit", 700],
     ]);
     assert.equal(products.filter(product => product.category === "burger").length, 1);
     assert.equal(products.find(product => product.id === "classic").name, "Blueck Burguer");
@@ -61,7 +61,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     assert.equal(products.find(product => product.id === "combo").image_url, "/products/combo-azul-v2.webp");
     assert.deepEqual(products.map(product => [product.id, product.image_url]), [
       ["classic", "/products/hamburguer-solo-azul.webp"], ["combo", "/products/combo-azul-v2.webp"], ["fries-small", "/products/batata-azul.webp"],
-      ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["water", "/products/water.webp"], ["sparkling-water", "/products/sparkling-water.png"], ["sweets-kit", "/products/docinhos-nuvens.webp"],
+      ["coke", "/products/coca-original-azul.webp"], ["coke-zero", "/products/coca-zero-azul.webp"], ["guarana", "/products/guarana-azul.webp"], ["guarana-zero", "/products/guarana-zero-azul.webp"], ["water", "/products/water.webp"], ["sparkling-water", "/products/sparkling-water.png"], ["sweets-kit", "/products/docinhos-nuvens.webp"],
     ]);
     assert.match(products[0].description, /maionese artesanal/);
     assert.equal(products[0].stock, 7);
@@ -69,6 +69,12 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     const oldItem = store.orderItems({items_json: JSON.stringify([{id: "classic", quantity: 1, name: "Pedido antigo", price: 2200}])})[0];
     assert.equal(oldItem.price, 2200);
     assert.equal(oldItem.name, "Pedido antigo");
+    sqlite.exec("UPDATE products SET price=500 WHERE id='guarana'; DELETE FROM products WHERE id='guarana-zero'; DELETE FROM menu_revisions WHERE id='guarana-zero-product-2026-10-v1'");
+    await loadStore().ensureSchema();
+    assert.deepEqual({ ...sqlite.prepare("SELECT name,price,image_url,active FROM products WHERE id='guarana-zero'").get() }, { name: "Guaraná Zero", price: 500, image_url: "/products/guarana-zero-azul.webp", active: 1 });
+    sqlite.exec("UPDATE products SET stock=8,price=550 WHERE id='guarana-zero'");
+    await loadStore().ensureSchema();
+    assert.deepEqual({ ...sqlite.prepare("SELECT price,stock FROM products WHERE id='guarana-zero'").get() }, { price: 550, stock: 8 });
     sqlite.exec("UPDATE products SET price=2600 WHERE id='classic'");
     sqlite.exec("UPDATE products SET image_url=NULL WHERE id IN ('classic','combo','fries-small','coke','coke-zero','guarana'); DELETE FROM menu_revisions WHERE id IN ('burger-photo-2026-10-v1','combo-photo-2026-10-v1','product-photos-2026-10-v1')");
     await loadStore().ensureSchema();
