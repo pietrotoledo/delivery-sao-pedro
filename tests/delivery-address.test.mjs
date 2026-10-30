@@ -62,3 +62,12 @@ test("CEP de Brisamar reconhece o bairro e libera endereço em João Pessoa", as
   assert.equal(found.neighborhood, "Brisamar");
   assert.equal(deliveryAddressError({ ...emptyDeliveryAddress, ...found, number: "159" }), null);
 });
+
+test("CEP 58034-000 de João Agripino libera o endereço para entrega", async () => {
+  assert.equal(servedNeighborhood(" joao agripino "), "João Agripino");
+  const found = await lookupCep("58034-000", new AbortController().signal, async () => Response.json({ logradouro: "Rua José Brasilino Leite", bairro: "João Agripino", localidade: "João Pessoa", uf: "PB" }));
+  assert.equal(found.neighborhood, "João Agripino");
+  assert.equal(found.street, "Rua José Brasilino Leite");
+  assert.equal(deliveryAddressError({ ...emptyDeliveryAddress, ...found, cep: "58034-000", number: "159" }), null);
+  assert.equal(deliveryAddressError({ ...emptyDeliveryAddress, ...found, number: "159" }), null);
+});

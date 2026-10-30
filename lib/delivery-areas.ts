@@ -10,6 +10,7 @@ export const deliveryAreas: readonly { name: string; fee: DeliveryFee; city?: st
   { name: "Bairro dos Estados", fee: 500 },
   { name: "Cabo Branco", fee: 500 },
   { name: "Pedro Gondim", fee: 500 },
+  { name: "João Agripino", fee: 500 },
   { name: "Tambauzinho", fee: 500 },
   { name: "Miramar", fee: 500 },
   { name: "Brisamar", fee: 500 },

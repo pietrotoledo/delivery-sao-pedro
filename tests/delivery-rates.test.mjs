@@ -112,7 +112,7 @@ for (const area of deliveryAreas) {
 }
 
 test("Rejeita bairro não atendido e taxa adulterada antes de criar o pedido", async () => {
-  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Pedro Gondim", 0, 409], ["Miramar", 0, 409], ["Brisamar", 0, 409]]) {
+  for (const [neighborhood, fee, status] of [["Centro", 0, 400], ["Pedro Gondim", 0, 409], ["Miramar", 0, 409], ["Brisamar", 0, 409], ["João Agripino", 0, 409]]) {
     const api = orderApi();
     assert.equal((await api.post(request(payload(neighborhood, fee)))).status, status);
     assert.equal(api.inserted(), undefined);
@@ -297,7 +297,7 @@ test("Brisamar aceita endereço estruturado e soma R$ 5 ao total do Pix", async 
 
 test("Novas regras: frete grátis nos bairros da orla e R$ 5 nos demais, grátis acima de R$ 60", () => {
   for (const name of ["Manaíra", "Bessa", "Aeroclube", "Tambaú", "Jardim Oceania"]) assert.equal(deliveryFeeFor(name, 1000), 0);
-  for (const name of ["Bairro dos Estados", "Cabo Branco", "Pedro Gondim", "Tambauzinho", "Miramar", "Brisamar", "Altiplano"]) {
+  for (const name of ["Bairro dos Estados", "Cabo Branco", "Pedro Gondim", "João Agripino", "Tambauzinho", "Miramar", "Brisamar", "Altiplano"]) {
     assert.equal(deliveryFeeFor(name, 6000), 500);
     assert.equal(deliveryFeeFor(name, 6001), 0);
   }
