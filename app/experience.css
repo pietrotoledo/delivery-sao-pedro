@@ -810,8 +810,8 @@ button { -webkit-touch-callout: none; }
   .delivery-gratitude { gap: 9px; padding-top: 13px; }
   .delivery-gratitude p { font-size: 13px; line-height: 1.45; }
   .delivery-toolbar { align-items: stretch; margin: 16px 0 12px; }
-  .delivery-filters { width: 100%; flex-wrap: nowrap; }
-  .delivery-filters button { min-width: 0; flex: 1; padding-inline: 8px; white-space: nowrap; font-size: 12px; }
+  .delivery-filters { width: 100%; flex-wrap: wrap; }
+  .delivery-filters button { min-width: 0; flex: 1 1 auto; padding-inline: 8px; white-space: nowrap; font-size: 12px; }
   .delivery-tools { width: 100%; justify-content: flex-end; }
   .delivery-tools button { min-height: 36px; padding: 7px 11px; font-size: 12px; }
   .delivery-list-intro { margin-bottom: 11px; font-size: 12px; }

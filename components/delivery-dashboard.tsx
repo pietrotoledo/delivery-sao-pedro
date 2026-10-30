@@ -32,7 +32,8 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"active" | "out_for_delivery" | "completed">("active");
+  const showCompleted = statusFilter === "completed";
   const [sortMode, setSortMode] = useState("proximity");
   const [neighborhood, setNeighborhood] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -75,13 +76,13 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
   async function logout() {
     await fetch("/api/delivery/logout", { method: "POST" });
     setData(null);
-    setShowCompleted(false);
+    setStatusFilter("active");
     setSelectedIds([]);
     setDriverName("");
     setRouteError("");
   }
 
-  const visibleOrders = data?.orders.filter(order => (order.status === "completed") === showCompleted) ?? [];
+  const visibleOrders = data?.orders.filter(order => statusFilter === "out_for_delivery" ? order.status === "out_for_delivery" : (order.status === "completed") === showCompleted) ?? [];
   const neighborhoods = [...new Set(visibleOrders.map(order => order.neighborhood).filter((name): name is string => Boolean(name)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const filteredOrders = visibleOrders.filter(order => !neighborhood || order.neighborhood === neighborhood);
   const orders = !showCompleted && sortMode === "proximity" ? sortByNeighborhood(filteredOrders, defaultRoutePoint) : filteredOrders;
@@ -126,6 +127,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
   }
   const activeCount = data?.orders.filter(order => order.status !== "completed").length ?? 0;
   const completedCount = (data?.orders.length ?? 0) - activeCount;
+  const outForDeliveryCount = data?.orders.filter(order => order.status === "out_for_delivery").length ?? 0;
 
   return <div className={embedded ? "delivery-admin-embedded" : "delivery-page"}>
     {!embedded && <header className="delivery-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><span><Truck size={17} /> Área dos entregadores</span></header>}
@@ -140,7 +142,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
       {!loading && !data && <form className="delivery-login" onSubmit={login}><h2>Acesso dos entregadores</h2><p>Use a senha da equipe de delivery.</p><label htmlFor="delivery-password">Senha dos entregadores</label><input id="delivery-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required /><button type="submit" disabled={busy}>{busy ? "Entrando..." : "Entrar"}</button></form>}
       {data && <>
         <p className={`delivery-sync-state ${synced ? "is-live" : ""}`} role="status">{synced ? "Sincronização ao vivo conectada" : "Reconectando a sincronização · atualização periódica ativa"}</p>
-        <div className="delivery-toolbar"><div className="delivery-filters" role="group" aria-label="Filtrar entregas"><button type="button" className={!showCompleted ? "active" : ""} aria-pressed={!showCompleted} onClick={() => { setShowCompleted(false); setNeighborhood(""); }}>Em andamento <span>{activeCount}</span></button><button type="button" className={showCompleted ? "active" : ""} aria-pressed={showCompleted} onClick={() => { setShowCompleted(true); setNeighborhood(""); }}>Entregues <span>{completedCount}</span></button></div><div className="delivery-tools"><button type="button" className="delivery-refresh" onClick={() => void load().catch(failure => setError(failure.message))}><RefreshCw size={16} /> Atualizar</button>{!embedded && <button type="button" className="delivery-logout" onClick={() => void logout()}>Sair</button>}</div></div>
+        <div className="delivery-toolbar"><div className="delivery-filters" role="group" aria-label="Filtrar entregas"><button type="button" className={statusFilter === "active" ? "active" : ""} aria-pressed={statusFilter === "active"} onClick={() => { setStatusFilter("active"); setNeighborhood(""); }}>Em andamento <span>{activeCount}</span></button><button type="button" className={statusFilter === "out_for_delivery" ? "active" : ""} aria-pressed={statusFilter === "out_for_delivery"} onClick={() => { setStatusFilter("out_for_delivery"); setNeighborhood(""); }}>Saiu para entrega <span>{outForDeliveryCount}</span></button><button type="button" className={showCompleted ? "active" : ""} aria-pressed={showCompleted} onClick={() => { setStatusFilter("completed"); setNeighborhood(""); }}>Entregues <span>{completedCount}</span></button></div><div className="delivery-tools"><button type="button" className="delivery-refresh" onClick={() => void load().catch(failure => setError(failure.message))}><RefreshCw size={16} /> Atualizar</button>{!embedded && <button type="button" className="delivery-logout" onClick={() => void logout()}>Sair</button>}</div></div>
         <div className="delivery-route-filters">
           {!showCompleted && <label>Ordenar pedidos<select value={sortMode} onChange={event => setSortMode(event.target.value)}><option value="proximity">Bairros mais próximos de Manaíra</option><option value="status">Ordem de preparo</option></select></label>}
           <label>Bairro<select value={neighborhood} onChange={event => setNeighborhood(event.target.value)}><option value="">Todos os bairros</option>{neighborhoods.map(name => <option key={name}>{name}</option>)}</select></label>
@@ -167,7 +169,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
           {order.driverName && <p className="delivery-driver-badge"><UserRound size={16} aria-hidden="true" /> Entregador: <strong>{order.driverName}</strong> · Rota #{order.routeId?.slice(0, 6).toUpperCase()}</p>}
           {order.feeToArrange && <p className="delivery-fee-arrange"><BadgeDollarSign size={18} aria-hidden="true" /><span>Frete a combinar: não está no Pix. O valor do Uber Moto é combinado com o cliente pelo WhatsApp.</span></p>}
           <span className="delivery-card-hint">{order.status === "out_for_delivery" ? "Abrir pedido e informar código" : "Ver pedido"} <ArrowRight size={16} aria-hidden="true" /></span>
-        </a>{deliveryWhatsappHref(order.phone ?? "", order.id, order.driverName ?? undefined) && <a className="delivery-whatsapp" href={deliveryWhatsappHref(order.phone, order.id, order.driverName ?? undefined)!} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} aria-hidden="true" /> WhatsApp do cliente</a>}{!showCompleted && <div className="delivery-route-choice">{order.routeId ? <span>Este pedido já está na rota de <strong>{order.driverName}</strong>.</span> : canJoinRoute(order) ? <label><input type="checkbox" aria-label={`Incluir pedido ${order.id.slice(0, 8).toUpperCase()} na rota`} checked={routePositions.has(order.id)} disabled={savingRoute} onChange={() => toggleRoute(order.id)} /><span>{routePositions.has(order.id) ? `Parada ${routePositions.get(order.id)} da rota` : "Incluir na rota"}</span></label> : <span>{order.address?.trim() ? "Disponível para a rota quando estiver pronto para sair." : "Informe o endereço antes de incluir na rota."}</span>}</div>}</article>) : <div className="delivery-empty">{neighborhood ? "Nenhuma entrega neste bairro." : showCompleted ? "Nenhuma entrega concluída." : "Nenhuma entrega em andamento."}</div>}</div>
+        </a>{deliveryWhatsappHref(order.phone ?? "", order.id, order.driverName ?? undefined) && <a className="delivery-whatsapp" href={deliveryWhatsappHref(order.phone, order.id, order.driverName ?? undefined)!} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} aria-hidden="true" /> WhatsApp do cliente</a>}{!showCompleted && <div className="delivery-route-choice">{order.routeId ? <span>Este pedido já está na rota de <strong>{order.driverName}</strong>.</span> : canJoinRoute(order) ? <label><input type="checkbox" aria-label={`Incluir pedido ${order.id.slice(0, 8).toUpperCase()} na rota`} checked={routePositions.has(order.id)} disabled={savingRoute} onChange={() => toggleRoute(order.id)} /><span>{routePositions.has(order.id) ? `Parada ${routePositions.get(order.id)} da rota` : "Incluir na rota"}</span></label> : <span>{order.address?.trim() ? "Disponível para a rota quando estiver pronto para sair." : "Informe o endereço antes de incluir na rota."}</span>}</div>}</article>) : <div className="delivery-empty">{neighborhood ? "Nenhuma entrega neste bairro." : showCompleted ? "Nenhuma entrega concluída." : statusFilter === "out_for_delivery" ? "Nenhum pedido saiu para entrega." : "Nenhuma entrega em andamento."}</div>}</div>
       </>}
     </div>
   </div>;
