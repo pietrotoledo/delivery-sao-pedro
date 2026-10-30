@@ -1,17 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, BadgeDollarSign, KeyRound, MapPinned, Phone, Truck } from "lucide-react";
+import { ArrowLeft, BadgeDollarSign, KeyRound, MapPinned, MessageCircle, Phone, Truck, UserRound } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
 import NavigationLinks from "./navigation-links";
-import { addressWithNeighborhood, deliveryDestination, deliveryPhoneHref } from "@/lib/delivery-links";
+import { addressWithNeighborhood, deliveryDestination, deliveryPhoneHref, deliveryWhatsappHref } from "@/lib/delivery-links";
 import { phoneLabel } from "@/lib/store-contact";
+import useDeliverySync from "./use-delivery-sync";
 
 type DeliveryOrder = {
   id: string; createdAt: string; name: string; phone: string;
   neighborhood: string | null; address: string | null; notes: string | null;
   items: {name: string; quantity: number}[]; status: string; confirmedAt: string | null; feeToArrange?: boolean;
+  routeId?: string | null; driverName?: string | null;
 };
 
 const statusLabels: Record<string, string> = {
@@ -32,11 +34,15 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
   const [confirmError, setConfirmError] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const loadVersion = useRef(0);
 
   const load = useCallback(async () => {
+    const version = ++loadVersion.current;
     const response = await fetch(`/api/delivery/orders/${encodeURIComponent(id)}`, {cache: "no-store"});
+    if (version !== loadVersion.current) return;
     if (response.status === 403) { setRestricted(true); setOrder(null); return; }
     const result = await readJson<{order?: DeliveryOrder; error?: string}>(response);
+    if (version !== loadVersion.current) return;
     if (!response.ok || !result.order) {
       if (response.status === 404) setOrder(null);
       throw new Error(result.error || "Não foi possível carregar o pedido.");
@@ -45,6 +51,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
     setRestricted(false);
     setError("");
   }, [id]);
+  useDeliverySync(Boolean(order) && !restricted, load);
 
   useEffect(() => {
     const initial = window.setTimeout(() => { void load().catch(failure => setError(failure.message)).finally(() => setLoading(false)); }, 0);
@@ -70,6 +77,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
 
   const destination = order?.address ? deliveryDestination(order.address, order.neighborhood) : null;
   const phoneHref = order ? deliveryPhoneHref(order.phone) : null;
+  const whatsappHref = order ? deliveryWhatsappHref(order.phone, order.id, order.driverName ?? undefined) : null;
 
   return <div className="delivery-page">
     <header className="delivery-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><span><Truck size={17} /> Área dos entregadores</span></header>
@@ -82,9 +90,10 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
       {order && <article className="delivery-detail-card">
         <div className="delivery-card-head"><div><small>Pedido #{order.id.slice(0, 8).toUpperCase()}</small><h2>{order.name}</h2></div><span className="team-status">{statusLabels[order.status] ?? order.status}</span></div>
         <p className="delivery-address"><MapPinned size={19} /><span>{addressWithNeighborhood(order.address, order.neighborhood) || "Endereço não informado"}</span></p>
+        {order.driverName && <p className="delivery-driver-badge"><UserRound size={16} aria-hidden="true" /> Entregador: <strong>{order.driverName}</strong> · Rota #{order.routeId?.slice(0, 6).toUpperCase()}</p>}
         {order.feeToArrange && <p className="delivery-fee-arrange"><BadgeDollarSign size={18} aria-hidden="true" /><span>Frete a combinar: não está no Pix. O valor do Uber Moto é combinado com o cliente pelo WhatsApp.</span></p>}
         {destination && <NavigationLinks destination={destination} label="Rota para o cliente" />}
-        <div className="delivery-actions">{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {phoneLabel(order.phone)}</a>}</div>
+        <div className="delivery-actions">{whatsappHref && <a className="delivery-whatsapp" href={whatsappHref} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} aria-hidden="true" /> WhatsApp do cliente</a>}{phoneHref && <a className="delivery-phone" href={phoneHref}><Phone size={17} /> Ligar para {phoneLabel(order.phone)}</a>}</div>
         <section className="delivery-detail-items"><h3>Itens do pedido</h3>{order.items.map((item, index) => <p key={`${item.name}-${index}`}>{item.quantity}× {item.name}</p>)}</section>
         {order.notes && <p className="delivery-note"><strong>Observação:</strong> {order.notes}</p>}
         {order.status === "out_for_delivery" && <section className="delivery-confirm">

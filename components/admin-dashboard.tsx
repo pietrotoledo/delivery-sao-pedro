@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, PackageCheck, RefreshCw, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
@@ -9,6 +9,8 @@ import { addressWithNeighborhood } from "@/lib/delivery-links";
 import BrandAvatar from "./brand-avatar";
 import AdminProducts from "./admin-products";
 import AdminContacts from "./admin-contacts";
+import DeliveryDashboard from "./delivery-dashboard";
+import useDeliverySync from "./use-delivery-sync";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
@@ -17,6 +19,7 @@ type Order = {
   delivery_fee: number | null; total: number | null; status: string;
   paid_at: string | null; payment_mode: string | null; payment_note: string | null; refund_note: string | null; checkout_url: string | null;
   handoff_confirmed_at: string | null; handoff_note: string | null;
+  delivery_driver_name?: string | null; delivery_route_id?: string | null;
 };
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
 type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
@@ -38,7 +41,7 @@ const names: Record<string, string> = {
 };
 const closedStatuses = new Set(["completed", "refunded"]);
 
-export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" | "contacts" }) {
+export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" | "contacts" | "deliveries" }) {
   const [data, setData] = useState<AdminData | null>(null);
   const [capacity, setCapacity] = useState(100);
   const [loading, setLoading] = useState(true);
@@ -47,14 +50,23 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [password, setPassword] = useState("");
   const [feeInputs, setFeeInputs] = useState<Record<string, string>>({});
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const loadVersion = useRef(0);
+  const lastServerCapacity = useRef<number | undefined>(undefined);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/admin");
+    const version = ++loadVersion.current;
+    const response = await fetch("/api/admin", { cache: "no-store" });
     const result = await response.json() as AdminData;
+    if (version !== loadVersion.current) return;
+    if (response.status === 403) setData(null);
     if (!response.ok) throw new Error(result.error || "Acesso restrito.");
     setData(result);
-    setCapacity(result.settings.capacity);
+    if (lastServerCapacity.current !== result.settings.capacity) {
+      lastServerCapacity.current = result.settings.capacity;
+      setCapacity(result.settings.capacity);
+    }
   }, []);
+  useDeliverySync(Boolean(data) && view === "orders", load);
 
   useEffect(() => {
     const initial = setTimeout(() => {
@@ -165,15 +177,15 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></a>
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-      <nav className="side-nav" aria-label="Painel"><a className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}><LayoutDashboard size={18} /> Pedidos</a><a className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}><ShoppingBag size={18} /> Produtos</a><a className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}><ContactRound size={18} /> Contatos</a><a href="/entregas"><Truck size={18} /> Entregas</a><a href="/"><ArrowUpRight size={18} /> Ver loja</a></nav>
+      <nav className="side-nav" aria-label="Painel"><a className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}><LayoutDashboard size={18} /> Pedidos</a><a className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}><ShoppingBag size={18} /> Produtos</a><a className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}><ContactRound size={18} /> Contatos</a><a className={view === "deliveries" ? "active" : ""} href="/admin/entregas" aria-current={view === "deliveries" ? "page" : undefined}><Truck size={18} /> Entregas</a><a href="/"><ArrowUpRight size={18} /> Ver loja</a></nav>
       <p className="side-foot">Equipe · 30 de outubro de 2026</p>
     </aside>
     <main className="admin-main">
       <header className="admin-head">
-        <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : "Pedidos e pagamentos atualizados a cada 10 segundos."}</p></div>
+        <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : view === "deliveries" ? "Rotas e entregadores" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : view === "deliveries" ? "Distribua as rotas entre os entregadores. As alterações são sincronizadas com os celulares da equipe." : "Pedidos e pagamentos com atualização automática."}</p></div>
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
-      <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/entregas">Entregas</a><Link href="/">Ver loja</Link></nav>
+      <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/admin/entregas" className={view === "deliveries" ? "active" : ""} aria-current={view === "deliveries" ? "page" : undefined}>Entregas</a><Link href="/">Ver loja</Link></nav>
       {error && <div className="admin-alert" role="alert">{error}</div>}
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && <form className="admin-panel admin-login" onSubmit={login}>
@@ -183,6 +195,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       </form>}
       {data && view === "products" && <AdminProducts />}
       {data && view === "contacts" && <AdminContacts demo={data.demo} />}
+      {data && view === "deliveries" && <DeliveryDashboard embedded />}
       {data && view === "orders" && <>
         <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>
@@ -226,6 +239,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                 <div className="admin-order-top"><div><h3>{order.name} <small>#{order.id.slice(0, 8).toUpperCase()}</small></h3><small>{new Date(order.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {order.phone}{order.email ? ` · ${order.email}` : ""}</small></div><span className={`status-pill status-${order.status}`}>{labels[order.status] || order.status}</span></div>
                 <p className="admin-order-items">{products.flatMap(item => orderItemLabels({ ...item, name: item.name || names[item.id] || item.id })).join(" · ")}</p>
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${addressWithNeighborhood(order.address, order.neighborhood)}${order.delivery_fee === null && order.total !== null ? " · taxa a combinar no WhatsApp" : ""}` : `Retirada na ${eventLocation.name}`}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
+                {order.delivery_driver_name && <p className="admin-order-note"><strong>Entregador: {order.delivery_driver_name}</strong> · Rota #{order.delivery_route_id?.slice(0, 6).toUpperCase()} · <a href="/admin/entregas">Gerenciar rota</a></p>}
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
                 {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
                 {notices.length > 0 && <p className="admin-order-note">Avisos: {notices.map(notice => `${notice.channel === "email" ? "E-mail" : "WhatsApp"} ${noticeEvents[notice.event] ?? notice.event} (${notice.state === "accepted" ? `aceito pelo ${notice.channel === "email" ? "Resend" : "Evolution"}` : noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}

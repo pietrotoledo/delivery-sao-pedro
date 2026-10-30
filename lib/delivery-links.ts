@@ -31,3 +31,11 @@ export function deliveryPhoneHref(phone: string) {
   if (!digits) return null;
   return `tel:+${digits.startsWith("55") ? digits : `55${digits}`}`;
 }
+
+export function deliveryWhatsappHref(phone: string, orderId: string, driverName?: string) {
+  const digits = phone.replace(/\D/g, "");
+  const number = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+  if (!/^55\d{10,11}$/.test(number)) return null;
+  const message = `Olá! ${driverName?.trim() ? `Sou ${driverName.trim()}, entregador` : "Sou da equipe de entregas"} da Blueckyardigans. Estou entrando em contato sobre seu pedido #${orderId.slice(0, 8).toUpperCase()}.`;
+  return `https://wa.me/${number}?${new URLSearchParams({ text: message })}`;
+}
