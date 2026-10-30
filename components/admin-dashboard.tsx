@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, PackageCheck, RefreshCw, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import { eventLocation } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
@@ -40,12 +40,14 @@ const names: Record<string, string> = {
   coke: "Coca-Cola", "coke-zero": "Coca-Cola Zero",
 };
 const closedStatuses = new Set(["completed", "refunded"]);
+const normalizeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " ");
 
 export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" | "contacts" | "deliveries" }) {
   const [data, setData] = useState<AdminData | null>(null);
   const [capacity, setCapacity] = useState(100);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
+  const [nameSearch, setNameSearch] = useState("");
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [feeInputs, setFeeInputs] = useState<Record<string, string>>({});
@@ -91,7 +93,9 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     running += order.burger_count;
     paidPosition.set(order.id, { start, end: running });
   }
+  const normalizedSearch = normalizeName(nameSearch);
   const visibleOrders = data?.orders.filter(order => {
+    if (normalizedSearch && !normalizeName(order.name).includes(normalizedSearch)) return false;
     if (filter === "attention") return order.status === "awaiting_quote";
     if (filter === "payment") return !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status);
     if (filter === "paid") return order.status === "paid";
@@ -212,6 +216,10 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
         </section>
         <section className="admin-panel admin-orders-panel" id="pedidos">
           <div className="admin-panel-heading"><div><p className="section-kicker">Acompanhar</p><h2>Pedidos <span>({data.orders.length})</span></h2></div><span className="admin-refresh"><RefreshCw size={15} /> Atualização automática</span></div>
+          <div className="admin-contact-search" role="search" aria-label="Buscar pedidos por nome">
+            <label htmlFor="admin-name-search">Buscar pelo nome da pessoa</label>
+            <div><Search size={18} aria-hidden="true" /><input id="admin-name-search" type="search" value={nameSearch} onChange={event => setNameSearch(event.target.value)} placeholder="Digite o nome ou parte dele" aria-controls="admin-orders-list" />{nameSearch && <button type="button" onClick={() => setNameSearch("")}>Limpar</button>}</div>
+          </div>
           <div className="admin-filters" role="group" aria-label="Filtrar pedidos">
             {([
               ["all", "Todos", data.orders.length],
@@ -223,8 +231,9 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
             ] as [Filter, string, number][]).map(([value, label, count]) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>)}
           </div>
           {filter === "paid" && <p className="admin-filter-help">Pagamentos confirmados ficam aqui até a equipe clicar em “Iniciar preparo”.</p>}
-          <div className="admin-orders">
-            {visibleOrders.length === 0 && <p className="admin-empty">{filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
+          {normalizedSearch && <p className="admin-filter-help" role="status">{visibleOrders.length} {visibleOrders.length === 1 ? "pedido encontrado" : "pedidos encontrados"} para “{nameSearch.trim()}” no filtro selecionado.</p>}
+          <div className="admin-orders" id="admin-orders-list">
+            {visibleOrders.length === 0 && <p className="admin-empty">{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
               const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] }[];
               const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
