@@ -236,7 +236,7 @@
 .admin-contact-search { padding: 18px; margin-bottom: 18px; border: 1px solid var(--line-soft); border-radius: 12px; background: #fff; }
 .admin-contact-search label { display: block; margin-bottom: 9px; color: var(--brand-deep); font-size: 12px; font-weight: 800; }
 .admin-contact-search > div { display: flex; align-items: center; gap: 10px; color: #74839c; }
-.admin-contact-search input { flex: 1; min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid var(--line-soft); border-radius: 8px; font-size: 14px; }
+.admin-contact-search :is(input, select) { flex: 1; min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid var(--line-soft); border-radius: 8px; font-size: 14px; }
 .admin-contact-search button { min-height: 42px; padding: 9px 15px; border: 0; border-radius: 8px; background: var(--brand-blue); color: #fff; font-size: 13px; font-weight: 800; }
 .admin-contact-count { margin: 0 0 12px; color: #71809b; font-size: 12px; font-weight: 700; }
 .admin-contact-list { display: grid; gap: 12px; }

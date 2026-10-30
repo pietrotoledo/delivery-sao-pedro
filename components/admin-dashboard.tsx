@@ -48,6 +48,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [methodFilter, setMethodFilter] = useState<"all" | "pickup" | "delivery">("all");
+  const [neighborhoodFilter, setNeighborhoodFilter] = useState("");
   const [nameSearch, setNameSearch] = useState("");
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
@@ -95,8 +96,18 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     paidPosition.set(order.id, { start, end: running });
   }
   const normalizedSearch = normalizeName(nameSearch);
+  const neighborhoodNames = new Map<string, string>();
+  for (const order of data?.orders ?? []) {
+    const neighborhood = order.neighborhood?.trim().replace(/\s+/g, " ");
+    if (order.method === "delivery" && neighborhood) {
+      const key = normalizeName(neighborhood);
+      if (!neighborhoodNames.has(key)) neighborhoodNames.set(key, neighborhood);
+    }
+  }
+  const neighborhoods = [...neighborhoodNames].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
   const visibleOrders = data?.orders.filter(order => {
     if (methodFilter !== "all" && order.method !== methodFilter) return false;
+    if (neighborhoodFilter && (order.method !== "delivery" || normalizeName(order.neighborhood ?? "") !== neighborhoodFilter)) return false;
     if (normalizedSearch && !normalizeName(order.name).includes(normalizedSearch)) return false;
     if (filter === "attention") return order.status === "awaiting_quote";
     if (filter === "payment") return !order.paid_at && ["ready_for_payment", "awaiting_payment"].includes(order.status);
@@ -224,7 +235,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
           </div>
           <div className="admin-filters" role="group" aria-label="Filtrar por entrega ou retirada">
             <button type="button" className={methodFilter === "all" ? "selected" : ""} aria-pressed={methodFilter === "all"} onClick={() => setMethodFilter("all")}>Todos os tipos <span>{data.orders.length}</span></button>
-            <button type="button" className={methodFilter === "pickup" ? "selected" : ""} aria-pressed={methodFilter === "pickup"} onClick={() => setMethodFilter("pickup")}><ShoppingBag size={15} aria-hidden="true" /> Retirada <span>{data.orders.filter(order => order.method === "pickup").length}</span></button>
+            <button type="button" className={methodFilter === "pickup" ? "selected" : ""} aria-pressed={methodFilter === "pickup"} onClick={() => { setMethodFilter("pickup"); setNeighborhoodFilter(""); }}><ShoppingBag size={15} aria-hidden="true" /> Retirada <span>{data.orders.filter(order => order.method === "pickup").length}</span></button>
             <button type="button" className={methodFilter === "delivery" ? "selected" : ""} aria-pressed={methodFilter === "delivery"} onClick={() => setMethodFilter("delivery")}><Truck size={15} aria-hidden="true" /> Delivery <span>{data.orders.filter(order => order.method === "delivery").length}</span></button>
           </div>
           <div className="admin-filters" role="group" aria-label="Filtrar pedidos">
@@ -237,10 +248,18 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               ["closed", "Concluídos", data.orders.length - openOrders],
             ] as [Filter, string, number][]).map(([value, label, count]) => <button key={value} type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label} <span>{count}</span></button>)}
           </div>
+          {methodFilter !== "pickup" && <div className="admin-contact-search">
+            <label htmlFor="admin-neighborhood-filter">Filtrar por bairro</label>
+            <div><select id="admin-neighborhood-filter" value={neighborhoodFilter} onChange={event => setNeighborhoodFilter(event.target.value)} aria-controls="admin-orders-list">
+              <option value="">Todos os bairros</option>
+              {neighborhoods.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>{neighborhoodFilter && <button type="button" onClick={() => setNeighborhoodFilter("")}>Limpar bairro</button>}</div>
+          </div>}
           {filter === "paid" && <p className="admin-filter-help">Pagamentos confirmados ficam aqui até a equipe clicar em “Iniciar preparo”.</p>}
+          {neighborhoodFilter && !normalizedSearch && <p className="admin-filter-help" role="status">{visibleOrders.length} {visibleOrders.length === 1 ? "pedido encontrado" : "pedidos encontrados"} no bairro selecionado, considerando os filtros ativos.</p>}
           {normalizedSearch && <p className="admin-filter-help" role="status">{visibleOrders.length} {visibleOrders.length === 1 ? "pedido encontrado" : "pedidos encontrados"} para “{nameSearch.trim()}” no filtro selecionado.</p>}
           <div className="admin-orders" id="admin-orders-list">
-            {visibleOrders.length === 0 && <p className="admin-empty">{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : methodFilter !== "all" ? "Nenhum pedido desse tipo nos filtros selecionados." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
+            {visibleOrders.length === 0 && <p className="admin-empty">{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : neighborhoodFilter ? "Nenhum pedido deste bairro nos filtros selecionados." : methodFilter !== "all" ? "Nenhum pedido desse tipo nos filtros selecionados." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
               const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] }[];
               const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
