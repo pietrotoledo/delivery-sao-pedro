@@ -22,7 +22,7 @@ type Order = {
   delivery_driver_name?: string | null; delivery_route_id?: string | null;
 };
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
-type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; demo: boolean; error?: string };
+type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; completedBurgers: number; demo: boolean; error?: string };
 type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
 const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão", event_morning: "lembrete do evento · 11h", event_evening: "lembrete do evento · 18h" };
 const noticeStates: Record<string, string> = { failed: "falhou; nova tentativa programada", uncertain: "resultado incerto; confira o WhatsApp antes de reenviar", superseded: "substituído", pending: "pendente", sending: "enviando" };
@@ -217,6 +217,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
         <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>
           <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Em preparo, prontos ou em entrega</small></div>
+          <div className="metric"><span>Hambúrgueres concluídos</span><strong>{data.completedBurgers}</strong><small>Entregas e retiradas finalizadas</small></div>
           <div className="metric"><span>Total recebido</span><strong className="metric-money">{money(revenue)}</strong><small>Exclui devoluções registradas</small></div>
         </section>
         {data.paid >= data.settings.capacity && <div className="admin-alert">A capacidade de {data.settings.capacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
