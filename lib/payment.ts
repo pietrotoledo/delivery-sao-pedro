@@ -15,9 +15,9 @@ export async function verifyPayment(notice: PaymentNotice, origin?: string) {
   });
   if (!response.ok) return false;
   const result = await response.json() as { success?:boolean;paid?:boolean;amount?:number;capture_method?:string };
-  if (!result.success || !result.paid || result.capture_method !== "pix" || result.amount !== order.total) return false;
+  if (!result.success || !result.paid || !["pix", "credit_card"].includes(result.capture_method ?? "") || result.amount !== order.total) return false;
   const now = new Date().toISOString();
-  // Um Pix pago depois do prazo é aceito: o dinheiro já entrou e o estoque é reservado de novo.
+  // Um pagamento aprovado depois do prazo é aceito e o estoque é reservado de novo.
   const results = await db().batch([
     ...takeStockStatements(order, "paid_at IS NULL AND status='expired'", []),
     db().prepare("UPDATE orders SET status = 'paid', payment_mode = 'infinitepay', paid_at = ?, updated_at = ?, transaction_nsu = ?, invoice_slug = ? WHERE id = ? AND paid_at IS NULL AND status IN ('ready_for_payment','awaiting_payment','expired')")
