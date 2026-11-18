@@ -7,7 +7,7 @@ import PrivacyNotice from "@/components/privacy-notice";
 
 export const metadata: Metadata = {
   title: "BLUECKYARDIGANS | Noite do Hambúrguer",
-  description: "Noite do Hambúrguer Blueckyardigans em 30 de outubro de 2026. Entregas a partir das 19h e retirada na Casa Branca de Esquina, Rua Francisco Claudino Pereira, 885 - Manaíra, João Pessoa - PB, das 18h às 22h.",
+  description: "A próxima Noite do Hambúrguer BLUECKYARDIGANS será na primeira semana de dezembro de 2026. Vendas encerradas por enquanto; pedidos voltam no final de novembro de 2026. Uma iniciativa do EJC da Igreja São Pedro Pescador.",
   icons: { icon: "/mascote.png" },
 };
 

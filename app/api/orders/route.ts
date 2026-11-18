@@ -1,4 +1,5 @@
 import { availableComboDrinks, comboDrinkOptions, includesBurger } from "@/lib/menu-options";
+import { eventSalesPaused, eventPauseMessage } from "@/lib/event-announcement";
 import { deliveryFeeFor } from "@/lib/delivery-areas";
 import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } from "@/lib/delivery-address";
 import { createCheckout } from "@/lib/payment";
@@ -20,6 +21,7 @@ function existingResponse(order: Order) {
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error:"Origem inválida." }, 403);
+  if (eventSalesPaused) return json({ error: eventPauseMessage }, 409);
   let body: Record<string,unknown>;
   try { body = await request.json() as Record<string,unknown>; } catch { return json({error:"Dados inválidos."},400); }
   const requestKey = body.requestKey;

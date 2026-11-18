@@ -7,6 +7,54 @@
   --ease-snappy: cubic-bezier(.23, 1, .32, 1);
 }
 
+.event-pause-page { background: #f7f8fc; color: var(--brand-deep); min-height: 100svh; }
+.event-pause-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 24px; padding-bottom: 24px; }
+.event-pause-label { font-size: 12px; color: #53617c; }
+.event-pause-main { padding-bottom: 40px; }
+.event-pause-hero { position: relative; display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; overflow: hidden; border-radius: 28px; background: var(--brand-deep); color: white; padding: 64px 48px; gap: 24px; }
+.event-pause-copy { position: relative; z-index: 1; }
+.event-pause-badge { display: inline-flex; align-items: center; gap: 9px; padding: 9px 13px; border: 1px solid #ffffff35; border-radius: 30px; color: #f3f5ff; font-size: 12px; font-weight: 600; }
+.event-pause-badge > span { width: 7px; height: 7px; background: var(--brand-yellow); border-radius: 50%; }
+.event-pause-hero h1 { margin: 26px 0 20px; font-family: "Barlow Condensed", sans-serif; font-size: clamp(48px, 5.8vw, 80px); line-height: .98; letter-spacing: -.025em; text-transform: uppercase; }
+.event-pause-hero h1 em { color: var(--brand-yellow); font-style: normal; }
+.event-pause-copy > p { max-width: 390px; margin: 0 0 28px; color: #d4def1; font-size: 16px; line-height: 1.75; }
+.event-pause-copy .button { gap: 14px; text-align: center; }
+.event-pause-note { display: block; margin-top: 14px; color: #bccbea; font-size: 12px; }
+.event-pause-art { position: relative; min-width: 0; }
+.event-pause-art > img { position: relative; display: block; width: 100%; height: auto; border-radius: 50%; }
+.event-pause-orbit { position: absolute; inset: -15px; border: 1px dashed #ffffff38; border-radius: 50%; }
+.event-pause-sticker { position: absolute; right: -10px; bottom: -20px; display: grid; justify-items: center; gap: 4px; padding: 20px 24px; transform: rotate(-8deg); border-radius: 18px; background: var(--brand-yellow); color: var(--brand-deep); box-shadow: 0 10px 30px #0003; text-align: center; font-size: 15px; }
+.event-pause-sticker strong { font-size: 21px; }
+.event-pause-next { scroll-margin-top: 24px; margin-top: 24px; padding: 36px; background: white; border: 1px solid var(--line-soft); border-radius: 24px; }
+.event-pause-next-heading > span { color: #3b5890; font-size: 11px; font-weight: 800; letter-spacing: .16em; }
+.event-pause-next h2 { margin: 8px 0 24px; font-size: clamp(24px, 3vw, 32px); line-height: 1.2; letter-spacing: -.04em; }
+.event-pause-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.event-pause-dates article { display: flex; gap: 16px; padding: 24px; background: var(--surface-soft); border-radius: 16px; }
+.event-pause-icon { display: grid; place-items: center; flex: 0 0 46px; height: 46px; border-radius: 14px; background: #e1e9fc; color: var(--brand-blue); }
+.event-pause-dates p { margin: 0 0 8px; color: #53617c; font-size: 12px; }
+.event-pause-dates h3 { margin: 0 0 8px; font-size: 21px; line-height: 1.25; letter-spacing: -.03em; }
+.event-pause-dates article div > span { color: #53617c; font-size: 12px; line-height: 1.6; }
+.event-pause-details { margin: 22px 0 0; color: #53617c; font-size: 13px; line-height: 1.7; }
+.event-pause-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 32px; background: transparent; color: #53617c; font-size: 12px; }
+.event-pause-footer > span { color: var(--brand-deep); font-weight: 800; }
+.event-pause-footer p { margin: 0; }
+.event-pause-copy .button:focus-visible { outline: 3px solid white; outline-offset: 5px; }
+@media (max-width: 800px) {
+  .event-pause-header { padding-top: 18px; padding-bottom: 18px; }
+  .event-pause-label { display: none; }
+  .event-pause-hero { grid-template-columns: 1fr; padding: 32px 24px 48px; border-radius: 22px; gap: 40px; }
+  .event-pause-hero h1 { font-size: clamp(48px, 10vw, 76px); }
+  .event-pause-copy > p { max-width: 100%; }
+  .event-pause-art { width: min(100%, 360px); margin: 0 auto; }
+  .event-pause-sticker { right: 0; padding: 14px 18px; }
+  .event-pause-sticker strong { font-size: 18px; }
+  .event-pause-next { padding: 26px 20px; }
+  .event-pause-dates { grid-template-columns: 1fr; }
+  .event-pause-dates article { padding: 20px 16px; }
+  .event-pause-footer { flex-wrap: wrap; }
+  .event-pause-footer p { flex-basis: 100%; order: 1; }
+}
+
 /* A food-first storefront with the event identity kept in the details. */
 .hero-delivery { max-width: 480px; margin-top: 26px; padding: 20px 0 4px; border-top: 1px solid rgba(255,255,255,.2); }
 .hero-delivery-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }

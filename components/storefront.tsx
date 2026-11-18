@@ -13,6 +13,8 @@ import DeliveryAreas from "./delivery-areas";
 import NavigationLinks from "./navigation-links";
 import { eventLocation } from "@/lib/event-location";
 import { externalPhoto } from "@/lib/product-images";
+import { eventSalesPaused } from "@/lib/event-announcement";
+import EventPause from "./event-pause";
 
 type Product = MenuProduct;
 type PublicData = { menu: Product[]; capacity: number; paid: number; burgersLeft?: number; paused: boolean; demo: boolean };
@@ -26,6 +28,7 @@ export default function Storefront() {
   const { quantities } = cart;
 
   useEffect(() => {
+    if (eventSalesPaused) return;
     fetch("/api/public")
       .then(response => {
         if (!response.ok) throw new Error("Cardápio indisponível");
@@ -95,6 +98,8 @@ export default function Storefront() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
   }
+
+  if (eventSalesPaused) return <EventPause />;
 
   return <div className={`site-shell ${itemCount > 0 ? "has-desktop-cart" : ""}`}>
     {pendingRemoval && <LastBurgerDialog onCancel={() => setPendingRemoval(null)} onConfirm={() => {
