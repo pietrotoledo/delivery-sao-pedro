@@ -42,6 +42,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     const context = { exports: {}, require(name) {
       if (name === "cloudflare:workers") return { env: { DB: database } };
       if (name === "./menu-options") return menuOptions;
+      if (name === "./admin-session") return {};
       throw new Error(name);
     } };
     vm.runInNewContext(storeSource, context);

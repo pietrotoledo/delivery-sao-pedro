@@ -13,6 +13,7 @@ function orderApi() {
     async batch() { return [{ meta: { changes: 1 } }]; },
   };
   const imports = {
+    '@/lib/event-announcement': { eventSalesPaused: false },
     '@/lib/menu-options': { availableComboDrinks: () => [], comboDrinkOptions: [], includesBurger: product => product.category === 'burger' },
     '@/lib/delivery-areas': { deliveryFeeFor: () => 0 },
     '@/lib/delivery-address': {},

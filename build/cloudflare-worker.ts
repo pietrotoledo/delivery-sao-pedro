@@ -2,10 +2,11 @@ import handler from "vinext/server/fetch-handler";
 import { retryOrderNotifications } from "../lib/order-notifications";
 import { queueEventReminders } from "../lib/event-reminders";
 import { releaseExpiredOrders } from "../lib/stock";
+import { secureResponse } from "../lib/security-headers";
 
 const worker = {
-  fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext) {
-    return handler.fetch(request, env, ctx);
+  async fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext) {
+    return secureResponse(request, await handler.fetch(request, env, ctx));
   },
   scheduled(_controller: ScheduledController, _env: Cloudflare.Env, ctx: ExecutionContext) {
     ctx.waitUntil((async () => {

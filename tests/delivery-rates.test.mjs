@@ -54,6 +54,7 @@ function orderApi(productChanges = {}, burgersLeft = 100) {
   const context = {
     exports: {}, crypto: webcrypto, TextEncoder, URL,
     require(name) {
+      if (name === "@/lib/event-announcement") return { eventSalesPaused: false };
       if (name === "@/lib/store") return store;
       if (name === "@/lib/delivery-areas") return { deliveryFeeFor };
       if (name === "@/lib/delivery-address") return addressContext.exports;
@@ -221,11 +222,12 @@ test("Kit de 4 docinhos acompanha hamburguer e Miramar cobra R$ 5", async () => 
 });
 
 test("API aceita as quatro bebidas renomeadas sem cobrar novamente a bebida incluida", async () => {
+  const unitDrinks = ["Coca-Cola normal", "Coca-Cola Zero", "Guaraná", "Água com gás"];
   const api = orderApi({ coke: { name: "Coca-Cola" }, "coke-zero": { name: "Coca Zero" }, guarana: { name: "Guarana Antarctica" } });
-  const response = await api.post(request({ ...payload("Manaíra", 0), items: [{ id: "combo", quantity: 4, unitDrinks: comboDrinkOptions }], expectedSubtotal: 6000 }));
+  const response = await api.post(request({ ...payload("Manaíra", 0), items: [{ id: "combo", quantity: 4, unitDrinks }], expectedSubtotal: 6000 }));
   assert.equal(response.status, 201);
   assert.equal(api.inserted()[16], 6000);
-  assert.deepEqual(JSON.parse(api.inserted()[12])[0].unitDrinks, comboDrinkOptions);
+  assert.deepEqual(JSON.parse(api.inserted()[12])[0].unitDrinks, unitDrinks);
   assert.deepEqual(Array.from(api.statements().slice(1), statement => [statement.args[2], statement.args[0]]), [
     ["combo", 4], ["coke", 1], ["coke-zero", 1], ["guarana", 1], ["sparkling-water", 1],
   ]);

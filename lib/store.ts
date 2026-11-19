@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { createAdminSession, verifyAdminSession } from "./admin-session";
 import { hamburgerIngredients, includesBurger } from "./menu-options";
 
 export type ProductCategory = "burger" | "combo" | "side" | "drink";
@@ -284,24 +285,18 @@ export function publicOrder(order: Order) {
   };
 }
 
-async function sessionSignature(secret:string) {
-  const key = await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
-  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode("blueckyardigans-admin-v1")));
-  return Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-
 export async function adminOnly(request: Request) {
   if (env.ADMIN_PASSWORD) {
     const cookie=request.headers.get("cookie")||"";
-    const token=cookie.match(/(?:^|; )blueck_admin=([a-f0-9]+)/)?.[1];
-    return token===await sessionSignature(env.ADMIN_PASSWORD);
+    const token=cookie.match(/(?:^|;\s*)blueck_admin=([^;]+)(?:;|$)/)?.[1];
+    return token ? verifyAdminSession(token, env.ADMIN_PASSWORD) : false;
   }
   return false;
 }
 
 export async function loginSession(password:string) {
   if (!env.ADMIN_PASSWORD || password!==env.ADMIN_PASSWORD) return null;
-  return await sessionSignature(env.ADMIN_PASSWORD);
+  return createAdminSession(env.ADMIN_PASSWORD);
 }
 
 const handoffMessage = (id: string) => new TextEncoder().encode(`blueckyardigans-handoff-v1:${id}`);
@@ -332,5 +327,5 @@ export function json(data: unknown, status = 200) {
 
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
+  return origin === new URL(request.url).origin && request.headers.get("sec-fetch-site") !== "cross-site";
 }
