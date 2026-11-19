@@ -1,8 +1,33 @@
-# BLUECKYARDIGANS
+# Delivery São Pedro 🍔
 
-Plano futuro de avisos de Pix e atualizações: [notificações dos pedidos](docs/notificacoes-pedidos.md).
+Site de pré-venda e delivery criado como projeto voluntário para a Igreja São Pedro (João Pessoa – PB), usado na Noite do Hambúrguer de 30 de outubro de 2026. As entregas começaram às 19h e a retirada na Casa Branca de Esquina foi das 18h às 22h.
 
-Pré-venda da Noite do Hambúrguer de 30 de outubro de 2026. As entregas começam às 19h; a retirada na Casa Branca de Esquina ocorre das 18h às 22h.
+🔗 **Site no ar:** https://delivery-sao-pedro.pietroct21.workers.dev
+
+## 🎯 Objetivo
+
+Substituir os pedidos anotados manualmente por um sistema online: o cliente monta o pedido, paga via Pix e a equipe acompanha tudo por um painel, com controle de estoque e limite de hambúrgueres.
+
+## 🙋 Minha contribuição
+
+- Levantei os requisitos com a equipe do evento (cardápio, retirada/entrega, limite de vendas)
+- Desenvolvi o site com apoio de ferramentas de IA, revisando e testando cada funcionalidade
+- Configurei o deploy na Cloudflare Workers com banco D1 e integração com GitHub
+- Criei os painéis de pedidos, produtos e entregas
+
+## 📸 Evidências
+
+<!-- Depois de subir os prints em docs/img/, troque esta linha pela tabela abaixo:
+| Loja | Painel de pedidos |
+|---|---|
+| ![Loja](docs/img/loja.png) | ![Painel](docs/img/painel.png) |
+-->
+
+**Tecnologias:** Next.js, TypeScript, Cloudflare Workers, D1, Drizzle ORM, InfinitePay (Pix)
+
+📌 Plano futuro de avisos de Pix e atualizações: [notificações dos pedidos](docs/notificacoes-pedidos.md)
+
+---
 
 ## O que está pronto
 
