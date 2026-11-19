@@ -39,6 +39,7 @@ export function storeWhatsapp(): string {
 }
 
 export function orderNoticeMessage(order: Order, event: OrderNotice, origin: string) {
+  if (order.method === "pickup" && (order.status === "completed" || event === "completed")) return null;
   const number = order.id.slice(0, 8).toUpperCase();
   const track = `${origin}/pedido/${order.id}`;
   const prefix = `BLUECKYARDIGANS \u00b7 Pedido #${number}\n`;
@@ -99,7 +100,7 @@ async function sendNotice(id: string) {
   const order = await getOrder(notice.order_id, true);
   const number = order && phoneNumber(order);
   const expiredReminder = isEventReminder(notice.event) && (!eventReminderActive(notice.event) || !order?.paid_at || order.status === "completed");
-  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || expiredReminder || pixNoticeExpired(order, notice.event)) {
+  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || (order.method === "pickup" && (order.status === "completed" || notice.event === "completed")) || expiredReminder || pixNoticeExpired(order, notice.event)) {
     await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE id=?").bind(new Date().toISOString(), id).run();
     return;
   }
@@ -114,6 +115,14 @@ async function sendNotice(id: string) {
     if (!connection.ok) throw new Error(`Conexão Evolution respondeu HTTP ${connection.status}`);
     const state = await connection.json() as { instance?: { state?: string } };
     if (state.instance?.state !== "open") throw new Error("WhatsApp desconectado; nova tentativa programada");
+    // A retirada pode ter sido concluída enquanto a Evolution verificava a conexão.
+    if (order.method === "pickup") {
+      const current = await getOrder(notice.order_id, true);
+      if (!current || current.status === "completed" || current.status === "refunded" || !current.whatsapp_opt_in || current.contact_deleted_at) {
+        await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE id=?").bind(new Date().toISOString(), id).run();
+        return;
+      }
+    }
     submitted = true;
     const response = await fetch(`${config.base}/message/sendText/${encodeURIComponent(config.instance)}`, {
       method: "POST", headers: {"Content-Type": "application/json", apikey: config.key},
