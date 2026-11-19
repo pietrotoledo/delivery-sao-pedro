@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./experience.css";
+import "./event-pause.css";
 import "./legal.css";
 import LegalLinks from "@/components/legal-links";
 import PrivacyNotice from "@/components/privacy-notice";
