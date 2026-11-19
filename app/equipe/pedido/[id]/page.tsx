@@ -8,6 +8,7 @@ import { orderItemLabels } from "@/lib/order-item-labels";
 import NavigationLinks from "@/components/navigation-links";
 import { addressWithNeighborhood, deliveryDestination } from "@/lib/delivery-links";
 import { requestJson, singleFlight } from "@/lib/client-request";
+import { orderPollingFinished, startVisiblePolling } from "@/lib/visible-polling";
 
 type Item = {id: string; name: string; quantity: number; price: number; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[]};
 type TeamOrder = {
@@ -37,6 +38,7 @@ export default function TeamOrderPage() {
   const loadVersion = useRef(0);
   const confirming = useRef(false);
   const completed = order?.status === "completed";
+  const pollingFinished = orderPollingFinished(order?.status);
   const invalidateLoad = useCallback(() => { ++loadVersion.current; }, []);
 
   useEffect(() => {
@@ -64,11 +66,10 @@ export default function TeamOrderPage() {
   const load = useCallback((fresh = false) => runLoad(loadTask, fresh), [runLoad, loadTask]);
 
   useEffect(() => {
-    if (!token || completed) return;
-    const initial = setTimeout(() => { void load(); }, 0);
-    const timer = setInterval(() => { void load(); }, 10000);
-    return () => { invalidateLoad(); clearTimeout(initial); clearInterval(timer); };
-  }, [load, token, completed, invalidateLoad]);
+    if (!token || pollingFinished) return;
+    const stop = startVisiblePolling(() => load(), 10000);
+    return () => { invalidateLoad(); stop(); };
+  }, [load, token, pollingFinished, invalidateLoad]);
 
   useEffect(() => {
     if (!order || printed.current || new URLSearchParams(window.location.search).get("print") !== "1") return;

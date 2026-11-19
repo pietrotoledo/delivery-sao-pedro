@@ -9,6 +9,7 @@ import { canJoinRoute, defaultRoutePoint, planDeliveryRoute, sortByNeighborhood 
 import { eventLocation } from "@/lib/event-location";
 import DeliveryAssignedRoutes from "./delivery-assigned-routes";
 import useDeliverySync from "./use-delivery-sync";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 type DeliveryOrder = {
   id: string; name: string; neighborhood: string | null; address: string | null; status: string; feeToArrange?: boolean;
@@ -56,9 +57,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
   const synced = useDeliverySync(Boolean(data), load);
 
   useEffect(() => {
-    const initial = window.setTimeout(() => { void load().catch(failure => setError(failure.message)).finally(() => setLoading(false)); }, 0);
-    const timer = window.setInterval(() => { void load().catch(() => {}); }, 10000);
-    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+    return startVisiblePolling(() => load().catch(failure => setError(failure.message)).finally(() => setLoading(false)), 10000);
   }, [load]);
 
   async function login(event: FormEvent<HTMLFormElement>) {

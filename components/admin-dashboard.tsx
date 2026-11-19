@@ -12,6 +12,7 @@ import AdminProducts from "./admin-products";
 import AdminContacts from "./admin-contacts";
 import DeliveryDashboard from "./delivery-dashboard";
 import useDeliverySync from "./use-delivery-sync";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
@@ -84,11 +85,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   useDeliverySync(Boolean(data) && view === "orders", load);
 
   useEffect(() => {
-    const initial = setTimeout(() => {
-      load().catch(failure => setError(failure.message)).finally(() => setLoading(false));
-    }, 0);
-    const timer = view === "orders" ? setInterval(() => load().catch(() => {}), 10000) : undefined;
-    return () => { clearTimeout(initial); if (timer) clearInterval(timer); };
+    return startVisiblePolling(() => load().catch(failure => setError(failure.message)).finally(() => setLoading(false)), view === "orders" ? 10000 : null);
   }, [load, view]);
 
   function retryLoad() {

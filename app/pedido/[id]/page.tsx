@@ -1,6 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, MessageCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import BrandAvatar from "@/components/brand-avatar";
@@ -9,6 +9,8 @@ import PaymentReceipt from "@/components/payment-receipt";
 import { eventLocation, eventLocationMapUrl } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
 import { orderItemLabels } from "@/lib/order-item-labels";
+import { requestJson, singleFlight } from "@/lib/client-request";
+import { orderPollingFinished, startVisiblePolling } from "@/lib/visible-polling";
 const money=(c:number)=>(c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 type Order = {id:string;name:string;method:string;address:string|null;neighborhood:string|null;items:{id:string;quantity:number;name:string;price:number;removedIngredients?:string[];unitRemovals?:string[][];unitDrinks?:string[]}[];burgerCount:number;subtotal:number;deliveryFee:number|null;total:number|null;status:string;checkoutUrl:string|null;paidAt:string|null};
 const names:Record<string,string>={classic:"Hambúrguer Clássico",bacon:"Hambúrguer Bacon","fries-small":"Batata frita pequena","fries-large":"Batata frita grande",water:"Água mineral",coke:"Coca-Cola 350 ml","coke-zero":"Coca-Cola Zero 350 ml"};
@@ -24,8 +26,23 @@ export default function OrderPage() {
   const [copied,setCopied]=useState(false);
   const [error,setError]=useState("");
   const [missing,setMissing]=useState(false);
-  const load=useCallback(async()=>{const [o,p]=await Promise.all([fetch(`/api/orders/${encodeURIComponent(id)}`).then(async r=>{if(r.status===404)return {missing:true};if(!r.ok)throw new Error("Falha ao carregar o pedido");return r.json() as Promise<{order?:Order;storeWhatsapp?:string|null;missing?:boolean}>;}),fetch("/api/public").then(r=>r.ok?r.json() as Promise<{demo:boolean}>:{demo:false}) ]);if(o.missing){setMissing(true);return;}if(o.order)setOrder(o.order);setStoreWhatsapp(o.storeWhatsapp??null);setDemo(Boolean(p.demo));},[id]);
-  useEffect(()=>{const initial=setTimeout(()=>load().catch(()=>setError("Não foi possível carregar o pedido.")),0);const timer=setInterval(()=>load().catch(()=>{}),8000);return()=>{clearTimeout(initial);clearInterval(timer)}},[load]);
+  const loadTask = useCallback(async () => {
+    const { response, result } = await requestJson<{order?: Order; storeWhatsapp?: string | null; demo?: boolean}>(`/api/orders/${encodeURIComponent(id)}`, { cache: "no-store" });
+    if (response.status === 404) { setMissing(true); return; }
+    if (!response.ok || !result.order) throw new Error("Falha ao carregar o pedido");
+    setMissing(false);
+    setOrder(result.order);
+    setStoreWhatsapp(result.storeWhatsapp ?? null);
+    setDemo(Boolean(result.demo));
+    setError("");
+  }, [id]);
+  const runLoad = useMemo(() => singleFlight(), []);
+  const load = useCallback(() => runLoad(loadTask), [runLoad, loadTask]);
+  const pollingFinished = orderPollingFinished(order?.status);
+  useEffect(() => {
+    if (pollingFinished || missing) return;
+    return startVisiblePolling(() => load().catch(() => setError("Não foi possível carregar o pedido.")), 30000);
+  }, [load, pollingFinished, missing]);
   useEffect(()=>{const query=new URLSearchParams(window.location.search);const transaction_nsu=query.get("transaction_nsu");const slug=query.get("slug");if(transaction_nsu&&slug){fetch(`/api/orders/${id}/verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transaction_nsu,slug})}).then(()=>load()).catch(()=>{});}},[id,load]);
   useEffect(()=>{
     if (!order || new URLSearchParams(window.location.search).get("abrir-pix") !== "1") return;

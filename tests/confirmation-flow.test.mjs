@@ -53,12 +53,15 @@ function screen(kind, fetch) {
   const window = { setTimeout: setTimer, clearTimeout: key => timers.delete(key), setInterval,
     clearInterval: key => intervals.delete(key), location: { search: '?token=test-token' } };
   const client = module('../lib/client-request.ts', {}, { fetch, AbortController, setTimeout, clearTimeout, TypeError });
+  const document = { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} };
+  const polling = module('../lib/visible-polling.ts', {}, { document, setTimeout: setTimer, clearTimeout: key => timers.delete(key) });
   const jsx = (type, props) => ({ type, props });
   const componentPath = { team: '../app/equipe/pedido/[id]/page.tsx', delivery: '../components/delivery-order-detail.tsx', admin: '../components/admin-dashboard.tsx' }[kind];
   const Component = module(componentPath, {
     react: hooks, 'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'fragment' },
     'next/navigation': { useParams: () => ({ id: 'order-1' }) },
     '@/lib/client-request': { ...client, requestJson: (url, init) => client.requestJson(url, init, init?.method === 'POST' ? 10 : 15_000) },
+    '@/lib/visible-polling': polling,
     '@/lib/delivery-links': { addressWithNeighborhood: () => '', deliveryDestination: () => '', deliveryPhoneHref: () => null, deliveryWhatsappHref: () => null },
     '@/lib/store-contact': { phoneLabel: value => value },
     '@/lib/order-item-labels': { orderItemLabels: () => [] },
@@ -80,7 +83,10 @@ function screen(kind, fetch) {
       }
     },
     find: predicate => nodes(tree).find(predicate),
-    poll: () => { for (const fn of intervals.values()) fn(); },
+    poll: () => {
+      for (const fn of intervals.values()) fn();
+      for (const [key, { fn, ms }] of [...timers]) if (ms > 0) { timers.delete(key); fn(); }
+    },
     dispose: () => { for (const slot of slots) slot?.cleanup?.(); },
   };
 }

@@ -31,11 +31,11 @@ export async function GET(request: Request) {
           if (current !== previous) {
             previous = current;
             controller.enqueue(encoder.encode("event: sync\ndata: {}\n\n"));
-          } else if (++ticks % 15 === 0) controller.enqueue(encoder.encode(": keepalive\n\n"));
+          } else if (++ticks % 3 === 0) controller.enqueue(encoder.encode(": keepalive\n\n"));
         } catch { close(); }
         finally { checking = false; }
       };
-      const interval = setInterval(() => { void tick(); }, 1000);
+      const interval = setInterval(() => { void tick(); }, 5000);
       // Reconectar revalida a sessão, incluindo expiração e logout.
       const lifetime = setTimeout(close, 25000);
       dispose = () => { closed = true; clearInterval(interval); clearTimeout(lifetime); request.signal.removeEventListener("abort", close); };

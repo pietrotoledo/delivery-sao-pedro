@@ -9,6 +9,7 @@ import { addressWithNeighborhood, deliveryDestination, deliveryPhoneHref, delive
 import { phoneLabel } from "@/lib/store-contact";
 import { requestJson, singleFlight } from "@/lib/client-request";
 import useDeliverySync from "./use-delivery-sync";
+import { orderPollingFinished, startVisiblePolling } from "@/lib/visible-polling";
 
 type DeliveryOrder = {
   id: string; createdAt: string; name: string; phone: string;
@@ -33,6 +34,7 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
   const loadVersion = useRef(0);
   const confirming = useRef(false);
   const completed = order?.status === "completed";
+  const pollingFinished = orderPollingFinished(order?.status);
   const invalidateLoad = useCallback(() => { ++loadVersion.current; }, []);
 
   const loadTask = useCallback(async () => {
@@ -51,14 +53,13 @@ export default function DeliveryOrderDetail({id}: {id: string}) {
   }, [id]);
   const runLoad = useMemo(() => singleFlight(), []);
   const load = useCallback((fresh = false) => runLoad(loadTask, fresh), [runLoad, loadTask]);
-  useDeliverySync(Boolean(order) && !restricted && !completed, load);
+  useDeliverySync(Boolean(order) && !restricted && !pollingFinished, load);
 
   useEffect(() => {
-    if (completed) return;
-    const initial = window.setTimeout(() => { void load().catch(failure => setError(failure.message)).finally(() => setLoading(false)); }, 0);
-    const timer = window.setInterval(() => { void load().catch(() => {}); }, 10000);
-    return () => { invalidateLoad(); window.clearTimeout(initial); window.clearInterval(timer); };
-  }, [load, completed, invalidateLoad]);
+    if (pollingFinished) return;
+    const stop = startVisiblePolling(() => load().catch(failure => setError(failure.message)).finally(() => setLoading(false)), 10000);
+    return () => { invalidateLoad(); stop(); };
+  }, [load, pollingFinished, invalidateLoad]);
 
   function retryLoad() {
     setLoading(true); setError("");
