@@ -39,6 +39,24 @@ test('proteção de origem recusa origem ausente, outro domínio e Fetch Metadat
   }
 });
 
+test('login admin rejeita JSON malformado e tipos inválidos, e define validade de 12 horas no cookie', async () => {
+  let authentications = 0;
+  const route = load('../app/api/admin/login/route.ts', {
+    '@/lib/store': { sameOrigin: () => true, json: (body, status) => Response.json(body, {status}),
+      loginSession: async () => { authentications++; return 'signed-token'; } },
+    '@/lib/admin-session': { adminSessionLifetime: 43200 },
+    '@/lib/login-limit': { allowLogin: async () => true },
+  });
+  for (const body of ['invalid', 'null', '{}', '{"password":123}']) {
+    const response = await route.POST(new Request('https://store.example/api/admin/login', { method: 'POST', body }));
+    assert.equal(response.status, 400);
+  }
+  assert.equal(authentications, 0);
+  const response = await route.POST(new Request('https://store.example/api/admin/login', { method: 'POST', body: '{"password":"example"}' }));
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('set-cookie'), /HttpOnly; Secure; SameSite=Strict; Path=\/; Max-Age=43200/);
+});
+
 test('limite de login é atômico, separado por perfil e endereço, e libera na próxima janela', async () => {
   const sqlite = new DatabaseSync(':memory:');
   const database = { prepare(sql) { let values = []; return {

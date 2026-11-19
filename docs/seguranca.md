@@ -10,7 +10,9 @@
 
 ## Verificação
 
-Execute `node --test tests/security.test.mjs`, a suíte completa, `npx tsc --noEmit --incremental false`, `npm audit --omit=dev` e o build antes de publicar. O relatório de dependências reflete os avisos conhecidos na data da consulta, não uma garantia de ausência de vulnerabilidades.
+Execute `node --test tests/security.test.mjs`, a suíte completa, `npx tsc --noEmit --incremental false`, `npm audit` e o build antes de publicar. Inclua as ferramentas de build na auditoria: React Server Components e Vinext entram no bundle do Worker mesmo declarados em devDependencies. O relatório reflete os avisos conhecidos na data da consulta, não uma garantia de ausência de vulnerabilidades.
+
+As substituições transitivas de `fflate` em Satori e `esbuild` em `@esbuild-kit/core-utils` corrigem avisos que o `npm audit fix --force` tentava resolver com downgrade dos pacotes principais. Foram verificados o build e a geração de migrações em diretório temporário. Reavalie esses overrides quando os fornecedores atualizarem suas próprias dependências.
 
 O limite de login protege a autenticação, mas faz uma gravação de contagem no D1 por tentativa e chamadas que chegam ao Worker continuam contando como invocações. Proteções antes do Worker, como regras de borda, dependem da configuração da conta Cloudflare.
 
