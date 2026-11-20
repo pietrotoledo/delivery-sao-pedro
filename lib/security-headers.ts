@@ -9,8 +9,9 @@ export function secureResponse(request: Request, response: Response) {
   if (url.protocol === "https:") headers.set("Strict-Transport-Security", "max-age=31536000");
   if (/^\/(?:api|admin|pedido|equipe|entregas)(?:\/|$)/.test(url.pathname)) {
     headers.set("X-Robots-Tag", "noindex, nofollow");
-    // Fotos públicas têm IDs próprios e podem continuar usando o cache existente.
-    if (!url.pathname.startsWith("/api/products/images/") && !headers.get("Cache-Control")?.includes("no-store")) headers.set("Cache-Control", "no-store");
+    // Somente o cardápio e as fotos públicas podem usar o cache declarado pela rota.
+    const publicCache = url.pathname === "/api/menu" || url.pathname.startsWith("/api/products/images/");
+    if (!publicCache && !headers.get("Cache-Control")?.includes("no-store")) headers.set("Cache-Control", "no-store");
   }
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }

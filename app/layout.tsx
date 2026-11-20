@@ -8,7 +8,7 @@ import PrivacyNotice from "@/components/privacy-notice";
 
 export const metadata: Metadata = {
   title: "BLUECKYARDIGANS | Noite do Hambúrguer",
-  description: "A próxima Noite do Hambúrguer BLUECKYARDIGANS será na primeira semana de dezembro de 2026. Vendas encerradas por enquanto; pedidos voltam no final de novembro de 2026. Uma iniciativa do EJC da Igreja São Pedro Pescador.",
+  description: "A próxima Noite do Hambúrguer BLUECKYARDIGANS será na primeira semana de dezembro de 2026. Vendas encerradas por enquanto; pedidos voltam na última semana de novembro de 2026. Uma iniciativa do EJC da Igreja São Pedro Pescador.",
   icons: { icon: "/mascote.png" },
 };
 

@@ -23,5 +23,5 @@ test('vendas encerradas recusam pedidos antes de ler dados, reservar estoque ou 
   vm.runInNewContext(compile('../app/api/orders/route.ts'), route);
   const response = await route.exports.POST({ json: () => assert.fail('Não deve processar o pedido durante a pausa') });
   assert.equal(response.status, 409);
-  assert.match((await response.json()).error, /pedidos voltam no final de novembro de 2026/);
+  assert.match((await response.json()).error, /pedidos voltam na última semana de novembro de 2026/);
 });
