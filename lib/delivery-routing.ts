@@ -62,7 +62,7 @@ export function planDeliveryRoute<T extends RouteOrder>(orders: readonly T[], or
   return result;
 }
 
-export function deliveryRouteLinks(orders: readonly RouteOrder[], origin = eventLocation.address) {
+export function deliveryRouteLinks(orders: readonly RouteOrder[], origin = eventLocation.query) {
   const links: { url: string; orders: RouteOrder[] }[] = [];
   let start = origin;
   let batch: RouteOrder[] = [];

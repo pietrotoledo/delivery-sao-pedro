@@ -46,7 +46,7 @@ test("Maps recebe endereços completos, em ordem, em trechos de até quatro entr
   assert.deepEqual(Array.from(result, part => part.orders.length), [4, 4, 1]);
   assert.deepEqual(Array.from(result.flatMap(part => part.orders), value => value.id), route.map(value => value.id));
   const first = new URL(result[0].url), second = new URL(result[1].url), last = new URL(result[2].url);
-  assert.equal(first.searchParams.get("origin"), location.eventLocation.address);
+  assert.equal(first.searchParams.get("origin"), location.eventLocation.query);
   assert.equal(first.searchParams.get("api"), "1");
   assert.equal(first.searchParams.get("travelmode"), "driving");
   assert.equal(first.searchParams.get("waypoints").split("|").length, 3);

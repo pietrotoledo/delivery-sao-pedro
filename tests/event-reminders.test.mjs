@@ -25,7 +25,7 @@ test('scheduled reminders select eligible paid orders and register each event on
   insert.run('eligible', ...base);
   for (const [id, index, value] of [['unpaid', 0, null], ['deleted', 1, '2026-10-29'], ['no-consent', 2, 0],
     ['completed', 3, 'completed'], ['refunded', 3, 'refunded'], ['demo', 4, 'demo'],
-    ['test', 5, 'TESTE SEM PAGAMENTO REAL - autorizado'], ['paid-later', 0, '2026-10-30T14:01:00.000Z']]) {
+    ['test', 5, 'TESTE SEM PAGAMENTO REAL - autorizado'], ['paid-later', 0, '2026-12-03T14:01:00.000Z']]) {
     const values = [...base]; values[index] = value; insert.run(id, ...values);
   }
   const database = {
@@ -43,16 +43,16 @@ test('scheduled reminders select eligible paid orders and register each event on
     './event-schedule': schedule,
     './evolution-notifications': { evolutionEnabled: () => true, orderNoticeMessage: (_, event) => event },
   });
-  await queueEventReminders(new Date('2026-10-30T13:59:59Z'));
+  await queueEventReminders(new Date('2026-12-03T13:59:59Z'));
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM order_notifications').get().count, 0);
-  await queueEventReminders(new Date('2026-10-30T14:00:00Z'));
-  await queueEventReminders(new Date('2026-10-30T14:02:00Z'));
+  await queueEventReminders(new Date('2026-12-03T14:00:00Z'));
+  await queueEventReminders(new Date('2026-12-03T14:02:00Z'));
   const morning = sqlite.prepare('SELECT order_id,event FROM order_notifications').all();
   assert.deepEqual(morning.map(x => [x.order_id,x.event]), [['eligible','event_morning']]);
-  await queueEventReminders(new Date('2026-10-30T21:00:00Z'));
+  await queueEventReminders(new Date('2026-12-03T21:00:00Z'));
   const evening = sqlite.prepare("SELECT order_id FROM order_notifications WHERE event='event_evening' ORDER BY order_id").all();
   assert.deepEqual(evening.map(x => x.order_id), ['eligible','paid-later']);
-  await queueEventReminders(new Date('2027-10-30T14:00:00Z'));
+  await queueEventReminders(new Date('2027-12-03T14:00:00Z'));
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM order_notifications').get().count, 3);
   sqlite.close();
 });
@@ -64,7 +64,7 @@ test('payment confirmation contains the event date and the correct delivery or p
   const order = { id: 'example-order', method: 'delivery' };
   const paid = orderNoticeMessage(order, 'paid', 'https://example.com');
   assert.match(paid, /Pagamento confirmado/);
-  assert.match(paid, /30 de outubro de 2026/);
+  assert.match(paid, /3 de dezembro de 2026/);
   assert.match(paid, /19h/);
   assert.match(orderNoticeMessage({ ...order, method: 'pickup' }, 'paid', 'https://example.com'), /18h às 22h/);
   for (const event of ['event_morning','event_evening']) {

@@ -1,6 +1,8 @@
 export const eventLocation = {
-  name: "Casa Branca de Esquina",
-  address: "Rua Francisco Claudino Pereira, 885 - Manaíra, João Pessoa - PB, 58038-431",
+  name: "Edifício Valle Verzasca",
+  address: "João Pessoa - PB",
+  // Texto usado por Waze e pelas rotas dos entregadores; o Google Maps abre o pin compartilhado.
+  query: "Edifício Valle Verzasca, João Pessoa - PB",
 };
 
-export const eventLocationMapUrl = `https://www.google.com/maps/search/?${new URLSearchParams({ api: "1", query: eventLocation.address })}`;
+export const eventLocationMapUrl = "https://share.google/HK6LHoOzJiXLPeOOT";

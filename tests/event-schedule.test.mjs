@@ -12,26 +12,26 @@ const { dueEventReminder, eventReminderActive, eventReminderText, orderEventSche
 
 test('reminders start at 11h and 18h in João Pessoa and expire after their sending window', () => {
   const cases = [
-    ['2026-10-30T13:59:59Z', null],
-    ['2026-10-30T14:00:00Z', 'event_morning'],
-    ['2026-10-30T14:59:59Z', 'event_morning'],
-    ['2026-10-30T15:00:00Z', null],
-    ['2026-10-30T20:59:59Z', null],
-    ['2026-10-30T21:00:00Z', 'event_evening'],
-    ['2026-10-30T21:59:59Z', 'event_evening'],
-    ['2026-10-30T22:00:00Z', null],
+    ['2026-12-03T13:59:59Z', null],
+    ['2026-12-03T14:00:00Z', 'event_morning'],
+    ['2026-12-03T14:59:59Z', 'event_morning'],
+    ['2026-12-03T15:00:00Z', null],
+    ['2026-12-03T20:59:59Z', null],
+    ['2026-12-03T21:00:00Z', 'event_evening'],
+    ['2026-12-03T21:59:59Z', 'event_evening'],
+    ['2026-12-03T22:00:00Z', null],
     ['2026-10-29T14:00:00Z', null],
     ['2026-10-31T14:00:00Z', null],
-    ['2027-10-30T14:00:00Z', null],
+    ['2027-12-03T14:00:00Z', null],
   ];
   for (const [date, expected] of cases) assert.equal(dueEventReminder(new Date(date))?.event ?? null, expected, date);
-  assert.equal(eventReminderActive('event_morning', new Date('2026-10-30T21:00:00Z')), false);
+  assert.equal(eventReminderActive('event_morning', new Date('2026-12-03T21:00:00Z')), false);
 });
 
 test('messages distinguish delivery start from pickup hours and include the event date', () => {
   for (const event of ['event_morning', 'event_evening']) {
     const delivery = eventReminderText('delivery', event);
-    assert.match(delivery, /30 de outubro/);
+    assert.match(delivery, /3 de dezembro/);
     assert.match(delivery, /entregas começam às 19h/);
     assert.match(delivery, /início do delivery/);
     const pickup = eventReminderText('pickup', event);
@@ -39,6 +39,6 @@ test('messages distinguish delivery start from pickup hours and include the even
     assert.match(pickup, /Evidence Class Club/);
     assert.doesNotMatch(pickup, /entregas começam/);
   }
-  assert.match(orderEventSchedule('delivery'), /30 de outubro de 2026/);
+  assert.match(orderEventSchedule('delivery'), /3 de dezembro de 2026/);
   assert.match(orderEventSchedule('pickup'), /18h às 22h/);
 });

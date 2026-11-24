@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import * as deliveryAreas from '../lib/delivery-areas.ts';
 
-const context = { exports: {}, URLSearchParams, require: name => name === './delivery-areas' ? deliveryAreas : { eventLocation: { address: 'Retirada' }, eventLocationMapUrl: 'https://maps' } };
+const context = { exports: {}, URLSearchParams, require: name => name === './delivery-areas' ? deliveryAreas : { eventLocation: { address: 'Retirada', query: 'Retirada' }, eventLocationMapUrl: 'https://maps' } };
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/delivery-links.ts', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, context);

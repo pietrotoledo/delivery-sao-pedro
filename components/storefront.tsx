@@ -117,7 +117,7 @@ export default function Storefront() {
       <section className="hero"><div className="hero-inner wrap">
         <div className="hero-copy hero-flow">
         <div className="hero-heading">
-          <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 30 de outubro</div>
+          <div className="event-chip"><span className="event-dot" /> Noite do Hambúrguer · 3 de dezembro</div>
           <h1>O sabor da<br />nossa <em>gincana.</em></h1>
         </div>
           <p>Hambúrguer feito para reunir todo mundo. Escolha o seu, adicione os acompanhamentos e garanta o pedido para a noite.</p>
@@ -126,12 +126,12 @@ export default function Storefront() {
           <div className="hero-combo-caption"><span><strong>Blueck Combo</strong><small>Hambúrguer + batata + bebida</small></span><span className="hero-combo-action">Ver cardápio <ArrowRight size={18} aria-hidden="true" /></span></div>
         </Link>
 
-          <div className="event-schedule"><strong>30 de outubro</strong><span>Entregas começam às 19h</span></div>
+          <div className="event-schedule"><strong>3 de dezembro</strong><span>Entregas começam às 19h</span></div>
           <div className="hero-actions"><Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")}>Escolher meu hambúrguer <ArrowRight size={19} /></Link></div>
-          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>30 de outubro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
+          <div className="event-location" id="localizacao"><MapPin size={24} aria-hidden="true" /><div><strong>{eventLocation.name}</strong><address>{eventLocation.address}</address><span>3 de dezembro · Retirada das 18h às 22h</span><NavigationLinks destination={eventLocation.address} dark /></div></div>
         </div>
       </div></section>
-      <div className="service-strip"><div className="wrap service-strip-inner"><span className="service-strip-free">Frete grátis acima de R$ 60 para todos os bairros</span><span>30 de outubro</span><span>Entregas a partir das 19h</span><span>Retirada na {eventLocation.name} · 18h às 22h</span></div></div>
+      <div className="service-strip"><div className="wrap service-strip-inner"><span className="service-strip-free">Frete grátis acima de R$ 60 para todos os bairros</span><span>3 de dezembro</span><span>Entregas a partir das 19h</span><span>Retirada no {eventLocation.name} · 18h às 22h</span></div></div>
       <div className="wrap storefront-delivery" id="delivery"><DeliveryAreas /></div>
       <section className="menu-section wrap" id="cardapio">
         <div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>Escolha seu pedido.</h2></div><p>Combo completo ou só o hambúrguer. Depois, acrescente o que quiser.</p></div>
@@ -141,7 +141,7 @@ export default function Storefront() {
         {data && <StorefrontMenu products={data.menu} cart={cart} paused={data.paused} onChange={change} onAddCombo={addCombo} onUpgrade={upgrade} />}
       </section>
       <section className="order-section" id="pedido"><div className="wrap order-layout">
-        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar acompanhamentos, bebidas e docinhos, escolher retirada ou entrega e informar seus dados. As entregas começam em 30 de outubro, às 19h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada na {eventLocation.name}</b><span>{eventLocation.address}<br />30 de outubro, das 18h às 22h</span><NavigationLinks destination={eventLocation.address} /></div></div></div>
+        <div className="order-intro"><p className="section-kicker">Seu pedido</p><h2>Escolheu?<br />Agora é só conferir.</h2><p>Na próxima tela você pode adicionar acompanhamentos, bebidas e docinhos, escolher retirada ou entrega e informar seus dados. As entregas começam em 3 de dezembro, às 19h.</p><div className="pickup-box"><MapPin size={22} /><div><b>Retirada no {eventLocation.name}</b><span>{eventLocation.address}<br />3 de dezembro, das 18h às 22h</span><NavigationLinks destination={eventLocation.address} /></div></div></div>
         <div className="order-card">
           <div className="order-card-head"><h3>Resumo do carrinho</h3></div>
           <div className="cart-items">{selected.length ? selected.map(product => <div className="cart-line" key={product.id}>{product.imageUrl && <Image src={product.imageUrl} unoptimized={externalPhoto(product.imageUrl)} width={48} height={48} alt="" />}<span>{quantities[product.id]}× {product.name}{product.category === "combo" && <small className="cart-combo-drinks">{cart.comboDrinks[product.id]?.filter(Boolean).join(", ")}</small>}</span><strong>{money(quantities[product.id] * product.price)}</strong></div>) : <p>Escolha um hambúrguer no cardápio para começar.</p>}</div>
@@ -155,6 +155,6 @@ export default function Storefront() {
     </main>
     {itemCount > 0 && <div className="desktop-cart"><span className="desktop-cart-icon"><ShoppingBag size={22} /></span><span className="desktop-cart-total"><b>{itemCount} {itemCount === 1 ? "item" : "itens"} no pedido</b><strong>{money(subtotal)}</strong></span>{burgerCount > 0 ? <a className="button button-yellow" href={checkoutHref} aria-label="Continuar para o checkout">Continuar <ArrowRight size={18} /></a> : <Link className="button button-yellow" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Continuar escolhendo um hambúrguer">Continuar <ArrowRight size={18} /></Link>}</div>}
     {itemCount > 0 && (burgerCount > 0 ? <a className="mobile-cart" href={checkoutHref} aria-label={`Ver pedido com ${itemCount} itens, total ${money(subtotal)}`}><span>{itemCount} {itemCount === 1 ? "item" : "itens"} · {money(subtotal)}</span><strong>Continuar <ArrowRight size={18} /></strong></a> : <Link className="mobile-cart" href="/" onClick={event => scrollTo(event, "hamburgueres")} aria-label="Escolha um hambúrguer para continuar"><span>Escolha um hambúrguer</span><strong>Ver opções <ArrowRight size={18} /></strong></Link>)}
-    <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 30 de outubro de 2026</p></div></footer>
+    <footer><div className="wrap footer-inner"><b>BLUECKYARDIGANS<span>®</span></b><p>Noite do Hambúrguer · 3 de dezembro de 2026</p></div></footer>
   </div>;
 }

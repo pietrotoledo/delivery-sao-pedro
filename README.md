@@ -1,6 +1,6 @@
 # Delivery São Pedro 🍔
 
-Site de pré-venda e delivery criado como projeto voluntário para a Igreja São Pedro (João Pessoa – PB), usado na Noite do Hambúrguer de 30 de outubro de 2026. As entregas começaram às 19h e a retirada na Casa Branca de Esquina foi das 18h às 22h.
+Site de pré-venda e delivery criado como projeto voluntário para a Igreja São Pedro (João Pessoa – PB), usado na Noite do Hambúrguer de 30 de outubro de 2026 e na nova edição de 3 de dezembro de 2026. As entregas começam às 19h e a retirada no Edifício Valle Verzasca é das 18h às 22h.
 
 🔗 **Site no ar:** https://delivery-sao-pedro.pietroct21.workers.dev
 

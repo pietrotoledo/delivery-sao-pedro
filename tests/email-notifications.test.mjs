@@ -50,7 +50,7 @@ test('six order stages schedule six WhatsApp notices and two emails including th
   assert.deepEqual(whatsapp, events);
   assert.equal(emails.length, 2);
   assert.match(emails[0].text, /^message:pix_available/);
-  assert.match(emails[0].text, /30 de outubro de 2026/);
+  assert.match(emails[0].text, /3 de dezembro de 2026/);
   assert.match(emails[0].text, /19h/);
   assert.equal(emails[1].text, 'message:completed');
   assert.match(emails[1].subject, /Obrigado pela compra!/);

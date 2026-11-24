@@ -172,7 +172,7 @@ test('cold notification schema, event registration and full mixed retry stay und
   // Seed data is outside the invocation; reload schema initialization as a cold worker would.
   h.coldStart();
   h.stats.queries = 0;
-  await h.reminders.queueEventReminders(new Date('2026-10-30T14:00:00Z'));
+  await h.reminders.queueEventReminders(new Date('2026-12-03T14:00:00Z'));
   await h.combined.retryOrderNotifications();
   assert.equal(h.stats.posts, h.queue.notificationBatch.whatsapp);
   assert.equal(h.stats.emails, h.queue.notificationBatch.email);

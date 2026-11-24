@@ -132,7 +132,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
     {!embedded && <header className="delivery-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><span><Truck size={17} /> Área dos entregadores</span></header>}
     <div className={embedded ? "delivery-admin-content" : "delivery-wrap"}>
       {!embedded && <section className="delivery-heading delivery-dashboard-heading" aria-labelledby="delivery-title">
-        <p className="delivery-date"><span>30 de outubro</span><span>Entregas a partir das 19h</span></p>
+        <p className="delivery-date"><span>3 de dezembro</span><span>Entregas a partir das 19h</span></p>
         <h1 id="delivery-title">Entregas</h1>
         <div className="delivery-gratitude"><Heart size={18} fill="currentColor" aria-hidden="true" /><p>Seu caminho faz esta noite chegar mais longe. Obrigado por entregar cada pedido com cuidado e levar junto um pouco do nosso carinho.</p></div>
       </section>}
@@ -148,7 +148,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
         </div>
         {!showCompleted && <section className="delivery-route-planner" aria-labelledby="delivery-route-title">
           <div className="delivery-route-heading"><MapPinned size={23} aria-hidden="true" /><h2 id="delivery-route-title">Monte sua rota de entregas</h2></div>
-          <p>Saída: <strong>{eventLocation.name}, em Manaíra.</strong> Marque os pedidos prontos ou que já saíram para entrega para levar na mesma viagem.</p>
+          <p>Saída: <strong>{eventLocation.name}.</strong> Marque os pedidos prontos ou que já saíram para entrega para levar na mesma viagem.</p>
           <p className="delivery-route-note">A proximidade é aproximada, pelo centro dos bairros. O Maps calcula o caminho pelas ruas usando os endereços completos.</p>
           <label className="delivery-driver-field" htmlFor="delivery-driver-name">{embedded ? "Nome do entregador responsável" : "Seu nome de entregador"}<input id="delivery-driver-name" value={driverName} onChange={event => setDriverName(event.target.value)} maxLength={60} autoComplete={embedded ? "off" : "name"} placeholder="Ex.: João, Pedro ou Ana" disabled={savingRoute} /></label>
           {route.length > 0 ? <>

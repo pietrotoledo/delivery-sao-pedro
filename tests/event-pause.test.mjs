@@ -11,8 +11,9 @@ const compile = path => ts.transpileModule(readFileSync(new URL(path, import.met
 test('vendas encerradas recusam pedidos antes de ler dados, reservar estoque ou criar cobrança', async () => {
   const announcement = { exports: {} };
   vm.runInNewContext(compile('../lib/event-announcement.ts'), announcement);
+  const paused = { ...announcement.exports, eventSalesPaused: true };
   const route = { exports: {}, require: name => {
-    if (name === '@/lib/event-announcement') return announcement.exports;
+    if (name === '@/lib/event-announcement') return paused;
     if (name === '@/lib/store') return {
       sameOrigin: () => true,
       json: (body, status) => Response.json(body, { status }),
