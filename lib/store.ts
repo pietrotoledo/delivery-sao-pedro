@@ -300,7 +300,7 @@ export function publicOrder(order: Order) {
     method: order.method, neighborhood: order.neighborhood, address: order.address,
     notes: order.notes, items: orderItems(order), burgerCount: order.burger_count,
     subtotal: order.subtotal, deliveryFee: order.delivery_fee, total: order.total,
-    status: order.status, checkoutUrl: order.checkout_url, paidAt: order.paid_at,
+    status: order.status, checkoutUrl: order.checkout_url, paidAt: order.paid_at, eventDay: order.event_day ?? defaultEventDay,
   };
 }
 

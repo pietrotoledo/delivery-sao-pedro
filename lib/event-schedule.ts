@@ -11,11 +11,12 @@ const safeDay = (day?: string | null) => day && dayPattern.test(day) ? day : fir
 const noon = (day: string) => new Date(`${day}T12:00:00-03:00`);
 const format = (day: string, options: Intl.DateTimeFormatOptions) => noon(day).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", ...options });
 
-/** Textos de data de um dia de vendas: "3 de dezembro de 2026", "3 de dezembro", "quinta-feira". */
+/** Textos de data de um dia de vendas: "3 de dezembro de 2026", "3 de dezembro", "03/12", "quinta-feira". */
 export function eventDayText(day?: string | null) {
   const value = safeDay(day);
   const short = format(value, { day: "numeric", month: "long" });
-  return { day: value, full: `${short} de ${value.slice(0, 4)}`, short, weekday: format(value, { weekday: "long" }) };
+  const numeric = `${value.slice(8, 10)}/${value.slice(5, 7)}`;
+  return { day: value, full: `${short} de ${value.slice(0, 4)}`, short, numeric, weekday: format(value, { weekday: "long" }) };
 }
 
 export function eventScheduleFor(day?: string | null) {

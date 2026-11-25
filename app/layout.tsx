@@ -5,6 +5,7 @@ import "./event-pause.css";
 import "./legal.css";
 import "./quintal.css";
 import "./admin-bi.css";
+import "./admin-panel.css";
 import LegalLinks from "@/components/legal-links";
 import PrivacyNotice from "@/components/privacy-notice";
 

@@ -19,11 +19,14 @@ export async function GET(request: Request) {
     db().prepare("SELECT n.order_id,n.event,n.state,n.attempts,n.last_error,n.accepted_at FROM order_notifications n JOIN orders o ON o.id=n.order_id WHERE o.event_day = ? ORDER BY n.updated_at DESC LIMIT 1000").bind(day).all(),
     db().prepare("SELECT n.order_id,n.event,n.state,n.attempts,n.last_error,n.accepted_at FROM email_notifications n JOIN orders o ON o.id=n.order_id WHERE o.event_day = ? ORDER BY n.updated_at DESC LIMIT 1000").bind(day).all(),
     db().prepare("SELECT COALESCE(SUM(burger_count),0) AS count FROM orders WHERE status = 'completed' AND event_day = ?").bind(day).first<{count:number}>(),
-    db().prepare(`SELECT day, SUM(count) AS orders FROM (
-        SELECT event_day AS day, COUNT(*) AS count FROM orders GROUP BY event_day
-        UNION ALL SELECT day, 0 FROM event_days
-        UNION ALL SELECT ?, 0
-      ) GROUP BY day ORDER BY day DESC`).bind(settings.currentDay).all<{day:string;orders:number}>(),
+    db().prepare(`SELECT d.day, SUM(d.count) AS orders, SUM(d.revenue) AS revenue, SUM(d.burgers) AS burgers, (SELECT capacity FROM event_days e WHERE e.day = d.day) AS capacity FROM (
+        SELECT event_day AS day, COUNT(*) AS count,
+          COALESCE(SUM(CASE WHEN paid_at IS NOT NULL AND status != 'refunded' THEN total END),0) AS revenue,
+          COALESCE(SUM(CASE WHEN paid_at IS NOT NULL AND status != 'refunded' THEN burger_count END),0) AS burgers
+          FROM orders GROUP BY event_day
+        UNION ALL SELECT day, 0, 0, 0 FROM event_days
+        UNION ALL SELECT ?, 0, 0, 0
+      ) d GROUP BY d.day ORDER BY d.day`).bind(settings.currentDay).all<{day:string;orders:number;revenue:number;burgers:number;capacity:number|null}>(),
     db().prepare("SELECT capacity FROM event_days WHERE day = ?").bind(day).first<{capacity:number}>(),
     // Soma de todas as noites, para o faturamento geral no topo do painel.
     db().prepare("SELECT COALESCE(SUM(total),0) AS revenue, COUNT(DISTINCT event_day) AS nights FROM orders WHERE paid_at IS NOT NULL AND status != 'refunded'").first<{revenue:number;nights:number}>(),

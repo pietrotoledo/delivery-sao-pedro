@@ -139,7 +139,7 @@ export default function Storefront() {
       <section className="cause wrap" id="causa" aria-label="Para onde vai a renda">
         <p className="cause-strip"><Image className="cause-pablo" src="/pablo/pablo-correndo.webp" width={569} height={700} sizes="48px" alt="" /><span><strong>Cada pedido pago vira alimento.</strong> Toda a renda vai para instituições carentes · organização do EJC da Igreja São Pedro Pescador.</span></p>
       </section>
-      <div className="wrap storefront-delivery" id="delivery"><DeliveryAreas /></div>
+      <div className="wrap storefront-delivery" id="delivery"><DeliveryAreas day={data?.currentDay} /></div>
       <section className="menu-section wrap" id="cardapio">
         <PabloTracks /><div className="section-head"><div><p className="section-kicker">Cardápio da noite</p><h2>Escolha seu pedido.</h2></div><p>Combo completo ou só o hambúrguer. Depois, acrescente o que quiser.</p></div>
         {!data && !loadError && <p className="menu-feedback" role="status"><span className="propeller-loader" aria-hidden="true"><i /></span>Carregando cardápio...</p>}

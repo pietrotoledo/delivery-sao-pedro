@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarDays, CirclePause, Clock3, Columns3, ContactRound, FileBarChart, LayoutDashboard, List, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, ArrowUpRight, CirclePause, Clock3, Columns3, ContactRound, FileBarChart, LayoutDashboard, List, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import { eventLocation } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
@@ -15,6 +16,7 @@ import useDeliverySync from "./use-delivery-sync";
 import { startVisiblePolling } from "@/lib/visible-polling";
 import AdminKanban from "./admin-kanban";
 import AdminReport, { dayLabel } from "./admin-report";
+import AdminDays, { type SalesDay } from "./admin-days";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
@@ -26,7 +28,7 @@ type Order = {
   delivery_driver_name?: string | null; delivery_route_id?: string | null;
 };
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
-type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean; currentDay?: string }; day?: string; dayCapacity?: number; days?: { day: string; orders: number }[]; allTimeRevenue?: number; nightsWithSales?: number; paid: number; completedBurgers: number; demo: boolean; error?: string };
+type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean; currentDay?: string }; day?: string; dayCapacity?: number; days?: SalesDay[]; paid: number; completedBurgers: number; demo: boolean; error?: string };
 type Mode = "list" | "kanban" | "report";
 type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
 const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão", event_morning: "lembrete do evento · 11h", event_evening: "lembrete do evento · 18h" };
@@ -83,9 +85,6 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   // A forma de ver os pedidos fica guardada só neste navegador. Ela só aparece depois que os dados
   // chegam do servidor, então ler o armazenamento aqui não muda a primeira renderização.
   const [mode, setMode] = useState<Mode>(savedMode());
-  const [newDayOpen, setNewDayOpen] = useState(false);
-  const [newDay, setNewDay] = useState("");
-  const [newDayCapacity, setNewDayCapacity] = useState(150);
 
   function chooseMode(next: Mode) {
     setMode(next);
@@ -166,14 +165,36 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     void load(true).catch(failure => setError(failure.message)).finally(() => setLoading(false));
   }
 
-  async function openNewDay(event: React.FormEvent) {
-    event.preventDefault();
-    if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(newDay)) { setError("Escolha a data do novo dia de vendas."); return; }
-    if (!window.confirm(`Abrir as vendas de ${dayLabel(newDay)} com limite de ${newDayCapacity} hambúrgueres?\n\nO site passa a mostrar essa data e os pedidos novos contam nesse dia. Os pedidos de ${dayLabel(currentDay)} continuam guardados e aparecem no seletor de dias. Confira o estoque das bebidas e acompanhamentos na aba Produtos.`)) return;
+  async function startSelling(day: string, dayCapacity: number) {
+    if (!data) return;
+    if (!window.confirm(`Começar a vender em ${dayLabel(day)} com limite de ${dayCapacity} hambúrgueres?
+
+O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de ${dayLabel(currentDay)} continuam guardados na trilha. Confira o estoque das bebidas e acompanhamentos na aba Produtos.`)) return;
     dayRef.current = null;
     setSelectedDay(null);
-    await changeSettings({ capacity: newDayCapacity, paused: data.settings.paused, currentDay: newDay });
-    setNewDayOpen(false);
+    await changeSettings({ capacity: dayCapacity, paused: data.settings.paused, currentDay: day });
+  }
+
+  async function addDay(day: string, dayCapacity: number, startNow: boolean) {
+    if (startNow) return startSelling(day, dayCapacity);
+    await dayRequest("POST", { day, capacity: dayCapacity });
+  }
+
+  async function removeDay(day: string) {
+    if (!window.confirm(`Remover ${dayLabel(day)} da trilha?`)) return;
+    if (dayRef.current === day) { dayRef.current = null; setSelectedDay(null); }
+    await dayRequest("DELETE", undefined, day);
+  }
+
+  async function dayRequest(method: "POST" | "DELETE", body?: unknown, day?: string) {
+    setError("");
+    try {
+      const { response, result } = await requestJson<{ error?: string }>(`/api/admin/days${day ? `?day=${day}` : ""}`, {
+        method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!response.ok) throw new Error(result.error || "Não foi possível salvar o dia.");
+      await load(true);
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível salvar o dia."); }
   }
 
   async function changeSettings(next: { capacity: number; paused: boolean; currentDay?: string }) {
@@ -258,12 +279,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     <main className="admin-main">
       <header className="admin-head">
         <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : view === "deliveries" ? "Rotas e entregadores" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : view === "deliveries" ? "Distribua as rotas entre os entregadores. As alterações são sincronizadas com os celulares da equipe." : "Pedidos e pagamentos com atualização automática."}</p></div>
-        {data && view === "orders" && <div className="admin-revenue" aria-label="Faturamento">
-          <span>Faturamento da noite</span>
-          <strong>{money(revenue)}</strong>
-          <small>{dayLabel(viewingDay, "short")} · {paidOrders.length} {paidOrders.length === 1 ? "pedido pago" : "pedidos pagos"}</small>
-          {(data.nightsWithSales ?? 0) > 1 && <em>Todas as noites: {money(data.allTimeRevenue ?? 0)}</em>}
-        </div>}
+        <Image className="admin-head-pablo" src={view === "orders" ? "/pablo/pablo-acenando.webp" : view === "products" ? "/pablo/pablo-olhando.webp" : view === "contacts" ? "/pablo/pablo-em-pe.webp" : "/pablo/pablo-correndo.webp"} width={300} height={400} sizes="96px" alt="" priority />
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
       <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/admin/entregas" className={view === "deliveries" ? "active" : ""} aria-current={view === "deliveries" ? "page" : undefined}>Entregas</a><Link href="/">Ver loja</Link></nav>
@@ -271,6 +287,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       {loading && <div className="admin-panel" role="status">Carregando painel...</div>}
       {!loading && !data && !restricted && <div className="admin-panel"><p>Não foi possível carregar o painel.</p><button type="button" className="mini-button" onClick={retryLoad}>Tentar novamente</button></div>}
       {!loading && !data && restricted && <form className="admin-panel admin-login" onSubmit={login}>
+        <Image className="admin-login-pablo" src="/pablo/pablo-acenando.webp" width={503} height={700} sizes="110px" alt="" />
         <h2>Acesso da equipe</h2>
         <p>Entre com a senha do painel.</p>
         <div className="admin-controls"><input type="password" aria-label="Senha do painel" placeholder="Senha do painel" value={password} onChange={event => setPassword(event.target.value)} /><button type="submit" disabled={loginBusy}>{loginBusy ? "Entrando..." : "Entrar"}</button></div>
@@ -279,20 +296,8 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       {data && view === "contacts" && <AdminContacts demo={data.demo} />}
       {data && view === "deliveries" && <DeliveryDashboard embedded />}
       {data && view === "orders" && <>
-        <section className="admin-daybar" aria-label="Dia de vendas">
-          <div className="daybar-current"><CalendarDays size={20} aria-hidden="true" /><div><span>{isCurrentDay ? "Vendendo agora" : "Consultando outro dia"}</span><strong>{dayLabel(viewingDay)}</strong></div></div>
-          <label className="daybar-select">Ver dia<select value={viewingDay} onChange={event => chooseDay(event.target.value)}>
-            {(data.days ?? [{ day: currentDay, orders: data.orders.length }]).map(item => <option key={item.day} value={item.day}>{dayLabel(item.day, "short")} · {item.orders} {item.orders === 1 ? "pedido" : "pedidos"}{item.day === currentDay ? " · dia atual" : ""}</option>)}
-          </select></label>
-          {!isCurrentDay && <button type="button" className="mini-button secondary" onClick={() => chooseDay(currentDay)}>Voltar ao dia atual</button>}
-          <button type="button" className="mini-button" onClick={() => { setNewDayOpen(open => !open); setNewDayCapacity(data.settings.capacity); }} aria-expanded={newDayOpen} aria-controls="novo-dia">Vender em outro dia</button>
-          {newDayOpen && <form id="novo-dia" className="daybar-form" onSubmit={openNewDay}>
-            <label>Data<input type="date" required value={newDay} onChange={event => setNewDay(event.target.value)} /></label>
-            <label>Limite de hambúrgueres<input type="number" min="1" max="10000" required value={newDayCapacity} onChange={event => setNewDayCapacity(Number(event.target.value))} /></label>
-            <button type="submit" className="mini-button">Abrir vendas nesse dia</button>
-            <p>O site passa a mostrar a nova data, o limite recomeça do zero e os pedidos de {dayLabel(currentDay, "short")} ficam guardados para o relatório. Dá para repetir sempre que quiser vender de novo.</p>
-          </form>}
-        </section>
+        <AdminDays days={data.days?.length ? data.days : [{ day: currentDay, orders: data.orders.length }]} currentDay={currentDay} viewingDay={viewingDay} defaultCapacity={data.settings.capacity} onView={chooseDay} onStart={startSelling} onAdd={addDay} onRemove={removeDay} />
+        {selectedDay && <div className="admin-viewing" role="status"><span>Você está vendo <b>{dayLabel(viewingDay)}</b>. Os pedidos novos continuam entrando em {dayLabel(currentDay, "short")}.</span><button type="button" className="mini-button secondary" onClick={() => chooseDay(currentDay)}>Voltar ao dia atual</button></div>}
         <nav className="admin-modes" aria-label="Forma de ver os pedidos">
           {([["list", "Lista", List], ["kanban", "Kanban", Columns3], ["report", "Relatório do dia", FileBarChart]] as const).map(([value, label, Icon]) => <button key={value} type="button" className={mode === value ? "selected" : ""} aria-pressed={mode === value} onClick={() => chooseMode(value)}><Icon size={16} aria-hidden="true" /> {label}</button>)}
         </nav>
@@ -302,8 +307,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
           <div className="metric"><span>Hambúrgueres concluídos</span><strong>{data.completedBurgers}</strong><small>Entregas e retiradas finalizadas</small></div>
           <div className="metric"><span>Total recebido</span><strong className="metric-money">{money(revenue)}</strong><small>Exclui devoluções registradas</small></div>
         </section>}
-        {selectedDay && <p className="admin-filter-help" role="status">Você está vendo os pedidos de {dayLabel(viewingDay)}. Os pedidos novos continuam entrando em {dayLabel(currentDay)}.</p>}
-        {isCurrentDay && mode !== "report" && data.paid >= dayCapacity && <div className="admin-alert">A capacidade de {dayCapacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
+        {isCurrentDay && mode !== "report" && data.paid >= dayCapacity && <div className="admin-alert admin-alert-pablo"><Image src="/pablo/pablo-comemorando.webp" width={259} height={331} sizes="44px" alt="" />A capacidade de {dayCapacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
         {isCurrentDay && mode !== "report" && over > 0 && <div className="admin-alert">{over} hambúrguer{over === 1 ? "" : "es"} acima da capacidade atual. Considere a ordem de confirmação do pagamento.</div>}
         {data.demo && <div className="admin-alert">Modo de demonstração. Simular pagamento não movimenta dinheiro.</div>}
         {mode === "report" && <AdminReport day={viewingDay} orders={data.orders} capacity={dayCapacity} itemsLabel={itemsText} />}
@@ -348,7 +352,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
           {neighborhoodFilter && !normalizedSearch && <p className="admin-filter-help" role="status">{visibleOrders.length} {visibleOrders.length === 1 ? "pedido encontrado" : "pedidos encontrados"} no bairro selecionado, considerando os filtros ativos.</p>}
           {normalizedSearch && <p className="admin-filter-help" role="status">{visibleOrders.length} {visibleOrders.length === 1 ? "pedido encontrado" : "pedidos encontrados"} para “{nameSearch.trim()}” no filtro selecionado.</p>}
           <div className="admin-orders" id="admin-orders-list">
-            {visibleOrders.length === 0 && <p className="admin-empty">{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : neighborhoodFilter ? "Nenhum pedido deste bairro nos filtros selecionados." : methodFilter !== "all" ? "Nenhum pedido desse tipo nos filtros selecionados." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
+            {visibleOrders.length === 0 && <p className="admin-empty">{data.orders.length === 0 && <Image src="/pablo/pablo-esperando.webp" width={168} height={264} sizes="70px" alt="" />}{normalizedSearch ? "Nenhum pedido encontrado com esse nome no filtro selecionado." : neighborhoodFilter ? "Nenhum pedido deste bairro nos filtros selecionados." : methodFilter !== "all" ? "Nenhum pedido desse tipo nos filtros selecionados." : filter === "all" ? "Os pedidos aparecerão aqui assim que alguém finalizar a compra." : "Nenhum pedido nesta situação."}</p>}
             {visibleOrders.map(order => {
               const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] }[];
               const notices = data.notifications?.filter(notice => notice.order_id === order.id) ?? [];
