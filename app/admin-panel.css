@@ -2,22 +2,31 @@
 
 /* Topo: título limpo com o Pablo. A navegação já fica na barra lateral. */
 .admin-main .admin-head { position: relative; align-items: flex-end; gap: 18px; padding-bottom: 6px; }
-.admin-main .admin-head > div { margin-right: auto; }
+.admin-main .admin-head > div:first-child { margin-right: auto; }
 .admin-head-pablo { width: 92px; height: auto; margin: -18px 0 -6px; filter: drop-shadow(0 10px 14px rgba(13, 46, 110, .18)); animation: pablo-bob 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
 .admin-main .admin-head > a { align-self: center; }
 @media (min-width: 701px) { .admin-main .admin-tabs { display: none; } .admin-main .admin-head { margin-bottom: 26px; border-bottom: 1px solid #dfe7f3; } }
 @keyframes pablo-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-2deg); } }
 
-/* Faturamento da noite no topo, ao lado do título */
-.admin-revenue { position: relative; display: grid; gap: 3px; min-width: 280px; padding: 16px 22px 16px 86px; border-radius: 18px; background: linear-gradient(150deg, #1d3f99 0%, #102d68 100%); color: #c4d3f0; box-shadow: 0 14px 30px rgba(16, 45, 104, .22); }
-.admin-revenue-pablo { position: absolute; left: 12px; bottom: 6px; width: 62px; height: auto; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); animation: pablo-bob 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
-.admin-revenue span { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9fb4dd; }
-.admin-revenue strong { font-family: "Barlow Condensed", Arial, sans-serif; font-size: clamp(36px, 3.6vw, 48px); font-weight: 800; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-.admin-revenue small { font-size: 12px; font-weight: 600; color: #c4d3f0; }
-.admin-revenue em { margin-top: 4px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, .16); font-size: 12px; font-style: normal; font-weight: 800; color: var(--brand-yellow); }
+/* Faturamento até agora: a primeira coisa do painel, numa faixa larga e calma */
+.admin-hero { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 40px; padding: 22px 110px 22px 26px; border-radius: 18px; background: linear-gradient(135deg, #1d3f99 0%, #102d68 100%); color: #c4d3f0; box-shadow: 0 14px 30px rgba(16, 45, 104, .18); overflow: hidden; }
+.admin-hero-main { display: grid; gap: 4px; }
+.admin-hero-main span, .admin-hero-stats dt { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9fb4dd; }
+.admin-hero-main strong { font-family: "Barlow Condensed", Arial, sans-serif; font-size: clamp(40px, 4.4vw, 58px); font-weight: 800; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.admin-hero-main small { font-size: 12px; font-weight: 600; }
+.admin-hero-stats { display: flex; flex-wrap: wrap; gap: 14px 28px; margin: 0; padding-left: 28px; border-left: 1px solid rgba(255, 255, 255, .16); }
+.admin-hero-stats div { display: grid; gap: 4px; }
+.admin-hero-stats dd { margin: 0; font-size: 20px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.admin-hero-pablo { position: absolute; right: 22px; bottom: -6px; width: 70px; height: auto; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); animation: pablo-bob 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+
+/* Dia do evento no canto do topo, longe do conteúdo */
+.admin-head .day-picker { align-self: center; }
+.admin-main .admin-head > a { margin-left: 0; }
+.day-picker-button > span, .day-picker-count { white-space: nowrap; }
+.admin-head .day-picker-pop { left: auto; right: 0; }
 
 /* Barra de ferramentas: dia de vendas + forma de ver */
-.admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 22px; }
 .admin-toolbar .admin-modes { margin-top: 0; }
 
 /* Seletor de dia de vendas */
@@ -29,7 +38,7 @@
 .day-chip.is-current { background: #e3f5ea; color: #1b6a3c; }
 .day-chip.is-scheduled { background: #fff3ce; color: #74520b; }
 .day-chip.is-past { background: #e9edf4; color: #4a5a77; }
-.day-picker-pop { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; width: min(420px, calc(100vw - 32px)); border: 1px solid #d3deef; border-radius: 16px; background: #fff; box-shadow: 0 24px 50px rgba(13, 46, 110, .2); overflow: hidden; animation: pop-in .14s ease-out; }
+.day-picker-pop { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; width: min(460px, calc(100vw - 32px)); border: 1px solid #d3deef; border-radius: 16px; background: #fff; box-shadow: 0 24px 50px rgba(13, 46, 110, .2); overflow: hidden; animation: pop-in .14s ease-out; }
 @keyframes pop-in { from { opacity: 0; transform: translateY(-4px); } }
 .day-picker-search { display: flex; align-items: center; gap: 8px; margin: 12px 12px 4px; padding: 0 11px; border: 1px solid #dbe4f1; border-radius: 10px; color: #8a97b0; }
 .day-picker-search input { flex: 1; min-width: 0; min-height: 38px; border: 0; outline: 0; background: transparent; font-size: 14px; color: var(--brand-deep); }
@@ -82,24 +91,28 @@
 .day-picker-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .day-picker-form-actions .mini-button { min-height: 40px; padding: 9px 14px; }
 @media (max-width: 700px) {
-  .admin-revenue { width: 100%; min-width: 0; order: 3; }
   .admin-toolbar { align-items: stretch; flex-direction: column; }
   .day-picker-button { width: 100%; }
-  .admin-day-group .day-picker { flex: 1; }
   .day-picker-button > span { flex: 1; text-align: left; }
   .day-picker-pop { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .day-picker-pop { animation: none; } }
 
-.admin-day-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .admin-back-today { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 0; border-radius: 99px; background: #fff3ce; color: #74520b; font-size: 13px; font-weight: 800; }
 .admin-back-today:hover { background: #ffe9a8; }
 
 /* Cartões de números: limpos, sem efeito metálico */
-.admin-main .metric strong small { margin-left: 6px; font-size: 26px; font-weight: 800; opacity: .7; }
-.admin-main .metric:first-child { background: linear-gradient(150deg, #2148a8 0%, var(--brand-blue) 55%, #142f7a 100%); box-shadow: 0 12px 26px rgba(23, 63, 146, .22); }
-.admin-main .metric.warning:first-child { background: var(--brand-yellow); box-shadow: 0 12px 26px rgba(160, 120, 10, .2); }
-.admin-main .metric:first-child .progress-track { height: 10px; background: rgba(255, 255, 255, .22); }
+.admin-main section.metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.admin-main .metric-grid .metric { padding: 16px 18px; border-radius: 12px; box-shadow: none; }
+.admin-main .metric-grid .metric span { font-size: 12px; }
+.admin-main .metric-grid .metric strong { font-size: 30px; line-height: 1.15; }
+.admin-main .metric strong small { margin-left: 4px; font-size: 16px; font-weight: 700; opacity: .6; }
+.admin-main .metric-grid .metric:first-child { background: #fff; border-color: var(--line-soft, #e2e9f5); box-shadow: none; }
+.admin-main .metric-grid .metric:first-child span, .admin-main .metric-grid .metric:first-child small { color: #617394; }
+.admin-main .metric-grid .metric:first-child strong { color: var(--brand-deep); }
+.admin-main .metric-grid .metric.warning:first-child { border-color: #e1ad00; background: #fff8dc; }
+.admin-main .metric-grid .metric .progress-track { height: 6px; margin-top: 8px; background: #e6ecf6; }
+.admin-main .metric-grid .metric .progress-track div { background: var(--brand-blue); }
 
 /* Pablo em estados vazios e avisos */
 .admin-main .admin-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 34px 12px; text-align: center; }
@@ -109,10 +122,17 @@
 .admin-login { position: relative; max-width: 460px; }
 .admin-login-pablo { display: block; width: 92px; height: auto; margin-bottom: 6px; }
 
+@media (max-width: 900px) { .admin-main section.metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) {
+  .admin-hero { padding: 18px 18px 18px 18px; }
+  .admin-hero-pablo { display: none; }
+  .admin-hero-stats { padding-left: 0; border-left: 0; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .16); width: 100%; }
+  .admin-hero-stats dd { font-size: 17px; }
+  .admin-main .metric-grid .metric strong { font-size: 26px; }
+  .admin-main .admin-head .day-picker { width: 100%; }
   .admin-head-pablo { position: absolute; top: 0; right: 0; width: 64px; margin: 0; }
   .admin-main .admin-head { flex-wrap: wrap; padding-right: 70px; }
 }
-@media (prefers-reduced-motion: reduce) { .admin-head-pablo, .admin-revenue-pablo { animation: none; } }
-@media print { .admin-head-pablo, .admin-revenue, .admin-toolbar { display: none !important; } }
+@media (prefers-reduced-motion: reduce) { .admin-head-pablo, .admin-hero-pablo { animation: none; } }
+@media print { .admin-head-pablo, .admin-hero, .admin-toolbar { display: none !important; } }
 .admin-main .metric-grid .metric > small { display: block; margin-top: 4px; }

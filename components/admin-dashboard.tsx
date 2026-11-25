@@ -28,13 +28,14 @@ type Order = {
   delivery_driver_name?: string | null; delivery_route_id?: string | null;
 };
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
-type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean; currentDay?: string }; day?: string; dayCapacity?: number; days?: SalesDay[]; paid: number; completedBurgers: number; demo: boolean; error?: string };
+type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean; currentDay?: string }; day?: string; dayCapacity?: number; days?: SalesDay[]; allTimeRevenue?: number; nightsWithSales?: number; paid: number; completedBurgers: number; demo: boolean; error?: string };
 type Mode = "list" | "kanban" | "report";
 type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
 const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão", event_morning: "lembrete do evento · 11h", event_evening: "lembrete do evento · 18h" };
 const noticeStates: Record<string, string> = { failed: "falhou; nova tentativa programada", uncertain: "resultado incerto; confira o WhatsApp antes de reenviar", superseded: "substituído", pending: "pendente", sending: "enviando" };
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const wholeMoney = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const labels: Record<string, string> = {
   awaiting_quote: "Aguardando taxa", ready_for_payment: "Aguardando pagamento",
   awaiting_payment: "Aguardando pagamento", paid: "Pago", preparing: "Em preparo",
@@ -285,13 +286,8 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
     <main className="admin-main">
       <header className="admin-head">
         <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : view === "deliveries" ? "Rotas e entregadores" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : view === "deliveries" ? "Distribua as rotas entre os entregadores. As alterações são sincronizadas com os celulares da equipe." : "Pedidos e pagamentos com atualização automática."}</p></div>
-        {data && view === "orders" ? <div className="admin-revenue" aria-label="Faturamento da noite">
-          <Image className="admin-revenue-pablo" src="/pablo/pablo-comemorando.webp" width={259} height={331} sizes="70px" alt="" priority />
-          <span>Faturamento da noite</span>
-          <strong>{money(revenue)}</strong>
-          <small>{paidOrders.length} {paidOrders.length === 1 ? "pedido pago" : "pedidos pagos"}{paidOrders.length ? ` · ticket médio ${money(Math.round(revenue / paidOrders.length))}` : ""}</small>
-          {(data.days ?? []).filter(item => (item.revenue ?? 0) > 0).length > 1 && <em>Todas as noites: {money((data.days ?? []).reduce((sum, item) => sum + (item.revenue ?? 0), 0))}</em>}
-        </div> : <Image className="admin-head-pablo" src={view === "products" ? "/pablo/pablo-olhando.webp" : view === "contacts" ? "/pablo/pablo-em-pe.webp" : "/pablo/pablo-correndo.webp"} width={300} height={400} sizes="96px" alt="" priority />}
+        {data && view === "orders" ? <AdminDays days={data.days?.length ? data.days : [{ day: currentDay, orders: data.orders.length }]} currentDay={currentDay} viewingDay={viewingDay} defaultCapacity={data.settings.capacity} onView={chooseDay} onStart={startSelling} onAdd={addDay} onRemove={removeDay} onEdit={editDay} />
+          : <Image className="admin-head-pablo" src={view === "products" ? "/pablo/pablo-olhando.webp" : view === "contacts" ? "/pablo/pablo-em-pe.webp" : "/pablo/pablo-correndo.webp"} width={300} height={400} sizes="96px" alt="" priority />}
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
       <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/admin/entregas" className={view === "deliveries" ? "active" : ""} aria-current={view === "deliveries" ? "page" : undefined}>Entregas</a><Link href="/">Ver loja</Link></nav>
@@ -308,14 +304,24 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
       {data && view === "contacts" && <AdminContacts demo={data.demo} />}
       {data && view === "deliveries" && <DeliveryDashboard embedded />}
       {data && view === "orders" && <>
+        <section className="admin-hero" aria-label="Faturamento">
+          <div className="admin-hero-main">
+            <span>Faturamento até agora</span>
+            <strong>{wholeMoney(data.allTimeRevenue ?? revenue)}</strong>
+            <small>{(data.nightsWithSales ?? 0) === 1 ? "1 noite com vendas" : `${data.nightsWithSales ?? 0} noites com vendas`}</small>
+          </div>
+          <dl className="admin-hero-stats">
+            <div><dt>{isCurrentDay ? "Esta noite" : `Noite de ${dayLabel(viewingDay, "short")}`}</dt><dd>{wholeMoney(revenue)}</dd></div>
+            <div><dt>Pedidos pagos</dt><dd>{paidOrders.length}</dd></div>
+            <div><dt>Ticket médio</dt><dd>{paidOrders.length ? wholeMoney(Math.round(revenue / paidOrders.length)) : "–"}</dd></div>
+          </dl>
+          <Image className="admin-hero-pablo" src="/pablo/pablo-comemorando.webp" width={259} height={331} sizes="64px" alt="" priority />
+        </section>
         <div className="admin-toolbar">
-        <div className="admin-day-group">
-        <AdminDays days={data.days?.length ? data.days : [{ day: currentDay, orders: data.orders.length }]} currentDay={currentDay} viewingDay={viewingDay} defaultCapacity={data.settings.capacity} onView={chooseDay} onStart={startSelling} onAdd={addDay} onRemove={removeDay} onEdit={editDay} />
-        {selectedDay && <button type="button" className="admin-back-today" onClick={() => chooseDay(currentDay)}><Undo2 size={14} aria-hidden="true" /> Voltar para {dayLabel(currentDay, "short")}</button>}
-        </div>
         <nav className="admin-modes" aria-label="Forma de ver os pedidos">
           {([["list", "Lista", List], ["kanban", "Kanban", Columns3], ["report", "Relatório do dia", FileBarChart]] as const).map(([value, label, Icon]) => <button key={value} type="button" className={mode === value ? "selected" : ""} aria-pressed={mode === value} onClick={() => chooseMode(value)}><Icon size={16} aria-hidden="true" /> {label}</button>)}
         </nav>
+        {selectedDay && <button type="button" className="admin-back-today" onClick={() => chooseDay(currentDay)}><Undo2 size={14} aria-hidden="true" /> Voltar para {dayLabel(currentDay, "short")}</button>}
         </div>
         {mode !== "report" && <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= dayCapacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {dayCapacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / dayCapacity * 100)}%` }} /></div></div>

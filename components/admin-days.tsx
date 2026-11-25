@@ -126,7 +126,7 @@ export default function AdminDays({ days, currentDay, viewingDay, defaultCapacit
                 <button type="button" className="day-row-open" onClick={() => { onView(item.day); setOpen(false); }}>
                   <span className="day-row-date"><b>{label(item.day, { day: "2-digit" })}</b><small>{label(item.day, { month: "short" }).replace(".", "")}</small></span>
                   <span className="day-row-text">
-                    <strong>{label(item.day, { weekday: "long", day: "numeric", month: "long" })}</strong>
+                    <strong>{label(item.day, { weekday: "short", day: "numeric", month: "long" }).replace(".", "")}</strong>
                     <small>{facts}</small>
                   </span>
                   <span className="day-row-side">
