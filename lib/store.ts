@@ -3,6 +3,9 @@ import { createAdminSession, verifyAdminSession } from "./admin-session";
 import { hamburgerIngredients, includesBurger } from "./menu-options";
 import { currentDaySql, defaultEventDay } from "./stock-rules";
 
+const pastEventDay = "2026-10-30";
+const pastEventCutoff = "2026-11-01T03:00:00.000Z";
+
 export type ProductCategory = "burger" | "combo" | "side" | "drink";
 export type Product = {
   id: string; name: string; description: string; category: ProductCategory;
@@ -112,6 +115,12 @@ export async function ensureSchema() {
       // Limite de hambúrgueres guardado por dia, para o relatório de cada noite.
       await database.prepare("CREATE TABLE IF NOT EXISTS event_days (day text PRIMARY KEY NOT NULL, capacity integer NOT NULL, opened_at text NOT NULL)").run();
       await database.prepare("CREATE INDEX IF NOT EXISTS orders_event_day ON orders(event_day)").run();
+      // Pedidos da primeira noite (30/10) ganharam o dia padrão quando a coluna event_day foi criada.
+      // Tudo que foi criado antes de novembro (horário de João Pessoa) pertence a 30/10, não a 3/12.
+      await database.prepare(`UPDATE orders SET event_day = ? WHERE event_day = ? AND created_at < ?`).bind(pastEventDay, defaultEventDay, pastEventCutoff).run();
+      await database.prepare(`INSERT INTO event_days (day,capacity,opened_at)
+        SELECT ?, COALESCE((SELECT capacity FROM settings WHERE id = 1),100), ? WHERE EXISTS (SELECT 1 FROM orders WHERE event_day = ?)
+        ON CONFLICT(day) DO NOTHING`).bind(pastEventDay, pastEventCutoff, pastEventDay).run();
       await database.prepare(`CREATE TABLE IF NOT EXISTS products (
         id text PRIMARY KEY NOT NULL, name text NOT NULL, description text NOT NULL,
         category text NOT NULL, price integer NOT NULL, image_url text, stock integer,
