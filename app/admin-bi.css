@@ -94,7 +94,7 @@
 }
 
 @media print {
-  .admin-side, .admin-head, .admin-tabs, .sales-trail, .admin-viewing, .admin-modes, .report-actions, .admin-alert, .admin-filter-help, .legal-links, .privacy-notice { display: none !important; }
+  .admin-side, .admin-head, .admin-tabs, .admin-viewing, .admin-modes, .report-actions, .admin-alert, .admin-filter-help, .legal-links, .privacy-notice { display: none !important; }
   .admin-shell { display: block !important; }
   .admin-main { padding: 0 !important; }
   .report-hero, .report-kpis, .report-grid { break-inside: avoid; }

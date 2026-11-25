@@ -279,7 +279,13 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
     <main className="admin-main">
       <header className="admin-head">
         <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : view === "deliveries" ? "Rotas e entregadores" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : view === "deliveries" ? "Distribua as rotas entre os entregadores. As alterações são sincronizadas com os celulares da equipe." : "Pedidos e pagamentos com atualização automática."}</p></div>
-        <Image className="admin-head-pablo" src={view === "orders" ? "/pablo/pablo-acenando.webp" : view === "products" ? "/pablo/pablo-olhando.webp" : view === "contacts" ? "/pablo/pablo-em-pe.webp" : "/pablo/pablo-correndo.webp"} width={300} height={400} sizes="96px" alt="" priority />
+        {data && view === "orders" ? <div className="admin-revenue" aria-label="Faturamento da noite">
+          <Image className="admin-revenue-pablo" src="/pablo/pablo-comemorando.webp" width={259} height={331} sizes="70px" alt="" priority />
+          <span>Faturamento da noite</span>
+          <strong>{money(revenue)}</strong>
+          <small>{paidOrders.length} {paidOrders.length === 1 ? "pedido pago" : "pedidos pagos"}{paidOrders.length ? ` · ticket médio ${money(Math.round(revenue / paidOrders.length))}` : ""}</small>
+          {(data.days ?? []).filter(item => (item.revenue ?? 0) > 0).length > 1 && <em>Todas as noites: {money((data.days ?? []).reduce((sum, item) => sum + (item.revenue ?? 0), 0))}</em>}
+        </div> : <Image className="admin-head-pablo" src={view === "products" ? "/pablo/pablo-olhando.webp" : view === "contacts" ? "/pablo/pablo-em-pe.webp" : "/pablo/pablo-correndo.webp"} width={300} height={400} sizes="96px" alt="" priority />}
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
       <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/admin/entregas" className={view === "deliveries" ? "active" : ""} aria-current={view === "deliveries" ? "page" : undefined}>Entregas</a><Link href="/">Ver loja</Link></nav>
@@ -296,16 +302,18 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
       {data && view === "contacts" && <AdminContacts demo={data.demo} />}
       {data && view === "deliveries" && <DeliveryDashboard embedded />}
       {data && view === "orders" && <>
+        <div className="admin-toolbar">
         <AdminDays days={data.days?.length ? data.days : [{ day: currentDay, orders: data.orders.length }]} currentDay={currentDay} viewingDay={viewingDay} defaultCapacity={data.settings.capacity} onView={chooseDay} onStart={startSelling} onAdd={addDay} onRemove={removeDay} />
-        {selectedDay && <div className="admin-viewing" role="status"><span>Você está vendo <b>{dayLabel(viewingDay)}</b>. Os pedidos novos continuam entrando em {dayLabel(currentDay, "short")}.</span><button type="button" className="mini-button secondary" onClick={() => chooseDay(currentDay)}>Voltar ao dia atual</button></div>}
         <nav className="admin-modes" aria-label="Forma de ver os pedidos">
           {([["list", "Lista", List], ["kanban", "Kanban", Columns3], ["report", "Relatório do dia", FileBarChart]] as const).map(([value, label, Icon]) => <button key={value} type="button" className={mode === value ? "selected" : ""} aria-pressed={mode === value} onClick={() => chooseMode(value)}><Icon size={16} aria-hidden="true" /> {label}</button>)}
         </nav>
+        </div>
+        {selectedDay && <div className="admin-viewing" role="status"><span>Você está vendo <b>{dayLabel(viewingDay)}</b>. Os pedidos novos continuam entrando em {dayLabel(currentDay, "short")}.</span><button type="button" className="mini-button secondary" onClick={() => chooseDay(currentDay)}>Voltar ao dia atual</button></div>}
         {mode !== "report" && <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= dayCapacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {dayCapacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / dayCapacity * 100)}%` }} /></div></div>
           <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Em preparo, prontos ou em entrega</small></div>
           <div className="metric"><span>Hambúrgueres concluídos</span><strong>{data.completedBurgers}</strong><small>Entregas e retiradas finalizadas</small></div>
-          <div className="metric"><span>Total recebido</span><strong className="metric-money">{money(revenue)}</strong><small>Exclui devoluções registradas</small></div>
+          <div className="metric"><span>Aguardando pagamento</span><strong>{pendingPayments}</strong><small>Pix gerado e ainda não pago</small></div>
         </section>}
         {isCurrentDay && mode !== "report" && data.paid >= dayCapacity && <div className="admin-alert admin-alert-pablo"><Image src="/pablo/pablo-comemorando.webp" width={259} height={331} sizes="44px" alt="" />A capacidade de {dayCapacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
         {isCurrentDay && mode !== "report" && over > 0 && <div className="admin-alert">{over} hambúrguer{over === 1 ? "" : "es"} acima da capacidade atual. Considere a ordem de confirmação do pagamento.</div>}
