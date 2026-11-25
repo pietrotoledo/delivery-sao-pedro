@@ -187,17 +187,22 @@ export function BackyardHouses() {
     {[-140, -112, -84, -56].map(x => <circle key={x} cx={x + 4} cy={244} r="2.4" fill="#cfe8ff" />)}
     {[-244, -232, -220, -208].map((x, i) => <circle key={x} cx={x} cy={248} r="8" fill={i % 2 ? "#2f8f46" : "#3aa152"} />)}
 
-    {/* casa branca, à direita: térrea com telhado alto e escuro, janelinha no telhado à esquerda, porta amarela
-        com escada, duas janelas com venezianas vermelhas e chaminé de tijolo na ponta direita */}
+    {/* casa roxa, à direita: térrea com telhado alto e escuro, janelinha no telhado à esquerda, porta amarela
+        com escada, duas janelas com venezianas vermelhas e chaminé de tijolo. Uma cerca de madeira separa o quintal dela do da casa rosa */}
     <Chimney x={1542} y={62} h={66} />
-    <House x={1360} y={178} w={222} h={74} d={40} roofH={96} wall="#f5f3ee" side="#d9d5cc" line="#e7e3da" roof="#7b7a8c">
+    <House x={1360} y={178} w={222} h={74} d={40} roofH={96} wall="#a685d8" side="#8668bd" line="#9878cc" roof="#7b7a8c">
       <rect x="1376" y="190" width="30" height="62" fill="#f3dc8a" stroke="#d9c06c" strokeWidth="1.5" />
       <g><rect className="win" x="1381" y="195" width="20" height="20" style={{ animationDelay: "2.3s" }} /><path d="M1391 195V215M1381 205H1401" stroke="#f3dc8a" strokeWidth="1.6" /></g>
       <circle cx="1401" cy="232" r="2.2" fill="#8a7a3c" />
       <Win x={1462} y={196} w={30} h={30} order={12} shutter="#cf2335" grid />
       <Win x={1524} y={196} w={30} h={30} order={13} shutter="#cf2335" grid />
     </House>
-    <Dormer x={1392} y={112} wall="#f5f3ee" order={6} s={1.25} roof="#7b7a8c" />
+    <Dormer x={1392} y={112} wall="#a685d8" order={6} s={1.25} roof="#7b7a8c" />
+    {/* cerca de madeira marrom entre o quintal da casa rosa e o da casa roxa: postes com duas travessas na frente da lateral */}
+    <g>
+      {Array.from({ length: 7 }, (_, i) => <g key={i}><path d={`M${1298 + i * 11} 214 l3 -4 l3 4 V252 h-6Z`} fill="#8b5a32" /></g>)}
+      <rect x="1296" y="222" width="76" height="5" fill="#a06a3d" /><rect x="1296" y="238" width="76" height="5" fill="#a06a3d" />
+    </g>
     {[[1372, 246], [1370, 250], [1368, 254]].map(([x, y]) => <rect key={y} x={x} y={y} width="38" height="4" fill="#b9c8b4" stroke="#98a893" strokeWidth=".8" />)}
     {[1424, 1438, 1452, 1566, 1580].map((x, i) => <circle key={x} cx={x} cy={248} r="8" fill={i % 2 ? "#2f8f46" : "#3aa152"} />)}
     {[1428, 1570].map(x => <circle key={x} cx={x} cy={244} r="2.4" fill="#ffffff" />)}
