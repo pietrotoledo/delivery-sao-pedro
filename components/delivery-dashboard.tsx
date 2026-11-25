@@ -148,7 +148,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
         </div>
         {!showCompleted && <section className="delivery-route-planner" aria-labelledby="delivery-route-title">
           <div className="delivery-route-heading"><MapPinned size={23} aria-hidden="true" /><h2 id="delivery-route-title">Monte sua rota de entregas</h2></div>
-          <p>Saída: <strong>{eventLocation.name}.</strong> Marque os pedidos prontos ou que já saíram para entrega para levar na mesma viagem.</p>
+          <p>Saída: <strong>{eventLocation.name}, em Manaíra.</strong> Marque os pedidos prontos ou que já saíram para entrega para levar na mesma viagem.</p>
           <p className="delivery-route-note">A proximidade é aproximada, pelo centro dos bairros. O Maps calcula o caminho pelas ruas usando os endereços completos.</p>
           <label className="delivery-driver-field" htmlFor="delivery-driver-name">{embedded ? "Nome do entregador responsável" : "Seu nome de entregador"}<input id="delivery-driver-name" value={driverName} onChange={event => setDriverName(event.target.value)} maxLength={60} autoComplete={embedded ? "off" : "name"} placeholder="Ex.: João, Pedro ou Ana" disabled={savingRoute} /></label>
           {route.length > 0 ? <>
