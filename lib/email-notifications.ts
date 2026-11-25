@@ -42,7 +42,7 @@ async function enqueueOrderEmail(orderId: string, event: EmailNotice, origin: st
   const noticeMessage = orderNoticeMessage(order, event, new URL(origin).origin);
   if (!noticeMessage) return;
   const message = event === "pix_available"
-    ? `${noticeMessage}\n\n${orderEventSchedule(order.method)}`
+    ? `${noticeMessage}\n\n${orderEventSchedule(order.method, order.event_day)}`
     : noticeMessage;
   await ensureSchema();
   const now = new Date().toISOString();

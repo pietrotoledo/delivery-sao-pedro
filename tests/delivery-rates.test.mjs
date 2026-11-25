@@ -261,8 +261,8 @@ test("Bebida avulsa e incluida no combo compartilham o mesmo estoque", async () 
       INSERT INTO products VALUES ('combo',1,5,'x'),('coke',1,2,'x');
       CREATE TABLE orders(id TEXT PRIMARY KEY,request_key TEXT UNIQUE,request_hash TEXT,created_at TEXT,updated_at TEXT,
         name TEXT,phone TEXT,email TEXT,method TEXT,neighborhood TEXT,address TEXT,notes TEXT,items_json TEXT,
-        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER);
-      CREATE TABLE settings(id INTEGER PRIMARY KEY,capacity INTEGER,paused INTEGER);`);
+        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER,event_day TEXT NOT NULL DEFAULT '2026-12-03');
+      CREATE TABLE settings(id INTEGER PRIMARY KEY,capacity INTEGER,paused INTEGER,current_day TEXT DEFAULT '2026-12-03');`);
     sqlite.exec("BEGIN");
     for (const statement of api.statements()) sqlite.prepare(statement.sql).run(...statement.args);
     sqlite.exec("COMMIT");
@@ -359,9 +359,9 @@ test("Limite de hambúrgueres no banco: dois pedidos simultâneos não passam do
       INSERT INTO products VALUES ('classic',1,NULL,'x');
       CREATE TABLE orders(id TEXT PRIMARY KEY,request_key TEXT UNIQUE,request_hash TEXT,created_at TEXT,updated_at TEXT,
         name TEXT,phone TEXT,email TEXT,method TEXT,neighborhood TEXT,address TEXT,notes TEXT,items_json TEXT,
-        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER);
-      CREATE TABLE settings(id INTEGER PRIMARY KEY,capacity INTEGER,paused INTEGER);
-      INSERT INTO settings VALUES (1,5,0);
+        burger_count INTEGER,subtotal INTEGER,delivery_fee INTEGER,total INTEGER,status TEXT,whatsapp_opt_in INTEGER,event_day TEXT NOT NULL DEFAULT '2026-12-03');
+      CREATE TABLE settings(id INTEGER PRIMARY KEY,capacity INTEGER,paused INTEGER,current_day TEXT DEFAULT '2026-12-03');
+      INSERT INTO settings (id,capacity,paused) VALUES (1,5,0);
       INSERT INTO orders (id,burger_count,status) VALUES ('pago',2,'paid'),('aguardando',2,'awaiting_payment'),('expirado',9,'expired'),('devolvido',9,'refunded');`);
     // Os dois pedidos foram aceitos pela checagem prévia (resta 1), mas só o primeiro grava.
     const first = orderApi({}, 1); await first.post(request(payload("Manaíra", 0)));

@@ -18,10 +18,10 @@ const schedule = load('../lib/event-schedule.ts', { './event-location': { eventL
 test('scheduled reminders select eligible paid orders and register each event once', async () => {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`CREATE TABLE orders (id TEXT PRIMARY KEY, paid_at TEXT, contact_deleted_at TEXT, whatsapp_opt_in INTEGER,
-    status TEXT, payment_mode TEXT, payment_note TEXT, created_at TEXT, method TEXT);
+    status TEXT, payment_mode TEXT, payment_note TEXT, created_at TEXT, method TEXT, event_day TEXT NOT NULL DEFAULT '2026-12-03');
     CREATE TABLE order_notifications (id TEXT PRIMARY KEY,order_id TEXT,event TEXT,message TEXT,updated_at TEXT,UNIQUE(order_id,event));`);
   const base = ['2026-10-29T12:00:00.000Z', null, 1, 'paid', 'infinitepay', null, '2026-10-29', 'delivery'];
-  const insert = sqlite.prepare('INSERT INTO orders VALUES (?,?,?,?,?,?,?,?,?)');
+  const insert = sqlite.prepare('INSERT INTO orders (id,paid_at,contact_deleted_at,whatsapp_opt_in,status,payment_mode,payment_note,created_at,method) VALUES (?,?,?,?,?,?,?,?,?)');
   insert.run('eligible', ...base);
   for (const [id, index, value] of [['unpaid', 0, null], ['deleted', 1, '2026-10-29'], ['no-consent', 2, 0],
     ['completed', 3, 'completed'], ['refunded', 3, 'refunded'], ['demo', 4, 'demo'],
@@ -49,11 +49,14 @@ test('scheduled reminders select eligible paid orders and register each event on
   await queueEventReminders(new Date('2026-12-03T14:02:00Z'));
   const morning = sqlite.prepare('SELECT order_id,event FROM order_notifications').all();
   assert.deepEqual(morning.map(x => [x.order_id,x.event]), [['eligible','event_morning']]);
+  await queueEventReminders(new Date('2026-12-03T16:30:00Z'));
+  const later = sqlite.prepare("SELECT order_id FROM order_notifications WHERE event='event_morning' ORDER BY order_id").all();
+  // Quem pagou depois do início acabou de receber a confirmação com o horário; não ganha lembrete extra.
+  assert.deepEqual(later.map(x => x.order_id), ['eligible']);
   await queueEventReminders(new Date('2026-12-03T21:00:00Z'));
-  const evening = sqlite.prepare("SELECT order_id FROM order_notifications WHERE event='event_evening' ORDER BY order_id").all();
-  assert.deepEqual(evening.map(x => x.order_id), ['eligible','paid-later']);
   await queueEventReminders(new Date('2027-12-03T14:00:00Z'));
-  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM order_notifications').get().count, 3);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM order_notifications').get().count, 1);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM order_notifications WHERE event='event_evening'").get().count, 0);
   sqlite.close();
 });
 

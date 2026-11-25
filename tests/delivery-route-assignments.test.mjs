@@ -23,7 +23,8 @@ function setup(t) {
       ('b','Bia','5583999123457','Bessa','Rua B, 2','out_for_delivery','delivery','x','x',NULL,0,2500),
       ('c','Caio','5583999123458','Brisamar','Rua C, 3','ready','delivery','x','x',NULL,500,3000),
       ('d','Dani','5583999123459','Manaíra','Rua D, 4','preparing','delivery','x','x',NULL,0,2500);
-    ALTER TABLE orders ADD COLUMN updated_at TEXT DEFAULT 'x';`);
+    ALTER TABLE orders ADD COLUMN updated_at TEXT DEFAULT 'x';
+    ALTER TABLE orders ADD COLUMN event_day TEXT NOT NULL DEFAULT '2026-12-03';`);
   const database = {
     prepare(sql) {
       return { sql, args: [], bind(...args) { this.args = args; return this; },
@@ -38,7 +39,7 @@ function setup(t) {
       catch (error) { sqlite.exec("ROLLBACK"); throw error; }
     },
   };
-  const store = { db: () => database, ensureSchema: async () => {},
+  const store = { db: () => database, ensureSchema: async () => {}, config: async () => ({ capacity: 100, paused: false, currentDay: '2026-12-03' }),
     adminOnly: async request => request.headers.get("cookie") === "admin-session",
     sameOrigin: request => request.headers.get("origin") === "https://store.example",
     json: (body, status = 200) => Response.json(body, { status }),

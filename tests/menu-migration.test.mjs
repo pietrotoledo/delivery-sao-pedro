@@ -7,6 +7,8 @@ import ts from "typescript";
 import * as menuOptions from "../lib/menu-options.ts";
 import { orderItemLabels } from "../lib/order-item-labels.ts";
 
+const stockRules = { exports: {} };
+vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../lib/stock-rules.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: stockRules.exports, require: () => menuOptions });
 const storeSource = ts.transpileModule(readFileSync(new URL("../lib/store.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -42,6 +44,7 @@ test("Atualiza banco existente com o cardápio aprovado uma única vez", async (
     const context = { exports: {}, require(name) {
       if (name === "cloudflare:workers") return { env: { DB: database } };
       if (name === "./menu-options") return menuOptions;
+      if (name === "./stock-rules") return stockRules.exports;
       if (name === "./admin-session") return {};
       throw new Error(name);
     } };

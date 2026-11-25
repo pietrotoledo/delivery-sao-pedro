@@ -1,23 +1,25 @@
 import { db, type Order } from "./store";
 import { ensureNotificationSchema, notificationBatch } from "./notification-queue";
 import { evolutionEnabled, orderNoticeMessage } from "./evolution-notifications";
-import { dueEventReminder, eventSchedule } from "./event-schedule";
+import { dueEventReminder, eventDayOf, eventSchedule } from "./event-schedule";
 
 /** Registers each reminder once; the existing notification queue handles sending/retries. */
 export async function queueEventReminders(now = new Date()) {
-  const reminder = dueEventReminder(now);
+  // Lembra os clientes do dia de hoje: cada pedido guarda o dia de vendas em que foi feito.
+  const day = eventDayOf(now);
+  const reminder = dueEventReminder(now, day);
   if (!reminder || !evolutionEnabled()) return;
   await ensureNotificationSchema();
   const database = db();
   const cutoff = new Date(reminder.start).toISOString();
   const orders = await database.prepare(`SELECT * FROM orders
     WHERE paid_at IS NOT NULL AND paid_at<=? AND contact_deleted_at IS NULL
-      AND whatsapp_opt_in=1 AND status NOT IN ('completed','refunded')
+      AND event_day=? AND whatsapp_opt_in=1 AND status NOT IN ('completed','refunded')
       AND (payment_mode IS NULL OR payment_mode<>'demo')
       AND (payment_note IS NULL OR payment_note NOT LIKE 'TESTE SEM PAGAMENTO REAL%')
       AND NOT EXISTS (SELECT 1 FROM order_notifications n WHERE n.order_id=orders.id AND n.event=?)
     ORDER BY created_at LIMIT ?`)
-    .bind(cutoff, reminder.event, notificationBatch.reminders).all<Order>();
+    .bind(cutoff, day, reminder.event, notificationBatch.reminders).all<Order>();
   if (!orders.results.length) return;
   const timestamp = now.toISOString();
   await database.batch(orders.results.map(order => database.prepare(

@@ -1,0 +1,253 @@
+/* Noite no quintal: header no azul da noite, varal de lâmpadas, cerca com o Pablo e respostas animadas ao carrinho. */
+
+/* Header: sem faixa branca, no mesmo azul da primeira tela */
+.site-header { position: sticky; top: 0; z-index: 40; background: rgba(7, 27, 80, .92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.site-shell .site-header .topbar { background: transparent; }
+.site-shell .site-header .brand { color: #fff; }
+.site-shell .site-header .brand-avatar { border-radius: 50%; box-shadow: 0 0 0 2px var(--brand-yellow); }
+.site-shell .site-header .toplinks { gap: 28px; }
+.site-shell .site-header .toplinks a { color: #c9d6f5; transition: color .15s; }
+.site-shell .site-header .toplinks a:hover { color: #fff; }
+.site-shell section[id], .site-shell div[id] { scroll-margin-top: 84px; }
+
+/* Primeira tela */
+.site-shell .hero.hero-backyard { position: relative; overflow: hidden; background: linear-gradient(#061744, var(--brand-deep) 42%, #0b2463); }
+.site-shell .hero-backyard .hero-inner { position: relative; z-index: 1; padding-top: 74px; padding-bottom: 300px; }
+.site-shell .hero-backyard h1 { margin: 6px 0 18px; }
+.hero-cause { max-width: 470px; margin: 0 0 20px; padding: 12px 16px; border-radius: 10px; background: var(--brand-yellow); color: var(--brand-deep); font-size: 16px; font-weight: 800; line-height: 1.4; transform: rotate(-1deg); width: fit-content; }
+
+/* Bandeirinhas de festa: balançam devagar, cada uma no seu tempo */
+.bunting { position: absolute; z-index: 2; inset: 0 0 auto; height: 70px; pointer-events: none; }
+.bunting svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.bunting path { fill: none; stroke: #6d84bd; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.flag { position: absolute; width: 22px; height: 26px; margin-left: -11px; clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: 50% 0; animation: flag-sway 3.2s ease-in-out infinite; opacity: .92; }
+@keyframes flag-sway { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+
+/* Céu: lua, estrelas piscando e nuvens passando bem devagar */
+.night-sky { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.moon { position: absolute; top: 86px; right: max(28px, calc((100vw - 1240px) / 2 + 8px)); width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 34% 38%, #e9dca8 0 5px, transparent 6px), radial-gradient(circle at 62% 64%, #e9dca8 0 7px, transparent 8px), #fff4c9; box-shadow: 0 0 30px 8px rgba(255, 236, 160, .25); }
+.star { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px 1px rgba(255, 255, 255, .6); animation: star-twinkle 3s ease-in-out infinite; }
+@keyframes star-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.cloud { position: absolute; height: 22px; border-radius: 22px; background: rgba(160, 185, 240, .12); animation: cloud-drift 70s linear infinite; }
+.cloud::before, .cloud::after { content: ""; position: absolute; border-radius: 50%; background: inherit; }
+.cloud::before { width: 34px; height: 34px; left: 16px; top: -16px; }
+.cloud::after { width: 26px; height: 26px; left: 44px; top: -10px; }
+.cloud-one { top: 150px; width: 110px; left: -140px; }
+.cloud-two { top: 260px; width: 84px; left: -140px; animation-duration: 95s; animation-delay: -40s; }
+@keyframes cloud-drift { to { transform: translateX(calc(100vw + 300px)); } }
+
+/* Casinhas do quintal: as janelas acendem uma por uma quando o site abre */
+.backyard-houses { position: absolute; z-index: 0; left: 0; bottom: 74px; width: 100%; height: 220px; overflow: visible; pointer-events: none; }
+.backyard-houses .win { fill: #10275f; animation: win-on .6s ease-out both; }
+@keyframes win-on { from { fill: #10275f; } to { fill: #ffd96a; } }
+.smoke { fill: rgba(220, 230, 255, .35); animation: smoke-rise 4s ease-out infinite; }
+.smoke-late { animation-delay: 2s; }
+@keyframes smoke-rise { from { transform: translateY(0) scale(.6); opacity: .7; } to { transform: translateY(-46px) scale(1.6); opacity: 0; } }
+.smoke { transform-box: fill-box; transform-origin: center; }
+
+/* Hélice do boné do Pablo em cima do avatar */
+.brand-avatar-wrap { position: relative; display: block; flex: none; }
+.brand-propeller { position: absolute; z-index: 1; left: 50%; top: -7px; width: 4px; height: 8px; margin-left: -2px; border-radius: 2px; background: #ffd536; }
+.brand-propeller i { position: absolute; left: 50%; top: -1px; width: 26px; height: 4px; margin-left: -13px; border-radius: 4px; background: linear-gradient(90deg, #e2433b 0 46%, #ffd536 46% 54%, #e2433b 54%); animation: propeller-spin .7s linear infinite; }
+@keyframes propeller-spin { 0% { transform: scaleX(1); } 25% { transform: scaleX(.12); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(-.12); } 100% { transform: scaleX(1); } }
+@media (hover: hover) and (pointer: fine) { .brand:hover .brand-propeller i { animation-duration: .18s; } }
+
+/* Cerca com grama e o Pablo, que sobe por trás da cerca depois das lâmpadas */
+.backyard { position: absolute; z-index: 1; inset: auto 0 0; height: 180px; pointer-events: none; }
+.backyard-fence { position: absolute; inset: auto 0 14px; z-index: 2; width: 100%; height: 72px; }
+.backyard-fence pattern path { fill: #c9d6f2; stroke: #8fa3d0; stroke-width: 2; }
+.fence-rail { fill: #9fb2dc; }
+.backyard-grass { position: absolute; z-index: 3; inset: auto 0 0; height: 22px; background: #10345a; -webkit-mask: radial-gradient(7px 15px at 50% 100%, #000 98%, transparent) 0 100% / 13px 100% repeat-x, linear-gradient(#000, #000) 0 100% / 100% 8px no-repeat; mask: radial-gradient(7px 15px at 50% 100%, #000 98%, transparent) 0 100% / 13px 100% repeat-x, linear-gradient(#000, #000) 0 100% / 100% 8px no-repeat; }
+.backyard-pablo { position: absolute; z-index: 1; left: calc(63% - 59px); bottom: 26px; width: 118px; height: auto; transform: rotate(-4deg); transform-origin: 50% 100%; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .35)); pointer-events: auto; animation: pablo-peek .7s cubic-bezier(.34, 1.56, .64, 1) 1.9s both, pablo-wave 6s ease-in-out 3.4s infinite; }
+@keyframes pablo-peek { from { transform: translateY(115%) rotate(-4deg); } to { transform: translateY(0) rotate(-4deg); } }
+@keyframes pablo-wave { 0%, 16%, 100% { transform: rotate(-4deg); } 4% { transform: rotate(5deg); } 8% { transform: rotate(-7deg); } 12% { transform: rotate(4deg); } }
+@keyframes pablo-hop { 0%, 100% { transform: translateY(0) rotate(-4deg); } 40% { transform: translateY(-34px) rotate(6deg); } 70% { transform: translateY(0) rotate(-4deg) scaleY(.92); } }
+@media (hover: hover) and (pointer: fine) { .backyard-pablo:hover { animation: pablo-hop .55s cubic-bezier(.23, 1, .32, 1); } }
+
+/* Logo: o mascote dá uma volta ao passar o mouse */
+@media (hover: hover) and (pointer: fine) { .site-shell .brand:hover .brand-avatar { animation: avatar-spin .6s cubic-bezier(.23, 1, .32, 1); } }
+@keyframes avatar-spin { to { transform: rotate(360deg); } }
+
+/* Botões amarelos afundam como tecla ao clicar */
+.site-shell .button-yellow { transition: transform .12s, box-shadow .12s, background .15s; }
+.site-shell .button-yellow:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 2px 0 #d7a918; }
+
+/* Carrinho reage a cada item adicionado */
+.qty-pop { display: inline-block; animation: qty-pop .35s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes qty-pop { from { transform: scale(1.7); color: #2354b6; } }
+.site-shell .desktop-cart-icon { animation: cart-bump .45s cubic-bezier(.34, 1.56, .64, 1); }
+.site-shell .mobile-cart-count { display: inline-block; animation: cart-bump .45s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes cart-bump { 0% { transform: scale(1); } 35% { transform: scale(1.22) rotate(-6deg); } 100% { transform: scale(1); } }
+
+/* Faixa curta da renda */
+.cause { padding-top: 44px; padding-bottom: 4px; }
+.cause-strip { display: flex; align-items: center; gap: 14px; width: fit-content; max-width: 100%; margin: 0; padding: 10px 20px 10px 12px; border: 1.5px dashed #c3d1ee; border-radius: 999px; background: #f4f7fd; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.cause-strip strong { color: var(--brand-deep); font-weight: 800; }
+.cause-pablo { flex: none; width: 40px; height: auto; }
+.cause-note { margin: 12px 0 0; color: var(--brand-blue); font-size: 13px; font-weight: 800; line-height: 1.5; }
+.site-shell .order-card .cause-note { text-align: center; }
+
+/* Pablo do pedido entra correndo quando a seção aparece (navegadores com timeline de rolagem) */
+.order-pablo { display: block; width: 104px; height: auto; margin: 0 0 14px; transform: scaleX(-1); }
+@supports (animation-timeline: view()) {
+  .order-pablo { animation: pablo-run linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
+}
+@keyframes pablo-run { from { transform: translateX(-140px) scaleX(-1) rotate(-6deg); opacity: 0; } to { transform: translateX(0) scaleX(-1); opacity: 1; } }
+
+/* Headers das outras telas no mesmo azul */
+.checkout-page .checkout-topbar, .order-page > .topbar { background: var(--brand-deep); box-shadow: 0 0 0 100vmax var(--brand-deep); clip-path: inset(0 -100vmax); }
+.checkout-page .checkout-topbar .brand, .order-page > .topbar .brand { color: #fff; }
+.checkout-page .checkout-topbar .checkout-back { color: #ffd536; }
+.checkout-page .checkout-topbar .brand-avatar, .order-page > .topbar .brand-avatar, .error-topbar .brand-avatar { border-radius: 50%; box-shadow: 0 0 0 2px var(--brand-yellow); }
+
+/* Pablo no checkout, no pedido e nas telas de erro */
+.checkout-heading { position: relative; }
+.checkout-pablo { float: right; width: 96px; height: auto; margin: 0 0 8px 16px; transform-origin: 50% 100%; animation: pablo-dance 1.6s ease-in-out infinite; }
+@keyframes pablo-dance { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) translateY(-4px); } }
+.status-header { position: relative; }
+.status-pablo { float: right; display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0 0 12px 18px; animation: status-pop .5s cubic-bezier(.34, 1.56, .64, 1) both; }
+.status-pablo img { width: 110px; height: auto; }
+.status-pablo-say { position: relative; max-width: 170px; padding: 9px 13px; border-radius: 14px; background: #fff; color: var(--brand-deep); font-size: 13px; font-weight: 800; line-height: 1.35; text-align: center; box-shadow: 0 8px 22px rgba(13, 46, 110, .12); }
+.status-pablo-say::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; margin-left: -7px; background: #fff; transform: rotate(45deg); }
+@keyframes status-pop { from { transform: scale(.6) translateY(20px); opacity: 0; } }
+.error-hero { display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.error-pablo { width: 110px; height: auto; margin-bottom: 10px; transform-origin: 50% 100%; animation: pablo-look 3s ease-in-out infinite; }
+@keyframes pablo-look { 0%, 100% { transform: scaleX(1); } 45% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 95% { transform: scaleX(-1); } }
+
+/* Rodapé */
+.footer-inner p { line-height: 1.6; }
+.site-shell .footer-inner { flex-wrap: wrap; padding-block: 28px; }
+.site-shell .footer-inner .footer-credit { flex-basis: 100%; margin: 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .12); color: #8fa3d4; font-size: 12px; }
+.site-shell .footer-inner .footer-credit a { color: #dbe5ff; font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .site-shell .site-header .toplinks { display: none; }
+  .site-shell .hero-backyard .hero-inner { padding-top: 60px; padding-bottom: 236px; }
+  .hero-cause { font-size: 14px; }
+  .bunting { height: 54px; }
+  .flag { width: 16px; height: 19px; margin-left: -8px; }
+  .moon { top: 70px; width: 40px; height: 40px; }
+  .backyard-houses { height: 160px; bottom: 60px; width: 886px; left: calc(50% - 185px); }
+  .checkout-pablo { width: 72px; }
+  .status-pablo img { width: 84px; }
+  .error-pablo { width: 84px; }
+  .backyard { height: 150px; }
+  .backyard-fence { height: 72px; }
+  .backyard-pablo { left: min(calc(50% + 96px), calc(100% - 130px)); right: auto; bottom: 58px; width: 124px; }
+  .order-pablo { width: 84px; }
+  .cause { padding-top: 32px; }
+  .cause-strip { border-radius: 16px; font-size: 13px; }
+}
+@media (max-width: 1000px) and (min-width: 701px) { .site-shell .site-header .toplinks { gap: 18px; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) {
+  .flag, .star, .cloud, .smoke, .backyard-houses .win, .brand-propeller i, .checkout-pablo, .status-pablo, .error-pablo, .backyard-pablo, .qty-pop, .site-shell .desktop-cart-icon, .site-shell .mobile-cart-count, .order-pablo { animation: none !important; }
+  .site-shell .button-yellow:active:not(:disabled) { transform: none; }
+  .backyard-houses .win { fill: #ffd96a; }
+}
+
+/* Gravatinha azul do Pablo antes dos títulos de seção */
+.site-shell .section-kicker::before, .checkout-step::before { content: ""; display: inline-block; width: 18px; height: 10px; margin-right: 8px; vertical-align: 1px; background: radial-gradient(circle, #1c2f8a 0 2px, transparent 2.5px), #3a5bd0; clip-path: polygon(0 0, 50% 35%, 100% 0, 100% 100%, 50% 65%, 0 100%); }
+
+/* Hélice girando enquanto o cardápio carrega */
+.menu-feedback { display: flex; align-items: center; gap: 12px; }
+.propeller-loader { position: relative; flex: none; width: 30px; height: 18px; }
+.propeller-loader::before { content: ""; position: absolute; left: 50%; bottom: 0; width: 18px; height: 9px; margin-left: -9px; border-radius: 9px 9px 0 0; background: linear-gradient(90deg, #3a5bd0 50%, #ffd536 50%); }
+.propeller-loader i { position: absolute; left: 50%; top: 1px; width: 30px; height: 4px; margin-left: -15px; border-radius: 4px; background: linear-gradient(90deg, #e2433b 0 45%, #ffd536 45% 55%, #e2433b 55%); animation: propeller-spin .45s linear infinite; }
+
+/* Pegadas até o cardápio */
+.pablo-tracks { display: flex; align-items: flex-end; gap: 14px; height: 54px; margin: 0 0 18px; }
+.track { width: 14px; height: 16px; fill: #9fb2dc; opacity: 0; animation: track-in .4s ease-out both; }
+.track:nth-of-type(odd) { transform: translateY(-10px) rotate(-14deg); }
+.track:nth-of-type(even) { transform: rotate(14deg); }
+@keyframes track-in { from { opacity: 0; } to { opacity: 1; } }
+@supports (animation-timeline: view()) {
+  .track { animation-timeline: view(); animation-range: entry 20% cover 40%; animation-delay: 0s !important; }
+  .track:nth-of-type(2) { animation-range: entry 25% cover 42%; } .track:nth-of-type(3) { animation-range: entry 30% cover 44%; }
+  .track:nth-of-type(4) { animation-range: entry 35% cover 46%; } .track:nth-of-type(5) { animation-range: entry 40% cover 48%; }
+  .track:nth-of-type(6) { animation-range: entry 45% cover 50%; } .track:nth-of-type(7) { animation-range: entry 50% cover 52%; }
+}
+.tracks-pablo { width: 46px; height: auto; margin-left: 4px; transform-origin: 50% 100%; animation: pablo-dance 1.4s ease-in-out infinite; }
+
+/* Carrinho vazio com o Pablo esperando */
+.cart-empty { display: flex; align-items: center; gap: 14px; }
+.cart-empty img { flex: none; width: 46px; height: auto; transform-origin: 50% 100%; animation: pablo-dance 2.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .track { animation: none !important; opacity: 1; }
+  .tracks-pablo, .cart-empty img, .propeller-loader i { animation: none !important; }
+}
+
+/* O espaço do carrinho flutuante fica na faixa azul dos links legais, não num vão branco depois do rodapé */
+.site-shell.has-desktop-cart, .site-shell { padding-bottom: 0 !important; }
+@media (min-width: 701px) { body:has(.site-shell.has-desktop-cart) .legal-links { padding-bottom: 104px; } }
+@media (max-width: 700px) { body:has(.site-shell .mobile-cart) .legal-links { padding-bottom: calc(92px + env(safe-area-inset-bottom)); } }
+
+/* Computador: a primeira tela mostra tudo de uma vez, com as casas e o Pablo já à vista */
+@media (min-width: 1001px) {
+  .site-shell .hero-backyard { --houses-h: clamp(184px, 13vw, 250px); }
+  .site-shell .hero-backyard .hero-inner { padding-top: 52px; padding-bottom: calc(var(--houses-h) + 76px); }
+  .site-shell .hero-backyard .hero-copy.hero-flow { padding: 0; column-gap: 40px; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); }
+  .site-shell .hero-backyard h1 { font-size: clamp(50px, 4.8vw, 74px); margin: 0 0 14px; white-space: nowrap; }
+  .site-shell .hero-backyard h1 br { display: none; }
+  .site-shell .hero-backyard .hero-cause { margin-bottom: 0; padding: 10px 14px; font-size: 15px; }
+  .site-shell .hero-backyard .hero-flow > p { display: none; }
+  .site-shell .hero-backyard .event-schedule { margin-top: 18px; }
+  .site-shell .hero-backyard .hero-actions { margin-top: 16px; }
+  .site-shell .hero-backyard .hero-actions .button { min-height: 48px; padding-block: 13px; }
+  .site-shell .hero-backyard .hero-combo { width: 100%; max-width: 340px; justify-self: end; }
+  .site-shell .hero-backyard .hero-combo-caption { padding: 12px 16px; }
+  .site-shell .hero-backyard .hero-combo-caption strong { font-size: 19px; }
+  .site-shell .hero-backyard .event-location { margin-top: 18px; padding: 14px 16px; max-width: 640px; }
+  .site-shell .hero-backyard .event-location > div { grid-template-columns: minmax(0, 1fr) 190px; column-gap: 18px; row-gap: 4px; align-items: center; }
+  .site-shell .hero-backyard .event-location > div > :not(.route-picker) { grid-column: 1; }
+  .site-shell .hero-backyard .event-location > div > span:last-of-type { display: none; }
+  .site-shell .hero-backyard .event-location strong { font-size: 18px; }
+  .site-shell .hero-backyard .event-location address { font-size: 13px; }
+  .site-shell .hero-backyard .route-picker { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+  .site-shell .hero-backyard .route-picker-label { display: none; }
+  .site-shell .hero-backyard .route-picker .route-picker-options { grid-template-columns: 1fr; gap: 6px; }
+  .site-shell .hero-backyard .route-picker .route-option { min-height: 36px; padding-block: 4px; }
+  .site-shell .hero-backyard .route-option .route-logo { width: 22px; height: 22px; }
+  .backyard-houses { height: var(--houses-h); bottom: 70px; }
+  /* Pablo ao lado da árvore entre a casa laranja e a rosa (x=918 de 1440 no desenho) */
+  .backyard-pablo { left: calc(50% + var(--houses-h) * .76 - var(--houses-h) * .18); width: calc(var(--houses-h) * .36); bottom: 30px; }
+}
+
+/* Rodapé da gincana: bandeirinhas, estrelas e mar com barquinho de pescador */
+.site-shell footer.footer-party { position: relative; overflow: hidden; padding-top: 58px; background: linear-gradient(#071b50 0%, #0b2566 100%); }
+.footer-party .bunting { height: 46px; }
+.footer-party .bunting .flag { width: 18px; height: 22px; margin-left: -9px; }
+.footer-sea { position: absolute; inset: 0; pointer-events: none; }
+.footer-sea .star { background: #fff6c8; }
+.footer-waves { position: absolute; left: 0; bottom: 0; width: 100%; height: 70px; overflow: hidden; }
+.footer-waves .wave { animation: wave-drift 9s linear infinite; }
+.footer-waves .wave-back { fill: #12358a; opacity: .7; animation-duration: 13s; }
+.footer-waves .wave-front { fill: #1a47b0; opacity: .55; }
+@keyframes wave-drift { to { transform: translateX(-240px); } }
+.footer-boat { position: absolute; bottom: 34px; right: 7%; width: 92px; animation: boat-bob 3.4s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes boat-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+.footer-fish { position: absolute; width: 38px; fill: #ffb547; opacity: .9; animation: fish-swim 16s linear infinite; }
+.footer-fish.fish-0 { bottom: 14px; animation-delay: -2s; }
+.footer-fish.fish-1 { bottom: 24px; width: 30px; fill: #7ccfa8; animation-duration: 21s; animation-delay: -11s; }
+.footer-fish.fish-2 { bottom: 6px; width: 28px; fill: #f2b6cf; animation-duration: 19s; animation-delay: -6s; }
+@keyframes fish-swim { from { left: -40px; } to { left: calc(100% + 40px); } }
+.footer-party .footer-inner { position: relative; z-index: 1; padding-bottom: 92px !important; }
+.footer-title { display: flex; flex-direction: column; gap: 4px; }
+.footer-title small { font-family: "Barlow Condensed", Arial, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ffd23f; }
+.site-shell .footer-inner .footer-title b { font-family: "Barlow Condensed", Arial, sans-serif; font-size: clamp(26px, 3vw, 36px); font-weight: 800; letter-spacing: 0; line-height: 1; text-transform: uppercase; color: #fff; }
+.footer-title b em { font-style: normal; color: #ffd23f; }
+@media (max-width: 700px) {
+  .site-shell footer.footer-party { padding-top: 44px; }
+  .footer-boat { width: 70px; right: 5%; bottom: 30px; }
+  .footer-party .footer-inner { gap: 10px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-sea .star, .footer-waves .wave, .footer-boat, .footer-fish { animation: none !important; }
+  .footer-fish { display: none; }
+}
+.footer-fish { transform: scaleX(-1); }
+.footer-title-row { display: flex; align-items: center; gap: 12px; }
+.footer-title-row .brand-avatar-wrap { flex: none; transform: scale(1.25); transform-origin: left center; margin-right: 8px; }
+.footer-year { display: inline-block; margin-left: 4px; padding: 2px 8px 0; border-radius: 6px; background: #ffd23f; color: #071b50; font-size: .72em; vertical-align: .14em; transform: rotate(-4deg); }
+.footer-title-row { margin-top: 14px; }
+.site-shell .footer-inner .footer-year { font-family: "Barlow Condensed", Arial, sans-serif; font-size: clamp(18px, 2vw, 24px); font-weight: 800; line-height: 1.1; padding: 3px 9px 1px; vertical-align: .18em; }

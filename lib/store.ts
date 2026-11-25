@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createAdminSession, verifyAdminSession } from "./admin-session";
 import { hamburgerIngredients, includesBurger } from "./menu-options";
+import { currentDaySql, defaultEventDay } from "./stock-rules";
 
 export type ProductCategory = "burger" | "combo" | "side" | "drink";
 export type Product = {
@@ -32,6 +33,7 @@ export type Order = {
   transaction_nsu: string | null; paid_at: string | null; payment_note: string | null; refund_note: string | null;
   contact_deleted_at: string | null;
   whatsapp_opt_in: number;
+  event_day?: string;
   handoff_confirmed_at: string | null; handoff_attempts: number; handoff_locked_until: string | null; handoff_note: string | null;
 };
 
@@ -81,6 +83,7 @@ export async function ensureSchema() {
         ["handoff_attempts", "integer NOT NULL DEFAULT 0"],
         ["handoff_locked_until", "text"],
         ["handoff_note", "text"],
+        ["event_day", `text NOT NULL DEFAULT '${defaultEventDay}'`],
       ]) {
         if (!columns.results?.some(column => column.name === name)) {
           await database.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
@@ -102,6 +105,13 @@ export async function ensureSchema() {
         id integer PRIMARY KEY NOT NULL, capacity integer DEFAULT 100 NOT NULL,
         paused integer DEFAULT false NOT NULL
       )`).run();
+      const settingsColumns = await database.prepare("PRAGMA table_info(settings)").all<{name:string}>();
+      if (!settingsColumns.results?.some(column => column.name === "current_day")) {
+        await database.prepare(`ALTER TABLE settings ADD COLUMN current_day text NOT NULL DEFAULT '${defaultEventDay}'`).run();
+      }
+      // Limite de hambúrgueres guardado por dia, para o relatório de cada noite.
+      await database.prepare("CREATE TABLE IF NOT EXISTS event_days (day text PRIMARY KEY NOT NULL, capacity integer NOT NULL, opened_at text NOT NULL)").run();
+      await database.prepare("CREATE INDEX IF NOT EXISTS orders_event_day ON orders(event_day)").run();
       await database.prepare(`CREATE TABLE IF NOT EXISTS products (
         id text PRIMARY KEY NOT NULL, name text NOT NULL, description text NOT NULL,
         category text NOT NULL, price integer NOT NULL, image_url text, stock integer,
@@ -260,13 +270,13 @@ export function orderItems(order: Order): OrderItem[] {
 
 export async function config() {
   await ensureSchema();
-  const row = await db().prepare("SELECT capacity, paused FROM settings WHERE id = 1").first<{capacity:number;paused:number}>();
-  return { capacity: row?.capacity ?? 100, paused: Boolean(row?.paused) };
+  const row = await db().prepare("SELECT capacity, paused, current_day FROM settings WHERE id = 1").first<{capacity:number;paused:number;current_day:string}>();
+  return { capacity: row?.capacity ?? 100, paused: Boolean(row?.paused), currentDay: row?.current_day ?? defaultEventDay };
 }
 
 export async function paidCount() {
   await ensureSchema();
-  const row = await db().prepare("SELECT COALESCE(SUM(burger_count),0) AS count FROM orders WHERE paid_at IS NOT NULL AND status != 'refunded'").first<{count:number}>();
+  const row = await db().prepare(`SELECT COALESCE(SUM(burger_count),0) AS count FROM orders WHERE paid_at IS NOT NULL AND status != 'refunded' AND event_day = ${currentDaySql}`).first<{count:number}>();
   return row?.count ?? 0;
 }
 

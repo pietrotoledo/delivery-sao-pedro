@@ -21,6 +21,11 @@ export function stockRequirements(items: { id: string; quantity: number; unitDri
   return Array.from(quantities, ([id, quantity]) => ({ id, quantity })).filter(item => item.quantity > 0);
 }
 
-// Hambúrgueres reservados por pedidos pagos ou aguardando Pix.
-export const reservedBurgersSql = `COALESCE((SELECT SUM(burger_count) FROM orders WHERE status NOT IN (${released})),0)`;
+// Dia de vendas usado quando o painel ainda não escolheu nenhum (a primeira noite do evento).
+export const defaultEventDay = "2026-12-03";
+// Dia de vendas aberto no painel: pedidos novos entram nele e o limite conta só os pedidos dele.
+export const currentDaySql = `COALESCE((SELECT current_day FROM settings WHERE id = 1),'${defaultEventDay}')`;
+
+// Hambúrgueres reservados no dia atual por pedidos pagos ou aguardando Pix.
+export const reservedBurgersSql = `COALESCE((SELECT SUM(burger_count) FROM orders WHERE status NOT IN (${released}) AND event_day = ${currentDaySql}),0)`;
 export const capacitySql = "COALESCE((SELECT capacity FROM settings WHERE id = 1),100)";

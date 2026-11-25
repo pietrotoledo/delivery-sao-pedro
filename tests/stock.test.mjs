@@ -39,9 +39,9 @@ function setup() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`CREATE TABLE products(id TEXT PRIMARY KEY, stock INTEGER, updated_at TEXT);
     INSERT INTO products VALUES ('classic',4,'x'),('combo',4,'x'),('coke',9,'x'),('fries-small',NULL,'x');
-    CREATE TABLE orders(id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, items_json TEXT, burger_count INTEGER, status TEXT, paid_at TEXT);
-    CREATE TABLE settings(id INTEGER PRIMARY KEY, capacity INTEGER, paused INTEGER);
-    INSERT INTO settings VALUES (1,10,0);`);
+    CREATE TABLE orders(id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, items_json TEXT, burger_count INTEGER, status TEXT, paid_at TEXT, event_day TEXT NOT NULL DEFAULT '2026-12-03');
+    CREATE TABLE settings(id INTEGER PRIMARY KEY, capacity INTEGER, paused INTEGER, current_day TEXT);
+    INSERT INTO settings VALUES (1,10,0,'2026-12-03');`);
   const database = d1(sqlite);
   const menuOptions = load('../lib/menu-options.ts', {});
   const rules = load('../lib/stock-rules.ts', { './menu-options': menuOptions });
@@ -51,7 +51,7 @@ function setup() {
   };
   const stock = load('../lib/stock.ts', { './stock-rules': rules, './store': store });
   const ago = minutes => new Date(Date.now() - minutes * 60_000).toISOString();
-  const addOrder = (id, status, minutes, paid = false) => sqlite.prepare('INSERT INTO orders VALUES (?,?,?,?,?,?,?)')
+  const addOrder = (id, status, minutes, paid = false) => sqlite.prepare('INSERT INTO orders (id,created_at,updated_at,items_json,burger_count,status,paid_at) VALUES (?,?,?,?,?,?,?)')
     .run(id, ago(minutes), ago(minutes), JSON.stringify([{ id: 'classic', quantity: 1 }, { id: 'combo', quantity: 1, unitDrinks: ['Coca-Cola normal'] }, { id: 'fries-small', quantity: 1 }]), 2, status, paid ? ago(minutes) : null);
   const stockOf = id => sqlite.prepare('SELECT stock FROM products WHERE id=?').get(id).stock;
   const statusOf = id => sqlite.prepare('SELECT status FROM orders WHERE id=?').get(id).status;
@@ -116,6 +116,16 @@ test('Limite de hambúrgueres ignora pedidos expirados e devolvidos', async () =
   assert.deepEqual({ ...await stock.burgerAvailability() }, { reserved: 4, capacity: 10, left: 6 });
   sqlite.exec('UPDATE settings SET capacity=3');
   assert.equal((await stock.burgerAvailability()).left, 0);
+});
+
+test('Trocar o dia de vendas zera o limite e mantém os pedidos do dia anterior', async () => {
+  const { sqlite, stock, addOrder } = setup();
+  addOrder('a', 'paid', 5, true);
+  addOrder('b', 'awaiting_payment', 5);
+  sqlite.exec("UPDATE settings SET current_day='2026-12-10'");
+  assert.deepEqual({ ...await stock.burgerAvailability() }, { reserved: 0, capacity: 10, left: 10 });
+  sqlite.exec("UPDATE settings SET current_day='2026-12-03'");
+  assert.equal((await stock.burgerAvailability()).reserved, 4);
 });
 
 // Exercita a rota administrativa real, incluindo estoque e avanço das etapas.

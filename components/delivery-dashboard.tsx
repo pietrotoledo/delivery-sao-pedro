@@ -10,12 +10,13 @@ import { eventLocation } from "@/lib/event-location";
 import DeliveryAssignedRoutes from "./delivery-assigned-routes";
 import useDeliverySync from "./use-delivery-sync";
 import { startVisiblePolling } from "@/lib/visible-polling";
+import { eventDayText } from "@/lib/event-schedule";
 
 type DeliveryOrder = {
   id: string; name: string; neighborhood: string | null; address: string | null; status: string; feeToArrange?: boolean;
   phone: string; routeId?: string | null; driverName?: string | null; routePosition?: number | null;
 };
-type DeliveryData = { orders: DeliveryOrder[]; error?: string };
+type DeliveryData = { orders: DeliveryOrder[]; currentDay?: string; error?: string };
 
 const statusLabels: Record<string, string> = {
   paid: "Pago", preparing: "Em preparo", ready: "Pronto para sair",
@@ -132,7 +133,7 @@ export default function DeliveryDashboard({ embedded = false }: { embedded?: boo
     {!embedded && <header className="delivery-topbar"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link><span><Truck size={17} /> Área dos entregadores</span></header>}
     <div className={embedded ? "delivery-admin-content" : "delivery-wrap"}>
       {!embedded && <section className="delivery-heading delivery-dashboard-heading" aria-labelledby="delivery-title">
-        <p className="delivery-date"><span>3 de dezembro</span><span>Entregas a partir das 19h</span></p>
+        <p className="delivery-date"><span>{eventDayText(data?.currentDay).short}</span><span>Entregas a partir das 19h</span></p>
         <h1 id="delivery-title">Entregas</h1>
         <div className="delivery-gratitude"><Heart size={18} fill="currentColor" aria-hidden="true" /><p>Seu caminho faz esta noite chegar mais longe. Obrigado por entregar cada pedido com cuidado e levar junto um pouco do nosso carinho.</p></div>
       </section>}

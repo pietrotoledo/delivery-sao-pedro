@@ -16,7 +16,7 @@ function load(path, imports, extra = {}) {
 function setup(options = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`CREATE TABLE orders (id TEXT PRIMARY KEY, paid_at TEXT, status TEXT, phone TEXT, email TEXT,
-    contact_deleted_at TEXT,whatsapp_opt_in INTEGER,method TEXT,checkout_url TEXT,payment_mode TEXT,payment_note TEXT,created_at TEXT);`);
+    contact_deleted_at TEXT,whatsapp_opt_in INTEGER,method TEXT,checkout_url TEXT,payment_mode TEXT,payment_note TEXT,created_at TEXT,event_day TEXT NOT NULL DEFAULT '2026-12-03');`);
   const stats = { queries: 0, requests: 0, posts: 0, emails: 0, effects: 0 };
   let failWrite = options.failAcceptedWrite;
   let failPost = options.loseResponse;
@@ -50,7 +50,14 @@ function setup(options = {}) {
   const store = load('../lib/store.ts', { 'cloudflare:workers': { env }, './menu-options': {} });
   const queue = load('../lib/notification-queue.ts', { './store': store });
   const schedule = load('../lib/event-schedule.ts', { './event-location': { eventLocation: { name: 'Example', address: 'Example' } } });
-  const extra = { URL, Date, AbortSignal, console, fetch: async (url) => {
+  // Optional fake clock: each pause between WhatsApps advances time instantly instead of waiting.
+  let offset = 0;
+  class ClockDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [Date.now() + offset])); }
+    static now() { return Date.now() + offset; }
+  }
+  const clock = options.clock ? { Date: ClockDate, setTimeout: (fn, ms) => { stats.paused = (stats.paused ?? 0) + ms; offset += ms; fn(); } } : {};
+  const extra = { URL, Date, AbortSignal, console, ...clock, fetch: async (url) => {
     stats.requests++;
     if (url.includes('/connectionState/')) {
       if (offline) throw Error('Simulated offline provider');
@@ -74,7 +81,7 @@ function setup(options = {}) {
     coldStart() { queue.ensureNotificationSchema = load('../lib/notification-queue.ts', { './store': store }).ensureNotificationSchema; },
     async seed(channel, id, event = 'pix_available', paid = false) {
       await queue.ensureNotificationSchema();
-      sqlite.prepare('INSERT OR IGNORE INTO orders VALUES (?,?,?,?,?,NULL,1,?,?,?,?,?)')
+      sqlite.prepare('INSERT OR IGNORE INTO orders (id,paid_at,status,phone,email,contact_deleted_at,whatsapp_opt_in,method,checkout_url,payment_mode,payment_note,created_at) VALUES (?,?,?,?,?,NULL,1,?,?,?,?,?)')
         .run(id, paid ? '2026-10-29T00:00:00.000Z' : null, paid ? 'paid' : 'awaiting_payment',
           '5583991234567', 'test@example.invalid', 'delivery', 'https://example.invalid/pix', 'infinitepay', null, '2026-10-29');
       const table = channel === 'email' ? 'email_notifications' : 'order_notifications';
@@ -161,20 +168,29 @@ test('concurrent retry workers claim a WhatsApp only once', async () => {
   assert.equal(h.stats.posts, 1);
 });
 
-test('cold notification schema, event registration and full mixed retry stay under 50 subrequests', async () => {
+test('panel-triggered retry sends at most one WhatsApp and never waits', async () => {
   const h = setup();
+  for (let i = 0; i < 3; i++) await h.seed('whatsapp', 'panel-' + i);
+  await h.wa.retryEvolutionNotifications();
+  assert.equal(h.stats.posts, 1);
+});
+
+test('cold notification schema, event registration and full mixed retry stay under 50 subrequests', async () => {
+  const h = setup({ clock: true });
   for (let i = 0; i < 10; i++) {
     await h.seed('whatsapp', 'wa-' + i);
     await h.seed('email', 'email-' + i);
   }
-  for (let i = 0; i < 12; i++) h.sqlite.prepare('INSERT INTO orders VALUES (?,?,?,?,?,NULL,1,?,?,?,?,?)')
+  for (let i = 0; i < 12; i++) h.sqlite.prepare('INSERT INTO orders (id,paid_at,status,phone,email,contact_deleted_at,whatsapp_opt_in,method,checkout_url,payment_mode,payment_note,created_at) VALUES (?,?,?,?,?,NULL,1,?,?,?,?,?)')
     .run('reminder-' + i, '2026-10-29T00:00:00.000Z', 'paid', '5583991234567', 'test@example.invalid', 'delivery', null, 'infinitepay', null, '2026-10-29');
   // Seed data is outside the invocation; reload schema initialization as a cold worker would.
   h.coldStart();
   h.stats.queries = 0;
   await h.reminders.queueEventReminders(new Date('2026-12-03T14:00:00Z'));
-  await h.combined.retryOrderNotifications();
+  await h.combined.retryOrderNotifications({ spaced: true });
   assert.equal(h.stats.posts, h.queue.notificationBatch.whatsapp);
+  const gaps = h.queue.notificationBatch.whatsapp - 1;
+  assert.ok(h.stats.paused >= gaps * h.wa.whatsappGap.minSeconds * 1000, 'cron waits between WhatsApps');
   assert.equal(h.stats.emails, h.queue.notificationBatch.email);
   assert.equal(h.sqlite.prepare("SELECT COUNT(*) AS n FROM order_notifications WHERE event='event_morning'").get().n, h.queue.notificationBatch.reminders);
   assert.ok(h.stats.queries + h.stats.requests < 50, JSON.stringify(h.stats));

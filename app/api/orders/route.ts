@@ -5,7 +5,7 @@ import { deliveryAddressError, formatDeliveryAddress, parseDeliveryAddress } fro
 import { createCheckout } from "@/lib/payment";
 import { brazilianMobileError, normalizeBrazilianMobile } from "@/lib/phone";
 import { burgerAvailability, releaseExpiredOrders } from "@/lib/stock";
-import { capacitySql, reservedBurgersSql } from "@/lib/stock-rules";
+import { capacitySql, currentDaySql, reservedBurgersSql } from "@/lib/stock-rules";
 import { config, db, ensureSchema, getOrder, getProducts, json, paymentHandle, sameOrigin, type Order, type OrderItem } from "@/lib/store";
 
 async function requestHash(body: Record<string,unknown>) {
@@ -114,8 +114,8 @@ export async function POST(request: Request) {
   const availabilityArgs = stockRequirements.flatMap(item => [item.id, item.quantity]);
   const database = db();
   const statements = [
-    database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in)
-      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ? AND ${reservedBurgersSql} + ? <= ${capacitySql}`)
+    database.prepare(`INSERT OR IGNORE INTO orders (id,request_key,request_hash,created_at,updated_at,name,phone,email,method,neighborhood,address,notes,items_json,burger_count,subtotal,delivery_fee,total,status,whatsapp_opt_in,event_day)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,${currentDaySql} WHERE (SELECT COUNT(*) FROM products WHERE ${availability}) = ? AND ${reservedBurgersSql} + ? <= ${capacitySql}`)
       .bind(id,requestKey,hash,now,now,name,phone,email,method,neighborhood,address,notes,JSON.stringify(items),burgerCount,subtotal,deliveryFee,subtotal+(deliveryFee ?? 0),status,whatsappOptIn,...availabilityArgs,stockRequirements.length,burgerCount),
     ...stockRequirements.map(item => database.prepare("UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock IS NOT NULL AND EXISTS (SELECT 1 FROM orders WHERE id=?)")
       .bind(item.quantity,now,item.id,id)),

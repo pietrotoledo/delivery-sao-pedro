@@ -13,9 +13,10 @@ export function scheduleOrderNotificationRetries() {
   scheduleEmailRetries();
 }
 
-export async function retryOrderNotifications() {
+/** `spaced` (cron only) waits between WhatsApp messages to avoid looking like a bulk sender. */
+export async function retryOrderNotifications({ spaced = false } = {}) {
   await Promise.all([
-    retryEvolutionNotifications().catch(error => console.error("Falha ao repetir avisos Evolution", error)),
+    retryEvolutionNotifications({ spaced }).catch(error => console.error("Falha ao repetir avisos Evolution", error)),
     retryEmailNotifications().catch(error => console.error("Falha ao repetir avisos por e-mail", error)),
   ]);
 }

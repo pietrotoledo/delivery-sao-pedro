@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Cookie, X } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
 const noticeKey = "blueckyardigans-privacy-notice-v1";
@@ -34,8 +34,17 @@ export default function PrivacyNotice() {
     setDismissed(true);
   }
 
-  return <aside className="privacy-notice" aria-label="Privacidade e armazenamento no navegador">
-    <p>Usamos cookies e armazenamento essenciais para o site funcionar. <Link href="/cookies">Cookies</Link> e <Link href="/privacidade">privacidade</Link>.</p>
-    <button type="button" onClick={dismiss} aria-label="Fechar aviso de privacidade" title="Fechar aviso"><X size={16} aria-hidden="true" /></button>
+  return <aside className="privacy-notice" aria-labelledby="privacy-notice-title">
+    <div className="privacy-notice-head">
+      <span className="privacy-notice-icon" aria-hidden="true"><Cookie size={18} /></span>
+      <h2 id="privacy-notice-title">Cookies essenciais</h2>
+      <button type="button" className="privacy-notice-close" onClick={dismiss} aria-label="Fechar aviso de cookies" title="Fechar"><X size={16} aria-hidden="true" /></button>
+    </div>
+    <p>Usamos apenas cookies e armazenamento necessários para o carrinho e o pedido funcionarem. Nada de anúncios ou rastreamento.</p>
+    <div className="privacy-notice-actions">
+      <button type="button" className="privacy-notice-ok" onClick={dismiss}>Entendi</button>
+      <Link href="/cookies">Política de cookies</Link>
+      <Link href="/privacidade">Privacidade</Link>
+    </div>
   </aside>;
 }

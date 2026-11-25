@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CirclePause, Clock3, ContactRound, LayoutDashboard, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, CirclePause, Clock3, Columns3, ContactRound, FileBarChart, LayoutDashboard, List, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import { eventLocation } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
@@ -13,6 +13,8 @@ import AdminContacts from "./admin-contacts";
 import DeliveryDashboard from "./delivery-dashboard";
 import useDeliverySync from "./use-delivery-sync";
 import { startVisiblePolling } from "@/lib/visible-polling";
+import AdminKanban from "./admin-kanban";
+import AdminReport, { dayLabel } from "./admin-report";
 
 type Order = {
   id: string; created_at: string; name: string; phone: string; email: string | null; method: string;
@@ -24,7 +26,8 @@ type Order = {
   delivery_driver_name?: string | null; delivery_route_id?: string | null;
 };
 type Notice = { order_id: string; event: string; state: string; attempts: number; last_error: string | null; accepted_at: string | null; channel: "whatsapp" | "email" };
-type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean }; paid: number; completedBurgers: number; demo: boolean; error?: string };
+type AdminData = { orders: Order[]; notifications?: Notice[]; settings: { capacity: number; paused: boolean; currentDay?: string }; day?: string; dayCapacity?: number; days?: { day: string; orders: number }[]; allTimeRevenue?: number; nightsWithSales?: number; paid: number; completedBurgers: number; demo: boolean; error?: string };
+type Mode = "list" | "kanban" | "report";
 type Filter = "all" | "attention" | "payment" | "paid" | "active" | "closed";
 const noticeEvents: Record<string, string> = { pix_available: "link Pix", paid: "pagamento", preparing: "preparo", ready: "pedido pronto", out_for_delivery: "saiu para entrega", completed: "conclusão", event_morning: "lembrete do evento · 11h", event_evening: "lembrete do evento · 18h" };
 const noticeStates: Record<string, string> = { failed: "falhou; nova tentativa programada", uncertain: "resultado incerto; confira o WhatsApp antes de reenviar", superseded: "substituído", pending: "pendente", sending: "enviando" };
@@ -51,6 +54,15 @@ function whatsappHref(phone: string) {
   return /^55\d{10,11}$/.test(number) ? `https://wa.me/${number}` : null;
 }
 
+function savedMode(): Mode {
+  try { const saved = typeof window === "undefined" ? null : localStorage.getItem("admin-mode"); return saved === "kanban" || saved === "report" ? saved : "list"; } catch { return "list"; }
+}
+
+function itemsText(order: { items_json: string }) {
+  const products = JSON.parse(order.items_json) as { id: string; quantity: number; name?: string; removedIngredients?: string[]; unitRemovals?: string[][]; unitDrinks?: string[] }[];
+  return products.flatMap(item => orderItemLabels({ ...item, name: item.name || names[item.id] || item.id })).join(" · ");
+}
+
 export default function AdminDashboard({ view = "orders" }: { view?: "orders" | "products" | "contacts" | "deliveries" }) {
   const [data, setData] = useState<AdminData | null>(null);
   const [capacity, setCapacity] = useState(100);
@@ -66,9 +78,22 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const [feeInputs, setFeeInputs] = useState<Record<string, string>>({});
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const lastServerCapacity = useRef<number | undefined>(undefined);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const dayRef = useRef<string | null>(null);
+  // A forma de ver os pedidos fica guardada só neste navegador. Ela só aparece depois que os dados
+  // chegam do servidor, então ler o armazenamento aqui não muda a primeira renderização.
+  const [mode, setMode] = useState<Mode>(savedMode());
+  const [newDayOpen, setNewDayOpen] = useState(false);
+  const [newDay, setNewDay] = useState("");
+  const [newDayCapacity, setNewDayCapacity] = useState(150);
+
+  function chooseMode(next: Mode) {
+    setMode(next);
+    try { localStorage.setItem("admin-mode", next); } catch { /* sem armazenamento */ }
+  }
 
   const loadTask = useCallback(async () => {
-    const { response, result } = await requestJson<AdminData>("/api/admin", { cache: "no-store" });
+    const { response, result } = await requestJson<AdminData>(`/api/admin${dayRef.current ? `?day=${dayRef.current}` : ""}`, { cache: "no-store" });
     if (response.status === 403) { setData(null); setRestricted(true); return; }
     if (!response.ok) throw new Error(result.error || "Não foi possível carregar o painel.");
     if (!Array.isArray(result.orders) || !result.settings) throw new Error("O painel recebeu dados incompletos. Tente atualizar.");
@@ -100,7 +125,11 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
   const waitingToStart = data?.orders.filter(order => order.status === "paid").length ?? 0;
   const openOrders = data?.orders.filter(order => !closedStatuses.has(order.status)).length ?? 0;
   const activeOrders = data?.orders.filter(order => ["preparing", "ready", "out_for_delivery"].includes(order.status)).length ?? 0;
-  const over = Math.max(0, (data?.paid ?? 0) - (data?.settings.capacity ?? 100));
+  const currentDay = data?.settings.currentDay ?? data?.day ?? "";
+  const viewingDay = data?.day ?? currentDay;
+  const isCurrentDay = viewingDay === currentDay;
+  const dayCapacity = data?.dayCapacity ?? data?.settings.capacity ?? 100;
+  const over = Math.max(0, (data?.paid ?? 0) - dayCapacity);
   const paidPosition = new Map<string, { start: number; end: number }>();
   let running = 0;
   for (const order of [...paidOrders].sort((a, b) => (a.paid_at || "").localeCompare(b.paid_at || ""))) {
@@ -130,7 +159,24 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     return true;
   }) ?? [];
 
-  async function changeSettings(next: { capacity: number; paused: boolean }) {
+  function chooseDay(day: string) {
+    dayRef.current = day === currentDay ? null : day;
+    setSelectedDay(dayRef.current);
+    setLoading(true);
+    void load(true).catch(failure => setError(failure.message)).finally(() => setLoading(false));
+  }
+
+  async function openNewDay(event: React.FormEvent) {
+    event.preventDefault();
+    if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(newDay)) { setError("Escolha a data do novo dia de vendas."); return; }
+    if (!window.confirm(`Abrir as vendas de ${dayLabel(newDay)} com limite de ${newDayCapacity} hambúrgueres?\n\nO site passa a mostrar essa data e os pedidos novos contam nesse dia. Os pedidos de ${dayLabel(currentDay)} continuam guardados e aparecem no seletor de dias. Confira o estoque das bebidas e acompanhamentos na aba Produtos.`)) return;
+    dayRef.current = null;
+    setSelectedDay(null);
+    await changeSettings({ capacity: newDayCapacity, paused: data.settings.paused, currentDay: newDay });
+    setNewDayOpen(false);
+  }
+
+  async function changeSettings(next: { capacity: number; paused: boolean; currentDay?: string }) {
     setError("");
     try {
       const { response, result } = await requestJson<{ error?: string }>("/api/admin/settings", {
@@ -207,11 +253,17 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       <a className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></a>
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <nav className="side-nav" aria-label="Painel"><a className={view === "orders" ? "active" : ""} href="/admin" aria-current={view === "orders" ? "page" : undefined}><LayoutDashboard size={18} /> Pedidos</a><a className={view === "products" ? "active" : ""} href="/admin/produtos" aria-current={view === "products" ? "page" : undefined}><ShoppingBag size={18} /> Produtos</a><a className={view === "contacts" ? "active" : ""} href="/admin/contatos" aria-current={view === "contacts" ? "page" : undefined}><ContactRound size={18} /> Contatos</a><a className={view === "deliveries" ? "active" : ""} href="/admin/entregas" aria-current={view === "deliveries" ? "page" : undefined}><Truck size={18} /> Entregas</a><a href="/"><ArrowUpRight size={18} /> Ver loja</a></nav>
-      <p className="side-foot">Equipe · 3 de dezembro de 2026</p>
+      <p className="side-foot">Equipe · {data?.settings.currentDay ? dayLabel(data.settings.currentDay, "short") : "Noite do Hambúrguer"}</p>
     </aside>
     <main className="admin-main">
       <header className="admin-head">
         <div><p className="section-kicker">Painel da equipe</p><h1>{view === "products" ? "Cardápio" : view === "contacts" ? "Contatos" : view === "deliveries" ? "Rotas e entregadores" : "Controle da noite"}</h1><p>{view === "products" ? "Gerencie os produtos que aparecem na loja." : view === "contacts" ? "Dados dos clientes e links de pagamento de cada pedido." : view === "deliveries" ? "Distribua as rotas entre os entregadores. As alterações são sincronizadas com os celulares da equipe." : "Pedidos e pagamentos com atualização automática."}</p></div>
+        {data && view === "orders" && <div className="admin-revenue" aria-label="Faturamento">
+          <span>Faturamento da noite</span>
+          <strong>{money(revenue)}</strong>
+          <small>{dayLabel(viewingDay, "short")} · {paidOrders.length} {paidOrders.length === 1 ? "pedido pago" : "pedidos pagos"}</small>
+          {(data.nightsWithSales ?? 0) > 1 && <em>Todas as noites: {money(data.allTimeRevenue ?? 0)}</em>}
+        </div>}
         <Link href="/" target="_blank" rel="noreferrer">Abrir loja <ArrowUpRight size={16} /></Link>
       </header>
       <nav className="admin-tabs" aria-label="Seções do painel"><a href="/admin" className={view === "orders" ? "active" : ""} aria-current={view === "orders" ? "page" : undefined}>Pedidos</a><a href="/admin/produtos" className={view === "products" ? "active" : ""} aria-current={view === "products" ? "page" : undefined}>Produtos</a><a href="/admin/contatos" className={view === "contacts" ? "active" : ""} aria-current={view === "contacts" ? "page" : undefined}>Contatos</a><a href="/admin/entregas" className={view === "deliveries" ? "active" : ""} aria-current={view === "deliveries" ? "page" : undefined}>Entregas</a><Link href="/">Ver loja</Link></nav>
@@ -227,21 +279,44 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
       {data && view === "contacts" && <AdminContacts demo={data.demo} />}
       {data && view === "deliveries" && <DeliveryDashboard embedded />}
       {data && view === "orders" && <>
-        <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
-          <div className={`metric ${data.paid >= data.settings.capacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {data.settings.capacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / data.settings.capacity * 100)}%` }} /></div></div>
+        <section className="admin-daybar" aria-label="Dia de vendas">
+          <div className="daybar-current"><CalendarDays size={20} aria-hidden="true" /><div><span>{isCurrentDay ? "Vendendo agora" : "Consultando outro dia"}</span><strong>{dayLabel(viewingDay)}</strong></div></div>
+          <label className="daybar-select">Ver dia<select value={viewingDay} onChange={event => chooseDay(event.target.value)}>
+            {(data.days ?? [{ day: currentDay, orders: data.orders.length }]).map(item => <option key={item.day} value={item.day}>{dayLabel(item.day, "short")} · {item.orders} {item.orders === 1 ? "pedido" : "pedidos"}{item.day === currentDay ? " · dia atual" : ""}</option>)}
+          </select></label>
+          {!isCurrentDay && <button type="button" className="mini-button secondary" onClick={() => chooseDay(currentDay)}>Voltar ao dia atual</button>}
+          <button type="button" className="mini-button" onClick={() => { setNewDayOpen(open => !open); setNewDayCapacity(data.settings.capacity); }} aria-expanded={newDayOpen} aria-controls="novo-dia">Vender em outro dia</button>
+          {newDayOpen && <form id="novo-dia" className="daybar-form" onSubmit={openNewDay}>
+            <label>Data<input type="date" required value={newDay} onChange={event => setNewDay(event.target.value)} /></label>
+            <label>Limite de hambúrgueres<input type="number" min="1" max="10000" required value={newDayCapacity} onChange={event => setNewDayCapacity(Number(event.target.value))} /></label>
+            <button type="submit" className="mini-button">Abrir vendas nesse dia</button>
+            <p>O site passa a mostrar a nova data, o limite recomeça do zero e os pedidos de {dayLabel(currentDay, "short")} ficam guardados para o relatório. Dá para repetir sempre que quiser vender de novo.</p>
+          </form>}
+        </section>
+        <nav className="admin-modes" aria-label="Forma de ver os pedidos">
+          {([["list", "Lista", List], ["kanban", "Kanban", Columns3], ["report", "Relatório do dia", FileBarChart]] as const).map(([value, label, Icon]) => <button key={value} type="button" className={mode === value ? "selected" : ""} aria-pressed={mode === value} onClick={() => chooseMode(value)}><Icon size={16} aria-hidden="true" /> {label}</button>)}
+        </nav>
+        {mode !== "report" && <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
+          <div className={`metric ${data.paid >= dayCapacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {dayCapacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / dayCapacity * 100)}%` }} /></div></div>
           <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Em preparo, prontos ou em entrega</small></div>
           <div className="metric"><span>Hambúrgueres concluídos</span><strong>{data.completedBurgers}</strong><small>Entregas e retiradas finalizadas</small></div>
           <div className="metric"><span>Total recebido</span><strong className="metric-money">{money(revenue)}</strong><small>Exclui devoluções registradas</small></div>
-        </section>
-        {data.paid >= data.settings.capacity && <div className="admin-alert">A capacidade de {data.settings.capacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
-        {over > 0 && <div className="admin-alert">{over} hambúrguer{over === 1 ? "" : "es"} acima da capacidade atual. Considere a ordem de confirmação do pagamento.</div>}
+        </section>}
+        {selectedDay && <p className="admin-filter-help" role="status">Você está vendo os pedidos de {dayLabel(viewingDay)}. Os pedidos novos continuam entrando em {dayLabel(currentDay)}.</p>}
+        {isCurrentDay && mode !== "report" && data.paid >= dayCapacity && <div className="admin-alert">A capacidade de {dayCapacity} hambúrgueres foi atingida. Revise os pedidos excedentes, aumente a capacidade ou pause novas compras.</div>}
+        {isCurrentDay && mode !== "report" && over > 0 && <div className="admin-alert">{over} hambúrguer{over === 1 ? "" : "es"} acima da capacidade atual. Considere a ordem de confirmação do pagamento.</div>}
         {data.demo && <div className="admin-alert">Modo de demonstração. Simular pagamento não movimenta dinheiro.</div>}
-        <section className="admin-panel admin-operations">
+        {mode === "report" && <AdminReport day={viewingDay} orders={data.orders} capacity={dayCapacity} itemsLabel={itemsText} />}
+        {mode === "kanban" && <AdminKanban orders={data.orders} busyId={busyOrderId} itemsLabel={itemsText} whatsappHref={whatsappHref} onMove={(order, status) => {
+          const full = data.orders.find(item => item.id === order.id);
+          if (status === "completed") { if (full) confirmManualHandoff(full); } else void orderAction(order.id, { action: "status", status });
+        }} />}
+        {isCurrentDay && mode === "list" && <section className="admin-panel admin-operations">
           <div className="admin-panel-heading"><div><p className="section-kicker">Operação</p><h2>Vendas e capacidade</h2></div><span className={`operation-state ${data.settings.paused ? "is-paused" : ""}`}>{data.settings.paused ? <CirclePause size={16} /> : <PackageCheck size={16} />}{data.settings.paused ? "Pedidos pausados" : "Pedidos abertos"}</span></div>
           <div className="admin-controls"><label htmlFor="capacity">Limite de hambúrgueres</label><input id="capacity" type="number" min="1" max="10000" value={capacity} onChange={event => setCapacity(Number(event.target.value))} /><button onClick={() => changeSettings({ capacity, paused: data.settings.paused })}>Salvar limite</button><button className="secondary" onClick={() => changeSettings({ capacity: data.settings.capacity, paused: !data.settings.paused })}>{data.settings.paused ? "Reabrir pedidos" : "Pausar pedidos"}</button></div>
           <p className="admin-help">Devoluções registradas saem do contador e liberam vaga.</p>
-        </section>
-        <section className="admin-panel admin-orders-panel" id="pedidos">
+        </section>}
+        {mode === "list" && <section className="admin-panel admin-orders-panel" id="pedidos">
           <div className="admin-panel-heading"><div><p className="section-kicker">Acompanhar</p><h2>Pedidos <span>({data.orders.length})</span></h2></div><span className="admin-refresh"><RefreshCw size={15} /> Atualização automática</span></div>
           <div className="admin-contact-search" role="search" aria-label="Buscar pedidos por nome">
             <label htmlFor="admin-name-search">Buscar pelo nome da pessoa</label>
@@ -292,7 +367,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
                 <div className="admin-order-facts"><span>{order.method === "delivery" ? `Entrega · ${addressWithNeighborhood(order.address, order.neighborhood)}${order.delivery_fee === null && order.total !== null ? " · taxa a combinar no WhatsApp" : ""}` : `Retirada no ${eventLocation.name}`}</span><strong>{order.total === null ? "Total a definir" : money(order.total)}</strong></div>
                 {order.delivery_driver_name && <p className="admin-order-note"><strong>Entregador: {order.delivery_driver_name}</strong> · Rota #{order.delivery_route_id?.slice(0, 6).toUpperCase()} · <a href="/admin/entregas">Gerenciar rota</a></p>}
                 {order.notes && <p className="admin-order-note">Observação: {order.notes}</p>}
-                {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > data.settings.capacity ? " · acima da capacidade" : ""}</p>}
+                {position && <p className="admin-order-priority"><Clock3 size={14} /> Prioridade pelo pagamento: hambúrgueres {position.start}–{position.end}{position.end > dayCapacity ? " · acima da capacidade" : ""}</p>}
                 {notices.length > 0 && <p className="admin-order-note">Avisos: {notices.map(notice => `${notice.channel === "email" ? "E-mail" : "WhatsApp"} ${noticeEvents[notice.event] ?? notice.event} (${notice.state === "accepted" ? `aceito pelo ${notice.channel === "email" ? "Resend" : "Evolution"}` : noticeStates[notice.state] ?? notice.state})`).join(" · ")}</p>}
                 {order.paid_at && order.status !== "refunded" && <div className="admin-order-flow" aria-label={`Andamento: ${labels[order.status] || order.status}`}>
                   {steps.map((step, index) => <span key={step} className={index < steps.indexOf(order.status) ? "done" : index === steps.indexOf(order.status) ? "current" : ""} aria-current={step === order.status ? "step" : undefined}>{labels[step]}</span>)}
@@ -314,7 +389,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
               </article>;
             })}
           </div>
-        </section>
+        </section>}
       </>}
     </main>
   </div>;

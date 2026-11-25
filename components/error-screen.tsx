@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { MessageCircle } from "lucide-react";
 import BrandAvatar from "./brand-avatar";
@@ -9,7 +10,7 @@ export default function ErrorScreen({ code, title, message, action }: { code: st
   return <div className="error-page">
     <header className="error-topbar wrap"><Link className="brand" href="/"><BrandAvatar /><span>BLUECKYARDIGANS</span></Link></header>
     <main className="error-wrap">
-      <p className="error-code" aria-hidden="true">{code}</p>
+      <div className="error-hero" aria-hidden="true"><p className="error-code">{code}</p><Image className="error-pablo" src="/pablo/pablo-olhando.webp" width={167} height={280} sizes="120px" alt="" /></div>
       <h1>{title}</h1>
       <p className="error-message">{message}</p>
       <div className="error-actions">

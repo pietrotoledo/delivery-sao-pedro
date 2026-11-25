@@ -57,7 +57,7 @@ export default function StorefrontMenu({products, cart, paused, onChange, onAddC
   function stepper(product: MenuProduct) {
     const quantity = cart.quantities[product.id] ?? 0;
     const atLimit = quantity >= Math.min(20, product.stock ?? 20) || (product.category === "burger" && burgerCount >= 20);
-    return <div className="menu-item-stepper"><button type="button" onClick={() => onChange(product.id, -1)} disabled={paused || quantity < 1} aria-label={`Retirar uma unidade de ${product.name}`}><Minus size={17} /></button><b aria-live="polite">{quantity}</b><button type="button" onClick={() => onChange(product.id, 1)} disabled={paused || atLimit} aria-label={`Adicionar uma unidade de ${product.name}`}><Plus size={17} /></button></div>;
+    return <div className="menu-item-stepper"><button type="button" onClick={() => onChange(product.id, -1)} disabled={paused || quantity < 1} aria-label={`Retirar uma unidade de ${product.name}`}><Minus size={17} /></button><b aria-live="polite"><span className="qty-pop" key={quantity}>{quantity}</span></b><button type="button" onClick={() => onChange(product.id, 1)} disabled={paused || atLimit} aria-label={`Adicionar uma unidade de ${product.name}`}><Plus size={17} /></button></div>;
   }
 
   return <>

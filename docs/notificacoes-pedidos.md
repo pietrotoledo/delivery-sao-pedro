@@ -14,7 +14,19 @@ O comprador pode aceitar avisos pelo WhatsApp no checkout quando a integração 
 
 Em pedidos de entrega com taxa a combinar (Bancários, Portal do Sol e Intermares, até R$ 60), o aviso de pagamento confirmado inclui: "Vamos calcular o seu frete pelo Uber Moto e te enviar o valor por aqui no WhatsApp". A página do pedido mostra o mesmo aviso e o número da loja.
 
-Eventos: Pix disponível; pagamento confirmado; em preparo; pronto; saiu para entrega; concluído. O link Pix é enviado apenas depois de gerado pela InfinitePay. O pagamento é comunicado somente depois da verificação pelo `payment_check`.
+O número da loja já levou um bloqueio de 24 horas, então o WhatsApp manda só o essencial (o e-mail continua com todos os eventos):
+
+| Evento | WhatsApp |
+| --- | --- |
+| Pix gerado | Só se o pagamento não cair em 15 minutos, como lembrete com o link |
+| Pagamento confirmado | Sim, exceto quando a equipe confirma um pagamento presencial (`manual_paid`) |
+| Em preparo | Não |
+| Pronto | Só na retirada |
+| Saiu para entrega | Sim |
+| Concluído | Não |
+| Lembrete no dia do evento | Não. O "pagamento confirmado" já traz data e horário, e o agendamento não registra mais lembretes |
+
+Entre duas mensagens quaisquer da loja há no mínimo 1 minuto, com trava no banco. O agendamento de cinco minutos envia até três por rodada, esperando de 1 a 2 minutos entre elas, e cada mensagem mostra "digitando..." por 2 a 4 segundos antes de chegar. Quando o painel admin dispara uma nova tentativa, ele envia no máximo uma mensagem. O link Pix é enviado apenas depois de gerado pela InfinitePay. O pagamento é comunicado somente depois da verificação pelo `payment_check`.
 
 Configure estes segredos de runtime no Worker da Cloudflare, sem gravar valores no Git:
 

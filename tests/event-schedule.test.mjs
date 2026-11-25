@@ -10,16 +10,13 @@ vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/event-schedul
 }).outputText, context);
 const { dueEventReminder, eventReminderActive, eventReminderText, orderEventSchedule } = context.exports;
 
-test('reminders start at 11h and 18h in João Pessoa and expire after their sending window', () => {
+test('a single reminder starts at 11h in João Pessoa and expires at 14h', () => {
   const cases = [
     ['2026-12-03T13:59:59Z', null],
     ['2026-12-03T14:00:00Z', 'event_morning'],
-    ['2026-12-03T14:59:59Z', 'event_morning'],
-    ['2026-12-03T15:00:00Z', null],
-    ['2026-12-03T20:59:59Z', null],
-    ['2026-12-03T21:00:00Z', 'event_evening'],
-    ['2026-12-03T21:59:59Z', 'event_evening'],
-    ['2026-12-03T22:00:00Z', null],
+    ['2026-12-03T16:59:59Z', 'event_morning'],
+    ['2026-12-03T17:00:00Z', null],
+    ['2026-12-03T21:00:00Z', null],
     ['2026-10-29T14:00:00Z', null],
     ['2026-10-31T14:00:00Z', null],
     ['2027-12-03T14:00:00Z', null],
@@ -41,4 +38,11 @@ test('messages distinguish delivery start from pickup hours and include the even
   }
   assert.match(orderEventSchedule('delivery'), /3 de dezembro de 2026/);
   assert.match(orderEventSchedule('pickup'), /18h às 22h/);
+});
+
+test('outro dia de vendas aberto no painel muda a data das mensagens e do lembrete', () => {
+  assert.match(eventReminderText('delivery', 'event_morning', '2026-12-10'), /nesta quinta-feira, 10 de dezembro/);
+  assert.match(orderEventSchedule('pickup', '2026-12-12'), /12 de dezembro de 2026/);
+  assert.equal(dueEventReminder(new Date('2026-12-10T14:30:00Z'), '2026-12-10')?.event, 'event_morning');
+  assert.equal(dueEventReminder(new Date('2026-12-10T14:30:00Z')), null);
 });

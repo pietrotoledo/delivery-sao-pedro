@@ -66,6 +66,8 @@ function screen(kind, fetch) {
     '@/lib/store-contact': { phoneLabel: value => value },
     '@/lib/order-item-labels': { orderItemLabels: () => [] },
     '@/lib/event-location': { eventLocation: { name: 'Teste' } },
+    './admin-report': { default: () => null, dayLabel: day => day },
+    './admin-kanban': { default: () => null },
   }, { window, setTimeout: setTimer, clearTimeout: key => timers.delete(key), setInterval,
     clearInterval: key => intervals.delete(key), URLSearchParams }).default;
   function nodes(node) {

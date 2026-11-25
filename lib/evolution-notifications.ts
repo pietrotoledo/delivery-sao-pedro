@@ -47,7 +47,7 @@ export function orderNoticeMessage(order: Order, event: OrderNotice, origin: str
     case "pix_available":
       return order.checkout_url && !order.paid_at
         ? `${prefix}Seu Pix est\u00e1 pronto. Confira o valor e pague aqui: ${order.checkout_url}\nAcompanhe o pedido: ${track}` : null;
-    case "paid": return `${prefix}Pagamento confirmado! Seu pedido está garantido para a Noite do Hambúrguer.\n\n${orderEventSchedule(order.method)}${deliveryFeeToArrange(order) ? `\n\n${uberMotoNotice}` : ""}\n\nAcompanhe seu pedido: ${track}`;
+    case "paid": return `${prefix}Pagamento confirmado! Seu pedido está garantido para a Noite do Hambúrguer.\n\n${orderEventSchedule(order.method, order.event_day)}${deliveryFeeToArrange(order) ? `\n\n${uberMotoNotice}` : ""}\n\nAcompanhe seu pedido: ${track}`;
     case "preparing": return `${prefix}Seu pedido est\u00e1 em preparo. Acompanhe: ${track}`;
     case "ready": return order.method === "pickup"
       ? `${prefix}Seu pedido est\u00e1 pronto para retirada. Leve os quatro \u00faltimos d\u00edgitos do telefone usado na compra. Acompanhe: ${track}`
@@ -55,8 +55,30 @@ export function orderNoticeMessage(order: Order, event: OrderNotice, origin: str
     case "out_for_delivery": return `${prefix}Seu pedido saiu para entrega. Informe ao entregador os quatro \u00faltimos d\u00edgitos do telefone usado na compra. Acompanhe: ${track}`;
     case "completed": return `${prefix}Seu pedido foi finalizado. Obrigado pela compra! ${track}`;
     case "event_morning":
-    case "event_evening": return `${prefix}${eventReminderText(order.method, event)}\nAcompanhe seu pedido: ${track}`;
+    case "event_evening": return `${prefix}${eventReminderText(order.method, event, order.event_day)}\nAcompanhe seu pedido: ${track}`;
   }
+}
+
+// O número da loja já levou bloqueio de 24h. O WhatsApp manda só o essencial; o e-mail continua com todos os eventos.
+// Fica fora: Pix logo após o pedido, pagamento confirmado no presencial, "em preparo", "pronto" na entrega,
+// conclusão e os lembretes do dia do evento (o "pagamento confirmado" já traz data e horário).
+export const whatsappPixReminderMinutes = 15;
+// Intervalo mínimo entre duas mensagens quaisquer da loja (1 min), mais até 1 min aleatório no envio agendado.
+export const whatsappGap = { minSeconds: 60, jitterSeconds: 60 } as const;
+
+export function skippedOnWhatsapp(order: Pick<Order, "method" | "payment_mode">, event: OrderNotice) {
+  return event === "preparing" || event === "completed" || event === "event_morning" || event === "event_evening"
+    || (event === "ready" && order.method !== "pickup")
+    || (event === "paid" && order.payment_mode === "manual");
+}
+
+export function whatsappNoticeMessage(order: Order, event: OrderNotice, origin: string) {
+  if (skippedOnWhatsapp(order, event)) return null;
+  if (event === "pix_available") {
+    if (!order.checkout_url || order.paid_at) return null;
+    return `BLUECKYARDIGANS · Pedido #${order.id.slice(0, 8).toUpperCase()}\nSeu pedido ainda está aguardando o Pix. Se ainda quiser garantir seu hambúrguer, pague aqui: ${order.checkout_url}`;
+  }
+  return orderNoticeMessage(order, event, origin);
 }
 
 function phoneNumber(order: Order) {
@@ -75,34 +97,43 @@ export function scheduleOrderNotice(orderId: string, event: OrderNotice, origin:
 async function enqueueOrderNotice(orderId: string, event: OrderNotice, origin: string) {
   const order = await getOrder(orderId);
   if (!order?.whatsapp_opt_in || order.contact_deleted_at || !phoneNumber(order)) return;
-  const text = orderNoticeMessage(order, event, new URL(origin).origin);
+  const text = whatsappNoticeMessage(order, event, new URL(origin).origin);
   if (!text) return;
   await ensureSchema();
   const now = new Date().toISOString();
   const id = `${orderId}:${event}`;
-  const result = await db().prepare("INSERT OR IGNORE INTO order_notifications (id,order_id,event,message,updated_at) VALUES (?,?,?,?,?)")
-    .bind(id, orderId, event, text, now).run();
+  // O Pix só vira mensagem se o pagamento não cair dentro do prazo; o envio confere o pagamento antes.
+  const sendAfter = event === "pix_available" ? new Date(Date.now() + whatsappPixReminderMinutes * 60_000).toISOString() : null;
+  const result = await db().prepare("INSERT OR IGNORE INTO order_notifications (id,order_id,event,message,next_attempt_at,updated_at) VALUES (?,?,?,?,?,?)")
+    .bind(id, orderId, event, text, sendAfter, now).run();
   if (!result.meta.changes) return;
   await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE order_id=? AND id<>? AND event NOT IN ('event_morning','event_evening') AND state IN ('pending','failed')")
     .bind(now, orderId, id).run();
-  await sendNotice(id);
+  if (!sendAfter) await sendNotice(id);
 }
 
+/** Returns true when a message was submitted to Evolution (even if the answer was lost). */
 async function sendNotice(id: string) {
   const config = settings();
-  if (!config) return;
+  if (!config) return false;
   const now = new Date().toISOString();
-  const claim = await db().prepare("UPDATE order_notifications SET state='sending',attempts=attempts+1,updated_at=? WHERE id=? AND (state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)))")
-    .bind(now, id, now).run();
-  if (!claim.meta.changes) return;
+  const lastAllowed = new Date(Date.now() - whatsappGap.minSeconds * 1000).toISOString();
+  // A trava de intervalo fica no próprio claim, então dois envios simultâneos não passam juntos.
+  // Se travar, a mensagem continua pendente e o agendamento envia depois.
+  const claim = await db().prepare(`UPDATE order_notifications SET state='sending',attempts=attempts+1,updated_at=?
+    WHERE id=? AND state IN ('pending','failed') AND (next_attempt_at IS NULL OR next_attempt_at<=?)
+      AND NOT EXISTS (SELECT 1 FROM order_notifications recent WHERE recent.state IN ('sending','accepted','uncertain')
+        AND COALESCE(recent.accepted_at, recent.updated_at)>?)`)
+    .bind(now, id, now, lastAllowed).run();
+  if (!claim.meta.changes) return false;
   const notice = await db().prepare("SELECT * FROM order_notifications WHERE id=?").bind(id).first<NoticeRow>();
-  if (!notice) return;
+  if (!notice) return false;
   const order = await getOrder(notice.order_id, true);
   const number = order && phoneNumber(order);
-  const expiredReminder = isEventReminder(notice.event) && (!eventReminderActive(notice.event) || !order?.paid_at || order.status === "completed");
-  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || (order.method === "pickup" && (order.status === "completed" || notice.event === "completed")) || expiredReminder || pixNoticeExpired(order, notice.event)) {
+  const expiredReminder = isEventReminder(notice.event) && (!eventReminderActive(notice.event, new Date(), order?.event_day) || !order?.paid_at || order.status === "completed");
+  if (!order?.whatsapp_opt_in || order.contact_deleted_at || !number || order.status === "refunded" || (order.method === "pickup" && (order.status === "completed" || notice.event === "completed")) || expiredReminder || pixNoticeExpired(order, notice.event) || skippedOnWhatsapp(order, notice.event)) {
     await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE id=?").bind(new Date().toISOString(), id).run();
-    return;
+    return false;
   }
   let submitted = false;
   let rejected = false;
@@ -120,13 +151,14 @@ async function sendNotice(id: string) {
       const current = await getOrder(notice.order_id, true);
       if (!current || current.status === "completed" || current.status === "refunded" || !current.whatsapp_opt_in || current.contact_deleted_at) {
         await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE id=?").bind(new Date().toISOString(), id).run();
-        return;
+        return false;
       }
     }
     submitted = true;
     const response = await fetch(`${config.base}/message/sendText/${encodeURIComponent(config.instance)}`, {
       method: "POST", headers: {"Content-Type": "application/json", apikey: config.key},
-      body: JSON.stringify({number, text: notice.message}), signal: AbortSignal.timeout(10_000),
+      // "delay" mostra "digitando..." por alguns segundos antes da mensagem, como num envio feito à mão.
+      body: JSON.stringify({number, text: notice.message, delay: 2_000 + Math.floor(Math.random() * 2_000)}), signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {
       rejected = [401, 403, 404, 429].includes(response.status);
@@ -137,6 +169,7 @@ async function sendNotice(id: string) {
     if (!providerId) throw new Error("Evolution não confirmou o identificador da mensagem");
     await db().prepare("UPDATE order_notifications SET state='accepted',accepted_at=?,last_error=NULL,updated_at=? WHERE id=?")
       .bind(new Date().toISOString(), new Date().toISOString(), id).run();
+    return true;
   } catch (error) {
     const delayMinutes = Math.min(60, 2 ** Math.min(6, notice.attempts));
     const retryAt = new Date(Date.now() + delayMinutes * 60_000).toISOString();
@@ -146,15 +179,19 @@ async function sendNotice(id: string) {
     const reason = `${prefix}${providerId ? `Mensagem ${providerId}. ` : ""}${detail}`.slice(0, 300);
     await db().prepare("UPDATE order_notifications SET state=?,next_attempt_at=?,last_error=?,updated_at=? WHERE id=?")
       .bind(uncertain ? "uncertain" : "failed", uncertain ? null : retryAt, reason, new Date().toISOString(), id).run();
+    return submitted;
   }
 }
+
+const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export function scheduleNotificationRetries() {
   if (!evolutionEnabled()) return;
   waitUntil(retryEvolutionNotifications().catch(error => console.error("Falha ao repetir avisos Evolution", error)));
 }
 
-export async function retryEvolutionNotifications() {
+/** `spaced` waits between messages. Only the cron run uses it: requests from the admin panel cannot stay open that long. */
+export async function retryEvolutionNotifications({ spaced = false } = {}) {
   if (!evolutionEnabled()) return;
   await ensureNotificationSchema();
   const now = new Date().toISOString();
@@ -163,7 +200,10 @@ export async function retryEvolutionNotifications() {
     .bind(now, stale).run();
   await db().prepare("UPDATE order_notifications SET state='superseded',updated_at=? WHERE event='pix_available' AND state IN ('pending','failed') AND EXISTS (SELECT 1 FROM orders WHERE orders.id=order_notifications.order_id AND (paid_at IS NOT NULL OR status NOT IN ('ready_for_payment','awaiting_payment')))")
     .bind(now).run();
-  const rows = await db().prepare("SELECT id FROM order_notifications WHERE state='pending' OR (state='failed' AND (next_attempt_at IS NULL OR next_attempt_at<=?)) ORDER BY updated_at LIMIT ?")
-    .bind(now, notificationBatch.whatsapp).all<{id: string}>();
-  for (const row of rows.results) await sendNotice(row.id);
+  const rows = await db().prepare("SELECT id FROM order_notifications WHERE state IN ('pending','failed') AND (next_attempt_at IS NULL OR next_attempt_at<=?) ORDER BY COALESCE(next_attempt_at, updated_at) LIMIT ?")
+    .bind(now, spaced ? notificationBatch.whatsapp : 1).all<{id: string}>();
+  for (const [index, row] of rows.results.entries()) {
+    const sent = await sendNotice(row.id);
+    if (sent && index < rows.results.length - 1) await pause((whatsappGap.minSeconds + Math.random() * whatsappGap.jitterSeconds) * 1000);
+  }
 }
