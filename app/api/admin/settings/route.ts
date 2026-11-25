@@ -1,4 +1,5 @@
 import { adminOnly, config, db, ensureSchema, json, sameOrigin } from "@/lib/store";
+import { eventDayOf } from "@/lib/event-schedule";
 
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
 const validDay = (value: unknown): value is string => typeof value === "string" && dayPattern.test(value) && !Number.isNaN(Date.parse(`${value}T12:00:00Z`));
@@ -13,6 +14,7 @@ export async function PATCH(request: Request) {
   await ensureSchema();
   const current = await config();
   const day = body.currentDay ?? current.currentDay;
+  if (day !== current.currentDay && day < eventDayOf(new Date())) return json({error:"Esse dia já passou. Só dá para vender hoje ou numa data futura."},400);
   const now = new Date().toISOString();
   // Guarda o limite de cada dia: o dia que fecha mantém o limite dele no relatório.
   await db().batch([

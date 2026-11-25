@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ArrowUpRight, CirclePause, Clock3, Columns3, ContactRound, FileBarChart, LayoutDashboard, List, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CirclePause, Clock3, Columns3, ContactRound, FileBarChart, LayoutDashboard, List, MessageCircle, PackageCheck, RefreshCw, Search, ShoppingBag, Truck, Undo2 } from "lucide-react";
 import { orderItemLabels } from "@/lib/order-item-labels";
 import { eventLocation } from "@/lib/event-location";
 import { addressWithNeighborhood } from "@/lib/delivery-links";
@@ -169,7 +169,7 @@ export default function AdminDashboard({ view = "orders" }: { view?: "orders" | 
     if (!data) return;
     if (!window.confirm(`Começar a vender em ${dayLabel(day)} com limite de ${dayCapacity} hambúrgueres?
 
-O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de ${dayLabel(currentDay)} continuam guardados na trilha. Confira o estoque das bebidas e acompanhamentos na aba Produtos.`)) return;
+O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de ${dayLabel(currentDay)} continuam guardados. Confira o estoque das bebidas e acompanhamentos na aba Produtos.`)) return;
     dayRef.current = null;
     setSelectedDay(null);
     await changeSettings({ capacity: dayCapacity, paused: data.settings.paused, currentDay: day });
@@ -181,12 +181,18 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
   }
 
   async function removeDay(day: string) {
-    if (!window.confirm(`Remover ${dayLabel(day)} da trilha?`)) return;
+    if (!window.confirm(`Apagar ${dayLabel(day)}? Ele sai da lista de dias de venda.`)) return;
     if (dayRef.current === day) { dayRef.current = null; setSelectedDay(null); }
     await dayRequest("DELETE", undefined, day);
   }
 
-  async function dayRequest(method: "POST" | "DELETE", body?: unknown, day?: string) {
+  async function editDay(from: string, day: string, dayCapacity: number) {
+    if (from === currentDay && day !== from && !window.confirm(`Mudar o dia de vendas atual para ${dayLabel(day)}? A loja passa a mostrar a nova data.`)) return;
+    if (dayRef.current === from) { dayRef.current = day === currentDay || from === currentDay ? null : day; setSelectedDay(dayRef.current); }
+    await dayRequest("PATCH", { from, day, capacity: dayCapacity });
+  }
+
+  async function dayRequest(method: "POST" | "PATCH" | "DELETE", body?: unknown, day?: string) {
     setError("");
     try {
       const { response, result } = await requestJson<{ error?: string }>(`/api/admin/days${day ? `?day=${day}` : ""}`, {
@@ -303,12 +309,14 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
       {data && view === "deliveries" && <DeliveryDashboard embedded />}
       {data && view === "orders" && <>
         <div className="admin-toolbar">
-        <AdminDays days={data.days?.length ? data.days : [{ day: currentDay, orders: data.orders.length }]} currentDay={currentDay} viewingDay={viewingDay} defaultCapacity={data.settings.capacity} onView={chooseDay} onStart={startSelling} onAdd={addDay} onRemove={removeDay} />
+        <div className="admin-day-group">
+        <AdminDays days={data.days?.length ? data.days : [{ day: currentDay, orders: data.orders.length }]} currentDay={currentDay} viewingDay={viewingDay} defaultCapacity={data.settings.capacity} onView={chooseDay} onStart={startSelling} onAdd={addDay} onRemove={removeDay} onEdit={editDay} />
+        {selectedDay && <button type="button" className="admin-back-today" onClick={() => chooseDay(currentDay)}><Undo2 size={14} aria-hidden="true" /> Voltar para {dayLabel(currentDay, "short")}</button>}
+        </div>
         <nav className="admin-modes" aria-label="Forma de ver os pedidos">
           {([["list", "Lista", List], ["kanban", "Kanban", Columns3], ["report", "Relatório do dia", FileBarChart]] as const).map(([value, label, Icon]) => <button key={value} type="button" className={mode === value ? "selected" : ""} aria-pressed={mode === value} onClick={() => chooseMode(value)}><Icon size={16} aria-hidden="true" /> {label}</button>)}
         </nav>
         </div>
-        {selectedDay && <div className="admin-viewing" role="status"><span>Você está vendo <b>{dayLabel(viewingDay)}</b>. Os pedidos novos continuam entrando em {dayLabel(currentDay, "short")}.</span><button type="button" className="mini-button secondary" onClick={() => chooseDay(currentDay)}>Voltar ao dia atual</button></div>}
         {mode !== "report" && <section id="visao-geral" className="metric-grid" aria-label="Resumo dos pedidos">
           <div className={`metric ${data.paid >= dayCapacity ? "warning" : ""}`}><span>Hambúrgueres pagos</span><strong>{data.paid} <small>/ {dayCapacity}</small></strong><div className="progress-track"><div style={{ width: `${Math.min(100, data.paid / dayCapacity * 100)}%` }} /></div></div>
           <div className="metric"><span>Pedidos em andamento</span><strong>{activeOrders}</strong><small>Em preparo, prontos ou em entrega</small></div>
