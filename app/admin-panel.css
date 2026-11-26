@@ -11,12 +11,12 @@
 /* Faturamento até agora: a primeira coisa do painel, numa faixa larga e calma */
 .admin-hero { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 40px; padding: 22px 110px 22px 26px; border-radius: 18px; background: linear-gradient(135deg, #1d3f99 0%, #102d68 100%); color: #c4d3f0; box-shadow: 0 14px 30px rgba(16, 45, 104, .18); overflow: hidden; }
 .admin-hero-main { display: grid; gap: 4px; }
-.admin-hero-main span, .admin-hero-stats dt { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9fb4dd; }
+.admin-hero-main span, .admin-hero-total dt { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9fb4dd; }
 .admin-hero-main strong { font-family: "Barlow Condensed", Arial, sans-serif; font-size: clamp(40px, 4.4vw, 58px); font-weight: 800; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
 .admin-hero-main small { font-size: 12px; font-weight: 600; }
-.admin-hero-stats { display: flex; flex-wrap: wrap; gap: 14px 28px; margin: 0; padding-left: 28px; border-left: 1px solid rgba(255, 255, 255, .16); }
-.admin-hero-stats div { display: grid; gap: 4px; }
-.admin-hero-stats dd { margin: 0; font-size: 20px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.admin-hero-total { display: grid; justify-items: end; gap: 3px; margin: 0 0 0 auto; padding-left: 24px; border-left: 1px solid rgba(255, 255, 255, .16); text-align: right; }
+.admin-hero-total dd { margin: 0; font-size: 20px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.admin-hero-total small { font-size: 11px; font-weight: 600; }
 .admin-hero-pablo { position: absolute; right: 22px; bottom: -6px; width: 70px; height: auto; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); animation: pablo-bob 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
 
 /* Dia do evento no canto do topo, longe do conteúdo */
@@ -126,8 +126,7 @@
 @media (max-width: 700px) {
   .admin-hero { padding: 18px 18px 18px 18px; }
   .admin-hero-pablo { display: none; }
-  .admin-hero-stats { padding-left: 0; border-left: 0; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .16); width: 100%; }
-  .admin-hero-stats dd { font-size: 17px; }
+  .admin-hero-total { justify-items: start; width: 100%; margin: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(255, 255, 255, .16); text-align: left; }
   .admin-main .metric-grid .metric strong { font-size: 26px; }
   .admin-main .admin-head .day-picker { width: 100%; }
   .admin-head-pablo { position: absolute; top: 0; right: 0; width: 64px; margin: 0; }

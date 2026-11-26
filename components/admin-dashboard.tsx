@@ -306,14 +306,14 @@ O site passa a mostrar essa data e o contador recomeça do zero. Os pedidos de $
       {data && view === "orders" && <>
         <section className="admin-hero" aria-label="Faturamento">
           <div className="admin-hero-main">
-            <span>Faturamento até agora</span>
-            <strong>{wholeMoney(data.allTimeRevenue ?? revenue)}</strong>
-            <small>{(data.nightsWithSales ?? 0) === 1 ? "1 noite com vendas" : `${data.nightsWithSales ?? 0} noites com vendas`}</small>
+            <span>Faturamento da noite · {dayLabel(viewingDay, "short").replace(/\./g, "")}</span>
+            <strong>{wholeMoney(revenue)}</strong>
+            <small>{paidOrders.length} {paidOrders.length === 1 ? "pedido pago" : "pedidos pagos"}{paidOrders.length ? ` · ticket médio ${wholeMoney(Math.round(revenue / paidOrders.length))}` : ""}</small>
           </div>
-          <dl className="admin-hero-stats">
-            <div><dt>{isCurrentDay ? "Esta noite" : `Noite de ${dayLabel(viewingDay, "short")}`}</dt><dd>{wholeMoney(revenue)}</dd></div>
-            <div><dt>Pedidos pagos</dt><dd>{paidOrders.length}</dd></div>
-            <div><dt>Ticket médio</dt><dd>{paidOrders.length ? wholeMoney(Math.round(revenue / paidOrders.length)) : "–"}</dd></div>
+          <dl className="admin-hero-total">
+            <dt>Faturamento total</dt>
+            <dd>{wholeMoney(data.allTimeRevenue ?? revenue)}</dd>
+            <small>{(data.nightsWithSales ?? 0) === 1 ? "1 noite com vendas" : `${data.nightsWithSales ?? 0} noites com vendas`}</small>
           </dl>
           <Image className="admin-hero-pablo" src="/pablo/pablo-comemorando.webp" width={259} height={331} sizes="64px" alt="" priority />
         </section>
