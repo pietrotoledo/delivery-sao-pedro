@@ -45,6 +45,27 @@
 @keyframes smoke-rise { from { transform: translateY(0) scale(.6); opacity: .7; } to { transform: translateY(-46px) scale(1.6); opacity: 0; } }
 .smoke { transform-box: fill-box; transform-origin: center; }
 
+/* A turma: cada um sobe por trás da cerca na frente da sua casa, balança e, de tempos em tempos, um pulinho passa de um para o outro */
+.site-shell .hero-backyard .hero-inner { pointer-events: none; }
+.site-shell .hero-backyard .hero-inner > * { pointer-events: auto; }
+.backyard-houses .friend { pointer-events: auto; }
+.friend-scale, .friend-body, .friend-img { transform-box: fill-box; }
+.friend-scale { transform-origin: 50% 100%; }
+.friend-peek { animation: friend-peek .8s cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes friend-peek { from { transform: translateY(160px); } to { transform: translateY(0); } }
+.friend-body { transform-origin: 50% 100%; filter: drop-shadow(0 6px 10px rgba(3, 12, 40, .5)); animation: friend-sway 5.2s ease-in-out infinite; }
+@keyframes friend-sway { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg) translateY(-3px); } }
+.friend-tyrone .friend-tyrone .friend-img { transform-origin: 50% 100%; animation: friend-hello 9s ease-in-out infinite; }
+@keyframes friend-hello { 0%, 84%, 100% { transform: translateY(0); } 87% { transform: translateY(-16px) rotate(-3deg); } 90% { transform: translateY(0) scale(1.04, .95); } 92.5% { transform: translateY(-7px) rotate(2deg); } 95% { transform: translateY(0); } }
+.friend-tag rect { fill: var(--brand-yellow, #ffd536); }
+.friend-tag text { fill: #071b50; font-size: 13px; font-weight: 800; letter-spacing: .02em; }
+.friend-tag { opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .25s cubic-bezier(.34, 1.56, .64, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .friend:hover .friend-tag { opacity: 1; transform: none; }
+  .friend:hover .friend-body { animation: friend-hop .6s cubic-bezier(.23, 1, .32, 1); }
+}
+@keyframes friend-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-30px) rotate(5deg); } 70% { transform: translateY(0) scaleY(.93); } }
+
 /* Hélice do boné do Pablo em cima do avatar */
 .brand-avatar-wrap { position: relative; display: block; flex: none; }
 .brand-propeller { position: absolute; z-index: 1; left: 50%; top: -7px; width: 4px; height: 8px; margin-left: -2px; border-radius: 2px; background: #ffd536; }
@@ -58,11 +79,6 @@
 .backyard-fence pattern path { fill: #c9d6f2; stroke: #8fa3d0; stroke-width: 2; }
 .fence-rail { fill: #9fb2dc; }
 .backyard-grass { position: absolute; z-index: 3; inset: auto 0 0; height: 22px; background: #10345a; -webkit-mask: radial-gradient(7px 15px at 50% 100%, #000 98%, transparent) 0 100% / 13px 100% repeat-x, linear-gradient(#000, #000) 0 100% / 100% 8px no-repeat; mask: radial-gradient(7px 15px at 50% 100%, #000 98%, transparent) 0 100% / 13px 100% repeat-x, linear-gradient(#000, #000) 0 100% / 100% 8px no-repeat; }
-.backyard-pablo { position: absolute; z-index: 1; left: calc(63% - 59px); bottom: 26px; width: 118px; height: auto; transform: rotate(-4deg); transform-origin: 50% 100%; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .35)); pointer-events: auto; animation: pablo-peek .7s cubic-bezier(.34, 1.56, .64, 1) 1.9s both, pablo-wave 6s ease-in-out 3.4s infinite; }
-@keyframes pablo-peek { from { transform: translateY(115%) rotate(-4deg); } to { transform: translateY(0) rotate(-4deg); } }
-@keyframes pablo-wave { 0%, 16%, 100% { transform: rotate(-4deg); } 4% { transform: rotate(5deg); } 8% { transform: rotate(-7deg); } 12% { transform: rotate(4deg); } }
-@keyframes pablo-hop { 0%, 100% { transform: translateY(0) rotate(-4deg); } 40% { transform: translateY(-34px) rotate(6deg); } 70% { transform: translateY(0) rotate(-4deg) scaleY(.92); } }
-@media (hover: hover) and (pointer: fine) { .backyard-pablo:hover { animation: pablo-hop .55s cubic-bezier(.23, 1, .32, 1); } }
 
 /* Logo: o mascote dá uma volta ao passar o mouse */
 @media (hover: hover) and (pointer: fine) { .site-shell .brand:hover .brand-avatar { animation: avatar-spin .6s cubic-bezier(.23, 1, .32, 1); } }
@@ -127,20 +143,31 @@
   .bunting { height: 54px; }
   .flag { width: 16px; height: 19px; margin-left: -8px; }
   .moon { top: 70px; width: 40px; height: 40px; }
-  .backyard-houses { height: 160px; bottom: 60px; width: 886px; left: calc(50% - 185px); }
+  .backyard-houses { height: 160px; bottom: 60px; width: 886px; left: calc(50% - 203px); }
   .checkout-pablo { width: 72px; }
   .status-pablo img { width: 84px; }
   .error-pablo { width: 84px; }
   .backyard { height: 150px; }
+  /* No celular só cabe uma casa: a câmera passeia de casa em casa, começando pelo Pablo */
+  .backyard-houses { animation: yard-tour 24s cubic-bezier(.65, 0, .35, 1) 4s infinite; }
+  .friend-scale { transform: scale(1.3); }
+  .friend-tag { opacity: 1; transform: none; }
   .backyard-fence { height: 72px; }
-  .backyard-pablo { left: min(calc(50% + 96px), calc(100% - 130px)); right: auto; bottom: 58px; width: 124px; }
   .order-pablo { width: 84px; }
   .cause { padding-top: 32px; }
   .cause-strip { border-radius: 16px; font-size: 13px; }
 }
+@keyframes yard-tour {
+  0%, 14% { transform: translateX(0); }
+  19%, 33% { transform: translateX(-277px); }
+  38%, 52% { transform: translateX(-516px); }
+  57%, 71% { transform: translateX(-704px); }
+  79%, 93% { transform: translateX(268px); }
+  100% { transform: translateX(0); }
+}
 @media (max-width: 1000px) and (min-width: 701px) { .site-shell .site-header .toplinks { gap: 18px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) {
-  .flag, .star, .cloud, .smoke, .backyard-houses .win, .brand-propeller i, .checkout-pablo, .status-pablo, .error-pablo, .backyard-pablo, .qty-pop, .site-shell .desktop-cart-icon, .site-shell .mobile-cart-count, .order-pablo { animation: none !important; }
+  .flag, .star, .cloud, .smoke, .backyard-houses, .backyard-houses .win, .friend-peek, .friend-body, .friend-img, .brand-propeller i, .checkout-pablo, .status-pablo, .error-pablo, .qty-pop, .site-shell .desktop-cart-icon, .site-shell .mobile-cart-count, .order-pablo { animation: none !important; }
   .site-shell .button-yellow:active:not(:disabled) { transform: none; }
   .backyard-houses .win { fill: #ffd96a; }
 }
@@ -209,8 +236,6 @@
   .site-shell .hero-backyard .route-picker .route-option { min-height: 36px; padding-block: 4px; }
   .site-shell .hero-backyard .route-option .route-logo { width: 22px; height: 22px; }
   .backyard-houses { height: var(--houses-h); bottom: 70px; }
-  /* Pablo ao lado da árvore entre a casa laranja e a rosa (x=918 de 1440 no desenho) */
-  .backyard-pablo { left: calc(50% + var(--houses-h) * .76 - var(--houses-h) * .18); width: calc(var(--houses-h) * .36); bottom: 30px; }
 }
 
 /* Rodapé da gincana: bandeirinhas, estrelas e mar com barquinho de pescador */

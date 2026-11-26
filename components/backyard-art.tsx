@@ -188,7 +188,7 @@ export function BackyardHouses() {
     {[-244, -232, -220, -208].map((x, i) => <circle key={x} cx={x} cy={248} r="8" fill={i % 2 ? "#2f8f46" : "#3aa152"} />)}
 
     {/* casa roxa, à direita: térrea com telhado alto e escuro, janelinha no telhado à esquerda, porta amarela
-        com escada, duas janelas com venezianas vermelhas e chaminé de tijolo. Uma cerca de madeira separa o quintal dela do da casa rosa */}
+        com escada, duas janelas com venezianas vermelhas e chaminé de tijolo. Na frente, a cerca alta de tábuas com portãozinho */}
     <Chimney x={1542} y={62} h={66} />
     <House x={1360} y={178} w={222} h={74} d={40} roofH={96} wall="#a685d8" side="#8668bd" line="#9878cc" roof="#7b7a8c">
       <rect x="1376" y="190" width="30" height="62" fill="#f3dc8a" stroke="#d9c06c" strokeWidth="1.5" />
@@ -198,14 +198,24 @@ export function BackyardHouses() {
       <Win x={1524} y={196} w={30} h={30} order={13} shutter="#cf2335" grid />
     </House>
     <Dormer x={1392} y={112} wall="#a685d8" order={6} s={1.25} roof="#7b7a8c" />
-    {/* cerca de madeira marrom entre o quintal da casa rosa e o da casa roxa: postes com duas travessas na frente da lateral */}
+    {/* cerca alta de tábuas na frente da casa roxa, vista de frente: tábuas em dois tons, travessas e postes,
+        portãozinho de topo redondo no meio e arbustos grandes dos dois lados */}
     <g>
-      {Array.from({ length: 7 }, (_, i) => <g key={i}><path d={`M${1298 + i * 11} 214 l3 -4 l3 4 V252 h-6Z`} fill="#8b5a32" /></g>)}
-      <rect x="1296" y="222" width="76" height="5" fill="#a06a3d" /><rect x="1296" y="238" width="76" height="5" fill="#a06a3d" />
+      {Array.from({ length: 30 }, (_, i) => { const x = 1298 + i * 11; return <g key={i}>
+        <rect x={x} y={207 + (i % 3 === 1 ? -1 : 0)} width="11" height={45} fill={["#c9773a", "#bd6c31", "#d0803f"][i % 3]} />
+        <path d={`M${x + .5} 210V252`} stroke="#9e5626" strokeWidth="1" />
+        {i % 4 === 2 && <circle cx={x + 5.5} cy={226} r="1.2" fill="#8a4a1f" />}
+      </g>; })}
+      <rect x="1296" y="205" width="334" height="4" fill="#a85d29" />
+      <rect x="1296" y="216" width="334" height="3" fill="#a85d29" opacity=".7" /><rect x="1296" y="240" width="334" height="3" fill="#a85d29" opacity=".7" />
+      {[1296, 1404, 1520, 1626].map(x => <g key={x}><rect x={x - 3} y={200} width="9" height={52} fill="#a3592a" /><rect x={x - 4} y={198} width="11" height="4" fill="#c27238" /></g>)}
+      <path d="M1446 252V222a14 14 0 0 1 28 0V252Z" fill="#2f8a43" />
+      <path d="M1446 252V222a14 14 0 0 1 28 0V252" fill="none" stroke="#8f4c22" strokeWidth="3" />
+      <path d="M1450 236h20" stroke="#3aa152" strokeWidth="6" strokeLinecap="round" opacity=".7" />
+      {[[1352, 236, 22], [1374, 232, 18], [1334, 240, 15], [1394, 240, 13]].map(([cx, cy, r], i) => <circle key={i} cx={cx} cy={cy} r={r} fill={i % 2 ? "#2f8f46" : "#3aa152"} />)}
+      {[[1528, 236, 22], [1550, 232, 18], [1510, 240, 15], [1570, 240, 14]].map(([cx, cy, r], i) => <circle key={i} cx={cx} cy={cy} r={r} fill={i % 2 ? "#2f8f46" : "#3aa152"} />)}
+      {[[1346, 226], [1366, 236], [1540, 226], [1522, 238], [1560, 236]].map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="2.4" fill="#4fb864" />)}
     </g>
-    {[[1372, 246], [1370, 250], [1368, 254]].map(([x, y]) => <rect key={y} x={x} y={y} width="38" height="4" fill="#b9c8b4" stroke="#98a893" strokeWidth=".8" />)}
-    {[1424, 1438, 1452, 1566, 1580].map((x, i) => <circle key={x} cx={x} cy={248} r="8" fill={i % 2 ? "#2f8f46" : "#3aa152"} />)}
-    {[1428, 1570].map(x => <circle key={x} cx={x} cy={244} r="2.4" fill="#ffffff" />)}
     <Tree x={1640} y={158} s={1.05} />
 
     {/* casa azul do Pablo: andar de cima azul com janelas de seis vidros, andar de baixo de pedra, janelinha na ponta lateral do telhado */}
@@ -279,12 +289,42 @@ export function BackyardHouses() {
 
     {/* gramado do quintal, que é de todo mundo */}
     <rect x="0" y="252" width="1440" height="8" fill="#2f9a45" />
+
+    {/* a turma, cada um espiando por cima da cerca na frente da própria casa */}
+    <Friends />
   </svg>;
+}
+
+// A turma do quintal: cada um espia por cima da cerca na frente da própria casa.
+// "feet" é onde fica o pé no desenho; a cerca esconde da cintura para baixo.
+const friends = [
+  { id: "tasha", name: "Tasha", src: "/turma/tasha-em-pe.webp", x: -112, feet: 304, h: 165, ratio: 398 / 720, delay: 2.3 },
+  { id: "pablo", name: "Pablo", src: "/pablo/pablo-acenando.webp", x: 322, feet: 290, h: 134, ratio: 503 / 700, delay: 1.9 },
+  { id: "tyrone", name: "Tyrone", src: "/turma/tyrone-acenando.webp", x: 772, feet: 306, h: 180, ratio: 550 / 720, delay: 2.6 },
+  { id: "uniqua", name: "Uniqua", src: "/turma/uniqua-acenando.webp", x: 1160, feet: 296, h: 172, ratio: 445 / 720, delay: 2.9 },
+  { id: "austin", name: "Austin", src: "/turma/austin-acenando.webp", x: 1462, feet: 304, h: 190, ratio: 368 / 720, delay: 3.2 },
+];
+
+function Friends() {
+  return <g>{friends.map(({ id, name, src, x, feet, h, ratio, delay }, index) => {
+    const w = h * ratio, tag = name.length * 8 + 24;
+    return <g key={id} transform={`translate(${x} ${feet})`}>
+      <g className={`friend friend-${id}`}>
+        <g className="friend-peek" style={{ animationDelay: `${delay}s` }}>
+          <g className="friend-scale">
+            <g className="friend-body" style={{ animationDelay: `${-delay * 1.7}s` }}>
+              <image className="friend-img" href={src} x={-w / 2} y={-h} width={w} height={h} style={{ animationDelay: `${4.5 + index * 0.35}s` }} />
+            </g>
+            <g className="friend-tag"><rect x={-tag / 2} y={-h - 28} width={tag} height={22} rx={11} /><text x="0" y={-h - 12.5} textAnchor="middle">{name}</text></g>
+          </g>
+        </g>
+      </g>
+    </g>;
+  })}</g>;
 }
 
 export function BackyardFence() {
   return <div className="backyard" aria-hidden="true">
-    <Image className="backyard-pablo" src="/pablo/pablo-acenando.webp" width={503} height={700} sizes="160px" alt="" />
     <svg className="backyard-fence">
       <defs>
         <pattern id="picket" width="34" height="72" patternUnits="userSpaceOnUse">
