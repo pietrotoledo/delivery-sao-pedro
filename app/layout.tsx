@@ -13,6 +13,17 @@ export const metadata: Metadata = {
   title: "BLUECKYARDIGANS | Noite do Hambúrguer",
   description: "Noite do Hambúrguer Blueckyardigans. Entregas a partir das 19h e retirada no Edifício Valle Verzasca, R. Manoel Bezerra Cavalcanti, 65 - Manaíra, João Pessoa - PB, das 18h às 22h. Uma iniciativa do EJC da Igreja São Pedro Pescador.",
   icons: { icon: "/mascote.png" },
+  // Prévia do link no WhatsApp e redes: foto do hambúrguer, não o ícone do Pablo.
+  metadataBase: new URL("https://delivery-sao-pedro.pietroct21.workers.dev"),
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Blueckyardigans",
+    title: "Noite do Hambúrguer · quinta, 3 de dezembro",
+    description: "Hambúrguer artesanal com entrega em João Pessoa a partir das 19h. Toda a renda vai para instituições carentes. Peça pelo site.",
+    images: [{ url: "/og-hamburguer.jpg", width: 1200, height: 630, alt: "Hambúrguer artesanal da Noite do Hambúrguer, 3 de dezembro" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og-hamburguer.jpg"] },
 };
 
 export const viewport: Viewport = {
