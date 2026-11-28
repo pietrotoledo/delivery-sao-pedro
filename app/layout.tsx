@@ -19,11 +19,11 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     siteName: "Blueckyardigans",
-    title: "Noite do Hambúrguer · quinta, 3 de dezembro",
+    title: "Noite do Hambúrguer · quarta, 2 de dezembro",
     description: "Hambúrguer artesanal com entrega em João Pessoa a partir das 19h. Toda a renda vai para instituições carentes. Peça pelo site.",
-    images: [{ url: "/og-hamburguer.jpg", width: 1200, height: 630, alt: "Hambúrguer artesanal da Noite do Hambúrguer, 3 de dezembro" }],
+    images: [{ url: "/og-hamburguer-2dez.jpg", width: 1200, height: 630, alt: "Hambúrguer artesanal da Noite do Hambúrguer, 2 de dezembro" }],
   },
-  twitter: { card: "summary_large_image", images: ["/og-hamburguer.jpg"] },
+  twitter: { card: "summary_large_image", images: ["/og-hamburguer-2dez.jpg"] },
 };
 
 export const viewport: Viewport = {
